@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AD-AS & Phillips Curve Interactive Framework</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --panel-bg: #ffffff;
+            --primary-dark: #2c3e50;
+            --color-ad: #2980b9;
+            --color-sras: #d35400;
+            --color-lras: #27ae60;
+            --color-srpc: #8e44ad;
+            --color-lrpc: #34495e;
+            --color-actual: #e74c3c;
+            --color-ref: #b2bec3;
+        }
+
+        body {
+            margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif;
+            background: var(--bg-color); color: var(--primary-dark);
+            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+        }
+
+        header {
+            background: var(--primary-dark); color: white; padding: 10px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        h1 { margin: 0; font-size: 1.3rem; }
+        .copyright { font-size: 0.85rem; opacity: 0.8; font-weight: 600; }
+
+        .dashboard {
+            display: grid; 
+            grid-template-columns: 2fr repeat(4, 1fr);
+            background: #e9ecef; padding: 10px 20px; gap: 15px; border-bottom: 1px solid #dee2e6;
+            align-items: center;
+        }
+        .stat-card {
+            background: white; padding: 8px 12px; border-radius: 6px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); text-align: center;
+            min-width: 0;
+        }
+        .stat-label { font-size: 0.8rem; font-weight: 600; color: #7f8c8d; margin-bottom: 2px; text-transform: uppercase; }
+        .stat-value { font-size: 1.15rem; font-weight: 800; font-family: 'Consolas', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .main-container {
+            flex: 1; display: flex; flex-direction: row; padding: 15px; gap: 15px; min-height: 0;
+        }
+
+        .chart-box {
+            flex: 1; background: var(--panel-bg); border: 1px solid #ced4da;
+            border-radius: 8px; padding: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex; flex-direction: column; min-width: 0;
+        }
+        .chart-box h3 { margin: 0 0 8px 0; font-size: 1.05rem; text-align: center; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+        .chart-wrapper { flex: 1; position: relative; min-height: 0; }
+
+        .control-panel {
+            background: white; padding: 12px 20px; border-top: 2px solid #dee2e6;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+
+        .shock-selectors {
+            display: flex; justify-content: center; gap: 20px; align-items: center;
+        }
+        .shock-title { font-weight: 700; font-size: 0.95rem; color: var(--primary-dark); }
+        
+        .radio-label {
+            display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.9rem;
+            cursor: pointer; padding: 5px 12px; border: 1px solid #ced4da; border-radius: 20px;
+            transition: all 0.2s ease; background: #f8f9fa;
+        }
+        input[type="radio"] { display: none; }
+        input[type="radio"]:checked + .radio-label {
+            background: var(--primary-dark); color: white; border-color: var(--primary-dark);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        .slider-container { display: flex; flex-direction: column; gap: 4px; padding: 0 10px; }
+        .slider-top { display: flex; align-items: center; gap: 15px; }
+        .slider-label { font-weight: 700; min-width: 220px; font-size: 0.95rem; }
+        input[type="range"] { flex: 1; cursor: pointer; accent-color: var(--primary-dark); height: 8px; }
+        
+        .timeline-ticks {
+            display: flex; justify-content: space-between; padding: 0 5px;
+            font-size: 0.8rem; font-weight: 600; color: #7f8c8d;
+        }
+        .tick-mark { flex: 1; text-align: center; }
+        .tick-mark:first-child { text-align: left; }
+        .tick-mark:last-child { text-align: right; }
+
+        .info-blue { color: var(--color-ad); }
+        .info-orange { color: var(--color-sras); }
+        .info-green { color: var(--color-lras); }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Macroeconomics Lab: Dynamic AD-AS & Phillips Curve Mapping</h1>
+    <div class="copyright">© 2026 Dr. Jia's Instructional Suite</div>
+</header>
+
+<div class="dashboard">
+    <div class="stat-card"><div class="stat-label">Economic Phase</div><div class="stat-value" id="dispPhase">-</div></div>
+    <div class="stat-card"><div class="stat-label">Real GDP (Y)</div><div class="stat-value" id="dispY">100.0</div></div>
+    <div class="stat-card"><div class="stat-label">Price Level (PL)</div><div class="stat-value" id="dispP">100.0</div></div>
+    <div class="stat-card"><div class="stat-label">Unemployment Rate (u)</div><div class="stat-value" id="dispUnrate">5.0%</div></div>
+    <div class="stat-card"><div class="stat-label">Inflation Rate (π)</div><div class="stat-value" id="dispInf">6.0%</div></div>
+</div>
+
+<div class="main-container">
+    <div class="chart-box">
+        <h3>1. AD-AS Model (Aggregate Market)</h3>
+        <div class="chart-wrapper">
+            <canvas id="adasChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-box">
+        <h3>2. Phillips Curve Model (Labor & Inflation)</h3>
+        <div class="chart-wrapper">
+            <canvas id="pcChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="control-panel">
+    <div class="shock-selectors">
+        <span class="shock-title">⚡ Select Economic Shock:</span>
+        
+        <input type="radio" id="shockPosAD" name="shockType" value="posAD" checked>
+        <label for="shockPosAD" class="radio-label">📈 +AD Shock (Expansion)</label>
+
+        <input type="radio" id="shockNegAD" name="shockType" value="negAD">
+        <label for="shockNegAD" class="radio-label">📉 -AD Shock (Recession)</label>
+
+        <input type="radio" id="shockNegSRAS" name="shockType" value="negSRAS">
+        <label for="shockNegSRAS" class="radio-label">🌋 -SRAS Shock (Stagflation)</label>
+
+        <input type="radio" id="shockPosSRAS" name="shockType" value="posSRAS">
+        <label for="shockPosSRAS" class="radio-label">🌾 +SRAS Shock (Boom)</label>
+    </div>
+
+    <div class="slider-container">
+        <div class="slider-top">
+            <span class="slider-label">⏱️ Macroeconomic Timeline:</span>
+            <input type="range" id="progressSlider" min="0" max="2" step="0.02" value="0">
+            <span id="sliderVal" style="font-family: monospace; font-weight: bold; width: 30px;">0.0</span>
+        </div>
+        <div class="timeline-ticks">
+            <span class="tick-mark">1. Long-Run Equilibrium (t=0)</span>
+            <span class="tick-mark">2. Short-Run Shock Impact (t=1)</span>
+            <span class="tick-mark">3. Long-Run Self-Correction (t=2)</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    let adasChart, pcChart;
+
+    const baseConfig = {
+        Yf: 100,
+        P_init: 100,
+        NRU: 5.0,
+        amp: 30 
+    };
+
+    const calculateEconomy = (type, s) => {
+        let adIntercept = 200;
+        let srasIntercept = 0;
+        let phase = "Long-Run Equilibrium";
+
+        if (s <= 1.0) {
+            // Phase 1: From Equilibrium to Shock
+            if (type === "posAD") {
+                adIntercept = 200 + baseConfig.amp * s;
+                phase = s > 0 ? "Short-Run Inflationary Gap" : "Long-Run Equilibrium";
+            } else if (type === "negAD") {
+                adIntercept = 200 - baseConfig.amp * s;
+                phase = s > 0 ? "Short-Run Recessionary Gap" : "Long-Run Equilibrium";
+            } else if (type === "negSRAS") {
+                srasIntercept = 0 + baseConfig.amp * s;
+                phase = s > 0 ? "Short-Run Stagflation Crisis" : "Long-Run Equilibrium";
+            } else if (type === "posSRAS") {
+                srasIntercept = 0 - baseConfig.amp * s;
+                phase = s > 0 ? "Short-Run Supply-Side Boom" : "Long-Run Equilibrium";
+            }
+        } else {
+            // Phase 2: From Shock to Self-Correction
+            let rem = s - 1.0;
+            if (type === "posAD") {
+                adIntercept = 200 + baseConfig.amp;
+                srasIntercept = 0 + baseConfig.amp * rem; // Wages rise -> SRAS shifts left
+                phase = "LR Self-Correction: Wages Rise";
+            } else if (type === "negAD") {
+                adIntercept = 200 - baseConfig.amp;
+                srasIntercept = 0 - baseConfig.amp * rem; // Wages fall -> SRAS shifts right
+                phase = "LR Self-Correction: Wages Fall";
+            } else if (type === "negSRAS") {
+                adIntercept = 200;
+                srasIntercept = baseConfig.amp - baseConfig.amp * rem; // Resource prices adjust back
+                phase = "LR Self-Correction: Supply Adjustment";
+            } else if (type === "posSRAS") {
+                adIntercept = 200;
+                srasIntercept = -baseConfig.amp + baseConfig.amp * rem; // Input market normalizes
+                phase = "LR Self-Correction: Supply Normalization";
+            }
+            if (s === 2.0) phase = "New Long-Run Equilibrium";
+        }
+
+        // AD: P = adIntercept - Y
+        // SRAS: P = srasIntercept + Y
+        // adIntercept - Y = srasIntercept + Y => 2Y = adIntercept - srasIntercept
+        let Y = (adIntercept - srasIntercept) / 2;
+        let P = srasIntercept + Y;
+
+        // Map to Phillips Curve parameters
+        // Unemployment rate (u): Inversely proportional to Output Gap
+        let u = baseConfig.NRU - 0.2 * (Y - baseConfig.Yf);
+        if (u < 0.5) u = 0.5;
+
+        // Inflation rate (π): Function of price level changes
+        let inflation = 6.0 + 0.25 * (P - 100);
+
+        return { Y, P, u, inflation, phase, adIntercept, srasIntercept, sValue: s };
+    };
+
+    function initCharts() {
+        const commonOpts = {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            plugins: { legend: { display: false } },
+            scales: { 
+                x: { type: 'linear', ticks: { display: false }, grid: { display: false } }, 
+                y: { type: 'linear', ticks: { display: false }, grid: { display: false } } 
+            }
+        };
+
+        // 1. Initial Reference Lines Data
+        const refAD = [{x: 60, y: 140}, {x: 140, y: 60}];
+        const refSRAS = [{x: 60, y: 60}, {x: 140, y: 140}];
+        
+        const refSRPC = [];
+        for (let uVal = 1; uVal <= 9; uVal += 0.5) {
+            let yVal = 100 - (uVal - 5) / 0.2;
+            let pVal = 0 + yVal;
+            refSRPC.push({ x: uVal, y: 6 + 0.25 * (pVal - 100) });
+        }
+
+        // 2. Instantiate AD-AS Chart
+        adasChart = new Chart(document.getElementById('adasChart'), {
+            type: 'scatter',
+            data: { datasets: [
+                { label: 'LRAS', borderColor: '#27ae60', borderWidth: 3, pointRadius: 0, showLine: true, data: [{x: 100, y: 40}, {x: 100, y: 160}] },
+                { label: 'AD₀ Ref', borderColor: '#b2bec3', borderWidth: 1.5, borderDash: [4, 4], pointRadius: 0, showLine: true, data: refAD },
+                { label: 'SRAS₀ Ref', borderColor: '#b2bec3', borderWidth: 1.5, borderDash: [4, 4], pointRadius: 0, showLine: true, data: refSRAS },
+                { label: 'AD Active', borderColor: '#2980b9', borderWidth: 2.5, pointRadius: 0, showLine: true, data: [] },
+                { label: 'SRAS Active', borderColor: '#d35400', borderWidth: 2.5, pointRadius: 0, showLine: true, data: [] },
+                { label: 'Equilibrium', backgroundColor: '#e74c3c', pointRadius: 7, data: [] }
+            ]},
+            options: {
+                ...commonOpts,
+                scales: {
+                    x: { min: 50, max: 150, title: { display: true, text: 'Real GDP (Y)', font: { weight: 'bold' } } },
+                    y: { min: 50, max: 150, title: { display: true, text: 'Price Level (PL)', font: { weight: 'bold' } } }
+                }
+            },
+            plugins: [{
+                id: 'adasInlineLabels',
+                afterDraw: (chart) => {
+                    if (!chart.eco) return;
+                    const ctx = chart.ctx;
+                    ctx.save();
+                    ctx.font = 'bold 12px "Segoe UI", Arial';
+
+                    // LRAS Label
+                    ctx.fillStyle = '#27ae60';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('LRAS', chart.scales.x.getPixelForValue(100), chart.scales.y.getPixelForValue(155));
+
+                    // AD Label
+                    ctx.fillStyle = '#2980b9';
+                    ctx.textAlign = 'left';
+                    ctx.fillText('AD', chart.scales.x.getPixelForValue(135), chart.scales.y.getPixelForValue(chart.eco.adIntercept - 135));
+
+                    // SRAS Label
+                    ctx.fillStyle = '#d35400';
+                    ctx.textAlign = 'left';
+                    ctx.fillText('SRAS', chart.scales.x.getPixelForValue(135), chart.scales.y.getPixelForValue(chart.eco.srasIntercept + 135));
+
+                    // Current Point Label
+                    ctx.fillStyle = '#e74c3c';
+                    let curX = chart.scales.x.getPixelForValue(chart.eco.Y);
+                    let curY = chart.scales.y.getPixelForValue(chart.eco.P);
+                    ctx.textAlign = chart.eco.Y > 120 ? 'right' : 'left';
+                    ctx.fillText('Eₜ', chart.eco.Y > 120 ? curX - 10 : curX + 10, curY - 4);
+                    
+                    ctx.restore();
+                }
+            }]
+        });
+
+        // 3. Instantiate Phillips Curve Chart
+        pcChart = new Chart(document.getElementById('pcChart'), {
+            type: 'scatter',
+            data: { datasets: [
+                { label: 'LRPC', borderColor: '#34495e', borderWidth: 3, pointRadius: 0, showLine: true, data: [{x: 5.0, y: -2}, {x: 5.0, y: 22}] },
+                { label: 'SRPC₀ Ref', borderColor: '#b2bec3', borderWidth: 1.5, borderDash: [4, 4], pointRadius: 0, showLine: true, data: refSRPC },
+                { label: 'SRPC Active', borderColor: '#8e44ad', borderWidth: 2.5, pointRadius: 0, showLine: true, data: [] },
+                { label: 'Current Position', backgroundColor: '#e74c3c', pointRadius: 7, data: [] }
+            ]},
+            options: {
+                ...commonOpts,
+                scales: {
+                    x: { min: 0, max: 10, title: { display: true, text: 'Unemployment Rate (u %)', font: { weight: 'bold' } } },
+                    y: { min: -2, max: 22, title: { display: true, text: 'Inflation Rate (π %)', font: { weight: 'bold' } } }
+                }
+            },
+            plugins: [{
+                id: 'pcInlineLabels',
+                afterDraw: (chart) => {
+                    if (!chart.eco) return;
+                    const ctx = chart.ctx;
+                    ctx.save();
+                    ctx.font = 'bold 12px "Segoe UI", Arial';
+
+                    // LRPC Label
+                    ctx.fillStyle = '#34495e';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('LRPC (at NRU)', chart.scales.x.getPixelForValue(5.0), chart.scales.y.getPixelForValue(21));
+
+                    // SRPC Label
+                    ctx.fillStyle = '#8e44ad';
+                    ctx.textAlign = 'left';
+                    let sampleU = 8.5;
+                    let sampleY = 100 - (sampleU - 5) / 0.2;
+                    let sampleP = chart.eco.srasIntercept + sampleY;
+                    let samplePi = 6 + 0.25 * (sampleP - 100);
+                    ctx.fillText('SRPC', chart.scales.x.getPixelForValue(sampleU), chart.scales.y.getPixelForValue(samplePi));
+
+                    // Point Label
+                    ctx.fillStyle = '#e74c3c';
+                    let curX = chart.scales.x.getPixelForValue(chart.eco.u);
+                    let curY = chart.scales.y.getPixelForValue(chart.eco.inflation);
+                    ctx.textAlign = chart.eco.u > 7 ? 'right' : 'left';
+                    ctx.fillText('Aₜ', chart.eco.u > 7 ? curX - 10 : curX + 10, curY - 4);
+
+                    ctx.restore();
+                }
+            }]
+        });
+    }
+
+    function updateSimulation() {
+        const shockType = document.querySelector('input[name="shockType"]:checked').value;
+        const s = parseFloat(document.getElementById('progressSlider').value);
+        document.getElementById('sliderVal').innerText = s.toFixed(2);
+
+        // 计算数值矩阵
+        const eco = calculateEconomy(shockType, s);
+
+        // 挂载数据到图表对象上供插件渲染使用
+        adasChart.eco = eco;
+        pcChart.eco = eco;
+
+        // 更新仪表盘数值
+        document.getElementById('dispY').innerText = eco.Y.toFixed(1);
+        document.getElementById('dispP').innerText = eco.P.toFixed(1);
+        document.getElementById('dispUnrate').innerText = eco.u.toFixed(1) + '%';
+        document.getElementById('dispInf').innerText = eco.inflation.toFixed(1) + '%';
+        
+        const phaseEl = document.getElementById('dispPhase');
+        phaseEl.innerText = eco.phase;
+        if (s === 0.0) phaseEl.style.color = 'var(--color-lras)';
+        else if (s <= 1.0) phaseEl.style.color = (shockType.includes('AD')) ? 'var(--color-ad)' : 'var(--color-sras)';
+        else phaseEl.style.color = '#d35400';
+
+        // --- 更新 AD-AS 数据集 ---
+        const activeAD = [{x: 60, y: eco.adIntercept - 60}, {x: 140, y: eco.adIntercept - 140}];
+        const activeSRAS = [{x: 60, y: eco.srasIntercept + 60}, {x: 140, y: eco.srasIntercept + 140}];
+        adasChart.data.datasets[3].data = activeAD;
+        adasChart.data.datasets[4].data = activeSRAS;
+        adasChart.data.datasets[5].data = [{x: eco.Y, y: eco.P}];
+        adasChart.update();
+
+        // --- 更新菲利普斯曲线数据集 ---
+        const activeSRPC = [];
+        for (let uVal = 1; uVal <= 9; uVal += 0.2) {
+            let yVal = 100 - (uVal - 5) / 0.2;
+            let pVal = eco.srasIntercept + yVal;
+            activeSRPC.push({ x: uVal, y: 6 + 0.25 * (pVal - 100) });
+        }
+        pcChart.data.datasets[2].data = activeSRPC;
+        pcChart.data.datasets[3].data = [{x: eco.u, y: eco.inflation}];
+        pcChart.update();
+    }
+
+    window.onload = () => {
+        initCharts();
+        
+        // 绑定事件监听
+        document.getElementById('progressSlider').addEventListener('input', updateSimulation);
+        document.querySelectorAll('input[name="shockType"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                // 切换冲击类型时，将时间重置回起点或前一步，方便对比
+                document.getElementById('progressSlider').value = 0;
+                updateSimulation();
+            });
+        });
+
+        // 首次运行初始化
+        updateSimulation();
+    };
+</script>
+</body>
+</html>
