@@ -246,6 +246,10 @@
             background: #e4f0e7;
             color: #2a6a4a;
         }
+		.card .badge.fundamentals {
+			background: #fef3c7;
+			color: #92400e;
+		}
 
         .card .arrow {
             margin-top: 0.8rem;
@@ -481,6 +485,8 @@
         .card:nth-child(16) { animation-delay: 0.32s; }
         .card:nth-child(17) { animation-delay: 0.34s; }
         .card:nth-child(18) { animation-delay: 0.36s; }
+		.card:nth-child(19) { animation-delay: 0.38s; }
+		.card:nth-child(20) { animation-delay: 0.40s; }
     </style>
 </head>
 <body>
@@ -489,7 +495,7 @@
 
     <!-- ===== Header ===== -->
     <header class="header">
-        <h1>📚 Economics <span>Teaching Tools</span></h1>
+        <h1>📚 Economics <span>Teaching&Learning Tools</span></h1>
         <p>Interactive simulations · Visual derivations · Study aid</p>
     </header>
 
@@ -498,14 +504,14 @@
         <p>
             These interactive tools were built through <strong>vibe coding</strong>.
             They are designed for <strong>IGCSE, IB, A‑Level, AP, and introductory university</strong> courses in economics.
-            Use them to visualise core concepts, run thought experiments, and reinforce your understanding of key models.
+            I hope you find them useful to visualise core concepts, run thought experiments, and reinforce your understanding of key models.
         </p>
     </div>
 
     <!-- ===== Stats ===== -->
     <div class="stats">
         <span>📦 <strong id="countDisplay">18</strong> tools</span>
-        <span>🏷️ <strong>3</strong> categories</span>
+        <span>🏷️ <strong>4</strong> categories</span>
     </div>
 
     <!-- ===== Search ===== -->
@@ -516,6 +522,7 @@
     <!-- ===== Filter Buttons ===== -->
     <div class="filter-tags" id="filterTags">
         <button class="active" data-filter="all">All</button>
+		<button data-filter="fundamentals">Fundamentals</button>
         <button data-filter="micro">Micro Principles</button>
         <button data-filter="macro">Macro Principles</button>
         <button data-filter="advanced">Advanced</button>
@@ -554,7 +561,7 @@
 
                     <button type="submit" data-fs-submit-btn>Send feedback</button>
                     <p style="margin-top:0.8rem;font-size:0.8rem;color:var(--text-secondary);">
-                        * Your data will not be shared. Read our privacy policy.
+                        * Your data will not be shared.
                     </p>
                 </form>
             </div>
@@ -594,12 +601,28 @@
         { name: 'IS-LM to AD', file: 'IS-LM to AD.html', icon: '📉', category: 'advanced', desc: 'Deriving AD from IS-LM' },
         { name: 'Least Cost Rule', file: 'Least cost rule.html', icon: '🎯', category: 'micro', desc: 'Cost‑minimization rule' },
         { name: 'Long Run Adjustment', file: 'Long run adjustment.html', icon: '⏳', category: 'micro', desc: 'Long‑run equilibrium adjustment' },
-        { name: 'Marginal Analysis', file: 'Marginal analysis.html', icon: '📐', category: 'micro', desc: 'Marginal benefit and cost analysis' },
+        { name: 'Marginal Analysis', file: 'Marginal analysis.html', icon: '📐', category: 'fundamentals', desc: 'Marginal benefit and cost analysis' },
         { name: 'Monopolistic Competition', file: 'Monopolistic Competition.html', icon: '🏪', category: 'micro', desc: 'Monopolistic competition model' },
         { name: 'Monopoly & Regulation', file: 'Monopoly and regulation.html', icon: '🏛️', category: 'micro', desc: 'Monopoly and government regulation' },
         { name: 'Nash Equilibrium Location', file: 'Nash-Eq Location game.html', icon: '📍', category: 'advanced', desc: 'Nash equilibrium in location games' },
         { name: 'Price Control', file: 'Price Control.html', icon: '📏', category: 'micro', desc: 'Price ceilings and floors' },
-        { name: 'Production Possibility Curve', file: 'Production Possibility Curve.html', icon: '📈', category: 'micro', desc: 'Production possibility frontier' }
+        { name: 'Production Possibility Curve', file: 'Production Possibility Curve.html', icon: '📈', category: 'fundamentals', desc: 'Production possibility frontier' },
+		// 在最后一个工具后面添加逗号，然后插入：
+		{	
+		name: 'Supply & Demand Principles',
+		file: 'supply-demand/index.html',   // 确保路径正确
+		icon: '📊',
+		category: 'fundamentals',
+		desc: 'Interactive market analysis with dynamic graphing'
+		},
+		// 在最后一个工具对象后面添加（确保前面有逗号）
+		{
+		name: 'Macroeconomic Cycles & Crises',
+		file: 'Macroeconomic Cycles & Crises Visualizer.html',
+		icon: '🌀',
+		category: 'advanced',
+		desc: 'Say, Marx & Keynes on economic cycles and crises'
+		}
     ];
 
     // ============================================================
