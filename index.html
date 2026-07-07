@@ -487,6 +487,7 @@
         .card:nth-child(18) { animation-delay: 0.36s; }
 		.card:nth-child(19) { animation-delay: 0.38s; }
 		.card:nth-child(20) { animation-delay: 0.40s; }
+		.card:nth-child(21) { animation-delay: 0.42s; }
     </style>
 </head>
 <body>
@@ -606,8 +607,13 @@
         { name: 'Monopoly & Regulation', file: 'Monopoly and regulation.html', icon: '🏛️', category: 'micro', desc: 'Monopoly and government regulation' },
         { name: 'Nash Equilibrium Location', file: 'Nash-Eq Location game.html', icon: '📍', category: 'advanced', desc: 'Nash equilibrium in location games' },
         { name: 'Price Control', file: 'Price Control.html', icon: '📏', category: 'micro', desc: 'Price ceilings and floors' },
-        { name: 'Production Possibility Curve', file: 'Production Possibility Curve.html', icon: '📈', category: 'fundamentals', desc: 'Production possibility frontier' },
-		// 在最后一个工具后面添加逗号，然后插入：
+        { 
+		name: 'Production Possibility Curve', 
+		file: 'Production Possibility Curve.html', 
+		icon: '📈', 
+		category: 'fundamentals', 
+		desc: 'Production possibility curve/frontier and opportunity cost' 
+		},
 		{	
 		name: 'Supply & Demand Principles',
 		file: 'supply-demand/index.html',   // 确保路径正确
@@ -615,13 +621,20 @@
 		category: 'fundamentals',
 		desc: 'Interactive market analysis with dynamic graphing'
 		},
-		// 在最后一个工具对象后面添加（确保前面有逗号）
 		{
 		name: 'Macroeconomic Cycles & Crises',
 		file: 'Macroeconomic Cycles & Crises Visualizer.html',
 		icon: '🌀',
 		category: 'advanced',
 		desc: 'Say, Marx & Keynes on economic cycles and crises'
+		},
+		// 在最后一个工具条目之后（`]` 之前）插入
+		{
+		name: 'Macro Integrated Model',
+		file: 'IGCSE-Macro-Integrated-Model.html',
+		icon: '📊',
+		category: 'advanced',
+		desc: 'IGCSE-level macroeconomics integrated: fiscal, monetary, supply-side & trade'
 		}
     ];
 

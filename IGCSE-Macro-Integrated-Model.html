@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IGCSE Economics: Macro Integrated Model (Teacher Edition) - v5.7</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --panel-bg: #ffffff;
+            --primary-blue: #2980b9;
+            --primary-orange: #d35400;
+            --primary-green: #27ae60;
+            --primary-purple: #8e44ad;
+            --text-dark: #2c3e50;
+        }
+
+        body { 
+            margin:0; padding:0; font-family: 'Segoe UI', Arial, sans-serif; 
+            background: var(--bg-color); color: var(--text-dark); 
+            display: flex; height: 100vh; overflow: hidden; 
+        }
+
+        .main-container { flex: 7; display: flex; flex-direction: column; padding: 12px; gap: 6px; }
+        .sidebar { flex: 3; background: var(--panel-bg); border-left: 2px solid #ddd; display: flex; flex-direction: column; overflow-y: auto; }
+
+        .charts-row { flex: 1; display: flex; gap: 12px; min-height: 0; }
+        .chart-box { 
+            flex: 1; background: #fff; border: 1px solid #ccc; border-radius: 12px; 
+            padding: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); position: relative;
+        }
+
+        .dashboard { 
+            background: #2c3e50; 
+            padding: 10px 12px; 
+            border-radius: 12px; 
+            color: white;
+            border: 3px solid #34495e;
+        }
+        .dashboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .dashboard-table td {
+            padding: 4px 6px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        .stat-label {
+            font-size: 1.05rem;
+            opacity: 0.9;
+            font-weight: 600;
+        }
+        .stat-value {
+            font-size: 2.15rem;
+            font-weight: 800;
+            font-family: 'Consolas', monospace;
+        }
+        .dashboard-table tr td:not(:last-child) { border-right: 1px solid rgba(255,255,255,0.12); }
+        .dashboard-table tr:not(:last-child) { border-bottom: 1px solid rgba(255,255,255,0.12); }
+
+        .controls-area { 
+            padding: 15px 18px; 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 18px; 
+        }
+        .slider-group { display: flex; flex-direction: column; gap: 8px; }
+        .slider-header { display: flex; justify-content: space-between; align-items: center; }
+        .slider-title { font-weight: 700; font-size: 1.2rem; color: var(--text-dark); }
+        .slider-val { color: var(--primary-blue); font-weight: 800; font-size: 1.1rem; background: #e8f2f8; padding: 3px 10px; border-radius: 6px; }
+        
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--primary-blue); height: 10px; }
+        .slider-desc { display: flex; justify-content: space-between; font-size: 0.9rem; color: #636e72; font-weight: 600; }
+
+        .ssp-block {
+            background: #f4ebff;
+            border: 3px solid var(--primary-purple);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 8px;
+        }
+        .ssp-header {
+            font-weight: 700; 
+            font-size: 1.3rem; 
+            color: var(--primary-purple); 
+            margin: 0 0 8px 0; 
+            text-align: center;
+        }
+
+        h2 { margin: 15px 20px 10px; color: var(--text-dark); border-bottom: 4px solid var(--primary-blue); padding-bottom: 8px; font-size: 1.8rem; }
+        
+        .positive { color: #2ecc71; }
+        .negative { color: #ff7675; }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <div class="charts-row">
+        <div class="chart-box">
+            <canvas id="ppcChart"></canvas>
+        </div>
+        <div class="chart-box">
+            <canvas id="adasChart"></canvas>
+        </div>
+    </div>
+
+    <div class="dashboard">
+        <table class="dashboard-table">
+            <tbody>
+                <tr>
+                    <td><div class="stat-item"><div class="stat-label">Real GDP (Output)</div><div class="stat-value" id="dispY">0</div></div></td>
+                    <td><div class="stat-item"><div class="stat-label">Price Level</div><div class="stat-value" id="dispP">0</div></div></td>
+                    <td><div class="stat-item"><div class="stat-label">Unemployment Rate</div><div class="stat-value" id="dispU">0</div></div></td>
+                </tr>
+                <tr>
+                    <td><div class="stat-item"><div class="stat-label">Inflation Rate</div><div class="stat-value" id="dispInf">0</div></div></td>
+                    <td><div class="stat-item"><div class="stat-label">Current Account Balance</div><div class="stat-value" id="dispTB">0</div></div></td>
+                    <td><div class="stat-item"><div class="stat-label">Budget Balance</div><div class="stat-value" id="dispBudget">0</div></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="sidebar">
+    <h2>Policy Panel</h2>
+    <div class="controls-area">
+        <div class="slider-group">
+            <div class="slider-header"><span class="slider-title">Fiscal Policy</span><span class="slider-val" id="valFiscal">Neutral</span></div>
+            <input type="range" id="inpFiscal" min="-50" max="50" value="0">
+            <div class="slider-desc"><span>Contractionary</span><span>Expansionary</span></div>
+        </div>
+        <div class="slider-group">
+            <div class="slider-header"><span class="slider-title">Monetary Policy</span><span class="slider-val" id="valMonetary">Neutral</span></div>
+            <input type="range" id="inpMonetary" min="-50" max="50" value="0">
+            <div class="slider-desc"><span>Contractionary</span><span>Expansionary</span></div>
+        </div>
+
+        <div class="ssp-block">
+            <div class="ssp-header">Supply-Side Policies</div>
+            <div class="slider-group">
+                <div class="slider-header"><span class="slider-title">Market Reforms</span><span class="slider-val" id="valMarket">+0</span></div>
+                <input type="range" id="inpMarket" min="0" max="60" value="0">
+                <div class="slider-desc"><span>State Regulation</span><span>Deregulation</span></div>
+            </div>
+            <div class="slider-group">
+                <div class="slider-header"><span class="slider-title">Human Capital</span><span class="slider-val" id="valHuman">+0</span></div>
+                <input type="range" id="inpHuman" min="0" max="60" value="0">
+                <div class="slider-desc"><span>Status Quo</span><span>High Human Capital Investment</span></div>
+            </div>
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-header"><span class="slider-title">Exchange Rate</span><span class="slider-val" id="valEX">Stable</span></div>
+            <input type="range" id="inpEX" min="-40" max="40" value="0">
+            <div class="slider-desc"><span>Depreciation (Weak)</span><span>Appreciation (Strong)</span></div>
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-header"><span class="slider-title">International Trade</span><span class="slider-val" id="valTrade">Neutral</span></div>
+            <input type="range" id="inpTrade" min="-40" max="40" value="0">
+            <div class="slider-desc"><span>Protectionism</span><span>Free Trade</span></div>
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-header"><span class="slider-title">Industry Competitiveness</span><span class="slider-val" id="valComp">Neutral</span></div>
+            <input type="range" id="inpComp" min="-40" max="40" value="0">
+            <div class="slider-desc"><span>Low Competitiveness</span><span>High Competitiveness</span></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let ppcChart, adasChart;
+    let previousMonetary = 0;
+
+    const modelConfig = { basePotential: 140, baseP: 100, baseU: 8.0 };
+
+    function init() {
+        const chartOpts = {
+            responsive: true, maintainAspectRatio: false,
+            animation: false,
+            plugins: { legend: { labels: { font: { size: 15, weight: 'bold' } } } },
+            scales: { x: { type: 'linear', ticks: { font: { size: 14 } } }, y: { type: 'linear', ticks: { font: { size: 14 } } } }
+        };
+
+        ppcChart = new Chart(document.getElementById('ppcChart'), {
+            type: 'scatter',
+            data: {
+                datasets: [
+                    { label: 'PPC (Potential)', borderColor: '#8e44ad', borderWidth: 5, pointRadius: 0, showLine: true, data: [] },
+                    { label: 'Current Production', backgroundColor: '#e74c3c', borderColor: '#fff', borderWidth: 3, pointRadius: 10, data: [] },
+                    { label: 'Current Consumption (Trade)', backgroundColor: '#f39c12', borderColor: '#fff', borderWidth: 3, pointRadius: 10, data: [] },
+                    { label: 'Autarky Balance (Y=X)', borderColor: '#7f8c8d', borderWidth: 2, borderDash: [6, 4], pointRadius: 0, showLine: true, data: [] },
+                    { label: 'Trade Exchange', borderColor: '#2ecc71', borderWidth: 2.5, pointRadius: 0, showLine: true, data: [] }
+                ]
+            },
+            options: { 
+                ...chartOpts, 
+                scales: { 
+                    x: { min: 0, max: 250, title: { display: true, text: 'Capital Goods', font: { size: 15, weight: 'bold' } } },
+                    y: { min: 0, max: 250, title: { display: true, text: 'Consumer Goods', font: { size: 15, weight: 'bold' } } }
+                }
+            }
+        });
+
+        adasChart = new Chart(document.getElementById('adasChart'), {
+            type: 'scatter',
+            data: {
+                datasets: [
+                    { label: 'AD', borderColor: '#2980b9', borderWidth: 5, pointRadius: 0, showLine: true, data: [] },
+                    { label: 'AS', borderColor: '#d35400', borderWidth: 5, pointRadius: 0, showLine: true, data: [] },
+                    { label: 'Full Capacity', borderColor: '#27ae60', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, showLine: true, data: [] },
+                    { label: 'Equilibrium', backgroundColor: '#2c3e50', pointRadius: 10, showLine: false, data: [] }
+                ]
+            },
+            options: { 
+                ...chartOpts, 
+                scales: { 
+                    x: { min: 0, max: 220, title: { display: true, text: 'Real GDP', font: { size: 15, weight: 'bold' } } },
+                    y: { min: 0, max: 250, title: { display: true, text: 'Price Level (PL)', font: { size: 15, weight: 'bold' } } }
+                }
+            }
+        });
+    }
+
+    function update() {
+        const fiscal = parseFloat(document.getElementById('inpFiscal').value) * 1.2;
+        const monetary = parseFloat(document.getElementById('inpMonetary').value) * 1.2;
+        const market = parseFloat(document.getElementById('inpMarket').value) * 1.0;
+        const human = parseFloat(document.getElementById('inpHuman').value) * 1.0;
+        const manualEX = parseFloat(document.getElementById('inpEX').value) * 0.8;
+        const rawTrade = parseFloat(document.getElementById('inpTrade').value);
+        const trade = rawTrade * 0.9;
+        const comp = parseFloat(document.getElementById('inpComp').value) * 1.0;
+
+        const tradeOpenness = (rawTrade + 40) / 80;
+        const deltaMonetary = monetary - previousMonetary;
+        const monetaryToEX = -deltaMonetary * 0.12 * tradeOpenness;
+        const effectiveEX = manualEX + monetaryToEX;
+
+        const exSlider = document.getElementById('inpEX');
+        exSlider.value = Math.max(-40, Math.min(40, effectiveEX / 0.8));
+        previousMonetary = monetary;
+
+        const exEffectMultiplier = tradeOpenness;
+        const potential = modelConfig.basePotential + market + human;
+
+        const compFactorAD = 1 + (comp / 80);
+        const compFactorAS = 1 - (comp / 100);
+        const tradeADShift = trade * 0.35 * (comp / 40);
+        const tradeASShift = Math.max(0, trade * 0.22);
+        const adShift = fiscal + monetary - (effectiveEX * 1.5 * exEffectMultiplier) + tradeADShift;
+        const asShift = (market * 0.8) + (human * 0.5) + (effectiveEX * 0.6 * exEffectMultiplier) + tradeASShift + (trade * 0.1);
+
+        let eqY = 20, eqP = 100;
+        let minDiff = 99999;
+        for (let y = 10; y <= potential + 15; y += 0.5) {
+            let pAD = (250 + adShift) - 1.2 * y;
+            let asGap = Math.max(0, y - potential);
+            let pAS = (60 - asShift) + 0.3 * y + Math.pow(asGap, 2.2) * 0.5;
+            let diff = Math.abs(pAD - pAS);
+            if (diff < minDiff) {
+                minDiff = diff;
+                eqY = y;
+                eqP = pAD;
+            }
+        }
+
+        const unemployment = Math.max(1.2, modelConfig.baseU + (potential - eqY) * 0.35 - (human * 0.05));
+        const inflation = ((eqP - 100) / 100) * 15;
+        const tb = 15 - (effectiveEX * 0.8 * exEffectMultiplier) - ((eqY - 100) * 0.15) + (trade * 0.4 * (comp / 40));
+        const budget = 0 - (fiscal * 0.8) + (eqY - 100) * 0.25;
+
+        // 更新仪表板和标签
+        document.getElementById('dispY').innerText = eqY.toFixed(1);
+        document.getElementById('dispP').innerText = eqP.toFixed(1);
+        document.getElementById('dispU').innerText = unemployment.toFixed(1) + '%';
+        document.getElementById('dispInf').innerText = (inflation > 0 ? '+' : '') + inflation.toFixed(1) + '%';
+        
+        const tbEl = document.getElementById('dispTB');
+        tbEl.innerText = (tb > 0 ? '+' : '') + tb.toFixed(1);
+        tbEl.className = 'stat-value ' + (tb >= 0 ? 'positive' : 'negative');
+
+        const budEl = document.getElementById('dispBudget');
+        budEl.innerText = (budget > 0 ? '+' : '') + budget.toFixed(1);
+        budEl.className = 'stat-value ' + (budget >= 0 ? 'positive' : 'negative');
+
+        document.getElementById('valFiscal').innerText = fiscal == 0 ? 'Neutral' : (fiscal > 0 ? 'Expansionary' : 'Contractionary');
+        document.getElementById('valMonetary').innerText = monetary == 0 ? 'Neutral' : (monetary > 0 ? 'Expansionary' : 'Contractionary');
+        document.getElementById('valMarket').innerText = '+' + market;
+        document.getElementById('valHuman').innerText = '+' + human;
+        document.getElementById('valEX').innerText = effectiveEX == 0 ? 'Stable' : (effectiveEX > 0 ? 'Appreciate' : 'Depreciate');
+        document.getElementById('valTrade').innerText = trade == 0 ? 'Neutral' : (trade > 0 ? 'Free Trade' : 'Protectionism');
+        document.getElementById('valComp').innerText = comp == 0 ? 'Neutral' : (comp > 0 ? 'High' : 'Low');
+
+        updateCharts(eqY, eqP, potential, adShift, asShift, trade);
+    }
+
+    function updateCharts(y, p, potential, adShift, asShift, trade) {
+        // AD-AS 图（省略，保持不变）
+        const adData = [], asData = [];
+        for (let i = 0; i <= 250; i += 2) { 
+            let pAD = (250 + adShift) - 1.2 * i;
+            adData.push({x: i, y: pAD});
+            let asGap = Math.max(0, i - potential);
+            let pAS = (60 - asShift) + 0.3 * i + Math.pow(asGap, 2.2) * 0.5;
+            asData.push({x: i, y: pAS});
+        }
+        adasChart.data.datasets[0].data = adData;
+        adasChart.data.datasets[1].data = asData;
+
+        let fullCapacityX = 220;
+        for (let xx = 10; xx <= 300; xx += 0.5) {
+            let asGap = Math.max(0, xx - potential);
+            let pAS = (60 - asShift) + 0.3 * xx + Math.pow(asGap, 2.2) * 0.5;
+            if (pAS >= 250) { fullCapacityX = xx; break; }
+        }
+        adasChart.data.datasets[2].data = [{x: fullCapacityX, y: 0}, {x: fullCapacityX, y: 300}];
+        adasChart.data.datasets[3].data = [{x: y, y: p}]; 
+        adasChart.update();
+
+        // PPC 图
+        const ppcBoundary = [];
+        const ppcSize = potential * 1.3;
+        for (let x = 0; x <= ppcSize; x += 2) {
+            let val = Math.max(0, Math.pow(ppcSize, 2) - Math.pow(x, 2)); 
+            let py = Math.sqrt(val);
+            ppcBoundary.push({x: x, y: py});
+        }
+        ppcChart.data.datasets[0].data = ppcBoundary;
+
+        const openness = (trade + 40) / 80;
+        const prodRatio = Math.min(0.98, y / potential);
+
+        const specializationBias = openness * 0.38;
+        const prodRadius = prodRatio * (1 - openness * 0.12);
+        const prodX = ppcSize * (0.707 + specializationBias) * prodRadius;
+        const prodY = ppcSize * (0.707 - specializationBias) * prodRadius;
+
+        ppcChart.data.datasets[1].data = [{x: prodX, y: prodY}];
+
+        // 消费点（按你要求改为0.25）
+        const consRadius = prodRatio * (1 + openness * 0.25);
+        const consX = ppcSize * 0.707 * Math.min(1.35, consRadius);
+        const consY = ppcSize * 0.707 * Math.min(1.35, consRadius);
+        ppcChart.data.datasets[2].data = [{x: consX, y: consY}];
+
+        // Y=X 虚线
+        const diagonal = [];
+        const maxDiag = Math.min(ppcSize, 250);
+        for (let i = 0; i <= maxDiag; i += 4) {
+            diagonal.push({x: i, y: i});
+        }
+        ppcChart.data.datasets[3].data = diagonal;
+
+        // === Trade Exchange：单个数据集实现细线 + 箭头 ===
+        const tradeData = [{x: prodX, y: prodY}, {x: consX, y: consY}];
+
+        // 添加箭头三角形
+        const arrowSize = 10;
+        const dx = consX - prodX;
+        const dy = consY - prodY;
+        const len = Math.sqrt(dx*dx + dy*dy) || 1;
+        const ux = dx / len;
+        const uy = dy / len;
+
+        const arrowX = consX - ux * 5;  // 箭头起点稍微后退一点
+        const arrowY = consY - uy * 5;
+
+        const leftX = arrowX - arrowSize * (ux * 0.4 + uy * 0.866);
+        const leftY = arrowY - arrowSize * (uy * 0.4 - ux * 0.866);
+        const rightX = arrowX - arrowSize * (ux * 0.4 - uy * 0.866);
+        const rightY = arrowY - arrowSize * (uy * 0.4 + ux * 0.866);
+
+        tradeData.push({x: arrowX, y: arrowY});
+        tradeData.push({x: leftX, y: leftY});
+        tradeData.push({x: rightX, y: rightY});
+        tradeData.push({x: arrowX, y: arrowY});
+
+        ppcChart.data.datasets[4].data = tradeData;
+
+        ppcChart.update();
+    }
+
+    window.onload = () => {
+        init();
+        previousMonetary = 0;
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(i => i.addEventListener('input', update));
+        update();
+    };
+</script>
+</body>
+</html>
