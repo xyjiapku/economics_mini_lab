@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cournot Duopoly Simulation</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --bg: #fdfdfd;
+            --font-lg: 20px;
+            --font-xl: 24px;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg);
+            color: var(--primary);
+            font-size: var(--font-lg); /* Larger font for classroom */
+        }
+        h1 { text-align: center; font-size: 32px; margin-bottom: 5px; }
+        h2 { font-size: 26px; border-bottom: 2px solid var(--secondary); padding-bottom: 10px; }
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            margin-top: 20px;
+        }
+        .tab-btn {
+            background-color: #ddd;
+            border: none;
+            padding: 15px 30px;
+            cursor: pointer;
+            font-size: var(--font-lg);
+            font-weight: bold;
+            transition: 0.3s;
+            margin: 0 5px;
+            border-radius: 8px 8px 0 0;
+        }
+        .tab-btn:hover { background-color: #ccc; }
+        .tab-btn.active {
+            background-color: var(--secondary);
+            color: white;
+        }
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .tab-content.active { display: block; }
+        
+        .flex-container {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+        .graph-wrapper { flex: 1; text-align: center; }
+        canvas {
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            max-width: 100%;
+        }
+        
+        .controls {
+            background: #f1f2f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: var(--font-lg);
+        }
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        input[type="range"] {
+            width: 50%;
+            height: 25px; /* Thicker slider for touch/smartboard */
+            cursor: pointer;
+        }
+        input[type="checkbox"] {
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            vertical-align: middle;
+        }
+        .checkbox-label {
+            margin-right: 25px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .btn {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: var(--font-lg);
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .btn:hover { background-color: #2980b9; }
+        .btn-reset { background-color: #95a5a6; }
+        .btn-reset:hover { background-color: #7f8c8d; }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--font-lg);
+            background: white;
+        }
+        .data-table th, .data-table td {
+            border: 2px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+        .data-table th { background-color: var(--primary); color: white; }
+        
+        .table-container {
+            flex: 1;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .highlight { font-weight: bold; color: var(--accent); }
+        .data-box {
+            background: #eaf2f8;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid var(--secondary);
+            flex: 1;
+        }
+        .data-box p { margin: 10px 0; }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            font-size: 16px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Cournot Duopoly Simulation</h1>
+    <p style="text-align: center; font-weight: bold;">Market Demand: P = 120 - Q &nbsp;&nbsp;|&nbsp;&nbsp; Marginal Cost: MC = 30</p>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(1)">Step 1: Best Response</button>
+        <button class="tab-btn" onclick="switchTab(2)">Step 2: Game Iteration</button>
+        <button class="tab-btn" onclick="switchTab(3)">Step 3: Market Comparison</button>
+    </div>
+
+    <!-- STEP 1 -->
+    <div id="step1" class="tab-content active">
+        <h2>Step 1: Firm B's Best Response (Given Firm A)</h2>
+        <div class="controls">
+            <div class="control-row">
+                <label><strong>1. Assume Firm A Output (Q_A): <span id="val-s1-qa" class="highlight">30</span></strong></label>
+                <input type="range" id="slider-s1-qa" min="0" max="90" step="1" value="30" oninput="updateStep1()">
+            </div>
+            <div class="control-row">
+                <label><strong>2. Choose Firm B Output (Q_B): <span id="val-s1-qb" style="color: blue; font-weight: bold;">15</span></strong></label>
+                <input type="range" id="slider-s1-qb" min="0" max="90" step="1" value="15" oninput="updateStep1()">
+            </div>
+            <p style="text-align: center; margin-top: 15px; margin-bottom: 0;">
+                Current Profit: <span class="highlight" id="val-s1-profit">$...</span> 
+                &nbsp;&nbsp;|&nbsp;&nbsp; Max Profit is at Q_B = <span class="highlight" id="val-s1-opt-qb">...</span>
+            </p>
+        </div>
+
+        <div class="flex-container">
+            <div class="graph-wrapper">
+                <canvas id="canvas-s1-left" width="550" height="500"></canvas>
+            </div>
+            <div class="graph-wrapper">
+                <canvas id="canvas-s1-right" width="550" height="500"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div id="step2" class="tab-content">
+        <h2>Step 2: Iterating to Equilibrium (Cobweb Model)</h2>
+        <div class="controls">
+            <div class="control-row">
+                <label><strong>Initial Assumption for Firm A (Q_A): <span id="val-s2-start" class="highlight">0</span></strong></label>
+                <input type="range" id="slider-s2-start" min="0" max="90" step="1" value="0" oninput="resetStep2()">
+            </div>
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn" onclick="step2NextTurn()">Play Next Move</button>
+                <button class="btn btn-reset" onclick="resetStep2()">Reset Iteration</button>
+            </div>
+        </div>
+
+        <div class="flex-container">
+            <div class="graph-wrapper" style="flex: 0 0 550px;">
+                <!-- Fixed square shape for cobweb -->
+                <canvas id="canvas-s2" width="550" height="550"></canvas>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="table-s2">
+                    <thead>
+                        <tr>
+                            <th>Turn</th>
+                            <th>Action</th>
+                            <th>Firm A (Q_A)</th>
+                            <th>Firm B (Q_B)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-s2">
+                        <!-- JS injects rows here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div id="step3" class="tab-content">
+        <h2>Step 3: Market Outcomes & Welfare Analysis</h2>
+        <div class="controls">
+            <div style="margin-bottom: 20px;">
+                <span style="font-weight: bold; margin-right: 15px;">Show Equilibriums:</span>
+                <label class="checkbox-label"><input type="checkbox" id="cb-mono" onchange="updateStep3()"> Monopoly</label>
+                <label class="checkbox-label"><input type="checkbox" id="cb-cournot" onchange="updateStep3()" checked> Cournot</label>
+                <label class="checkbox-label"><input type="checkbox" id="cb-pc" onchange="updateStep3()"> Perfect Competition</label>
+            </div>
+            <div class="control-row">
+                <label><strong>Market Total Quantity (Q): <span id="val-s3-q" class="highlight">60</span></strong></label>
+                <input type="range" id="slider-s3-q" min="0" max="100" step="1" value="60" oninput="updateStep3()">
+            </div>
+        </div>
+
+        <div class="flex-container">
+            <div class="graph-wrapper" style="flex: 1.5;">
+                <canvas id="canvas-s3" width="650" height="500"></canvas>
+            </div>
+            <div class="data-box">
+                <h3 style="margin-top: 0;">Market Real-Time Data</h3>
+                <p><strong>Total Quantity (Q):</strong> <span id="stat-q">...</span></p>
+                <p><strong>Market Price (P):</strong> $<span id="stat-p">...</span></p>
+                <hr>
+                <p style="color: #27ae60;"><strong>Consumer Surplus (CS):</strong> $<span id="stat-cs">...</span></p>
+                <p style="color: #2980b9;"><strong>Producer Surplus (PS):</strong> $<span id="stat-ps">...</span></p>
+                <p style="color: #c0392b;"><strong>Deadweight Loss (DWL):</strong> $<span id="stat-dwl">...</span></p>
+                <p style="margin-top: 20px; font-size: 16px; color: #555;">
+                    <em>* Move the slider to explore how quantity limits affect overall welfare compared to the marked equilibria.</em>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Dr. Jia. Instructional Tools. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        // --- CUSTOM CANVAS GRAPHING ENGINE ---
+        class CanvasGraph {
+            constructor(canvasId, xMax, yMax, xLabel, yLabel) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.w = this.canvas.width;
+                this.h = this.canvas.height;
+                this.padL = 70;
+                this.padB = 60;
+                this.padT = 30;
+                this.padR = 40;
+                this.xMax = xMax;
+                this.yMax = yMax;
+                this.xLabel = xLabel;
+                this.yLabel = yLabel;
+            }
+
+            clear() {
+                this.ctx.clearRect(0, 0, this.w, this.h);
+                this.drawAxes();
+            }
+
+            px(x) { return this.padL + (x / this.xMax) * (this.w - this.padL - this.padR); }
+            py(y) { return this.h - this.padB - (y / this.yMax) * (this.h - this.padT - this.padB); }
+
+            drawAxes() {
+                const ctx = this.ctx;
+                ctx.beginPath();
+                // Y axis
+                ctx.moveTo(this.padL, this.padT - 10);
+                ctx.lineTo(this.padL, this.h - this.padB);
+                // X axis
+                ctx.lineTo(this.w - this.padR + 10, this.h - this.padB);
+                ctx.strokeStyle = "#333";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.font = "bold 18px Arial";
+                ctx.fillStyle = "#333";
+                ctx.textAlign = "center";
+                ctx.fillText(this.xLabel, this.padL + (this.w - this.padL - this.padR)/2, this.h - 15);
+                
+                ctx.save();
+                ctx.translate(20, this.padT + (this.h - this.padT - this.padB)/2);
+                ctx.rotate(-Math.PI/2);
+                ctx.fillText(this.yLabel, 0, 0);
+                ctx.restore();
+
+                // Origin Label
+                ctx.font = "14px Arial";
+                ctx.fillText("0", this.padL - 15, this.h - this.padB + 15);
+            }
+
+            drawLine(x1, y1, x2, y2, color, width, dash=[]) {
+                const ctx = this.ctx;
+                ctx.beginPath();
+                ctx.setLineDash(dash);
+                ctx.moveTo(this.px(x1), this.py(y1));
+                ctx.lineTo(this.px(x2), this.py(y2));
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            drawPoint(x, y, color, label, showLines=false, radius=6) {
+                const ctx = this.ctx;
+                if (showLines) {
+                    this.drawLine(x, 0, x, y, "#95a5a6", 1, [5, 5]);
+                    this.drawLine(0, y, x, y, "#95a5a6", 1, [5, 5]);
+                }
+                ctx.beginPath();
+                ctx.arc(this.px(x), this.py(y), radius, 0, 2*Math.PI);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.strokeStyle = "#fff";
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                if (label) {
+                    ctx.font = "bold 16px Arial";
+                    ctx.fillStyle = "#000";
+                    ctx.textAlign = "left";
+                    ctx.fillText(label, this.px(x) + 10, this.py(y) - 10);
+                }
+            }
+
+            drawText(text, x, y, color="black", align="left") {
+                const ctx = this.ctx;
+                ctx.font = "bold 18px Arial";
+                ctx.fillStyle = color;
+                ctx.textAlign = align;
+                ctx.fillText(text, this.px(x), this.py(y));
+            }
+
+            fillPoly(points, color) {
+                const ctx = this.ctx;
+                ctx.beginPath();
+                ctx.moveTo(this.px(points[0].x), this.py(points[0].y));
+                for(let i=1; i<points.length; i++) {
+                    ctx.lineTo(this.px(points[i].x), this.py(points[i].y));
+                }
+                ctx.closePath();
+                ctx.fillStyle = color;
+                ctx.fill();
+            }
+        }
+
+        // --- GLOBAL CONSTANTS ---
+        const DEMAND_A = 120;
+        const MC = 30;
+
+        // --- STEP 1 LOGIC ---
+        let graph1L, graph1R;
+        function initStep1() {
+            graph1L = new CanvasGraph("canvas-s1-left", 100, 130, "Firm B Quantity (Q_B)", "Price & Cost ($)");
+            graph1R = new CanvasGraph("canvas-s1-right", 100, 2500, "Firm B Quantity (Q_B)", "Firm B Profit ($)");
+            updateStep1();
+        }
+
+        function updateStep1() {
+            let qa = parseFloat(document.getElementById('slider-s1-qa').value);
+            let qb = parseFloat(document.getElementById('slider-s1-qb').value);
+            
+            document.getElementById('val-s1-qa').innerText = qa;
+            document.getElementById('val-s1-qb').innerText = qb;
+
+            let residualA = DEMAND_A - qa;
+            let currentP = Math.max(0, residualA - qb);
+            let profit = (currentP - MC) * qb;
+            let optQb = Math.max(0, (residualA - MC) / 2);
+            let maxProfit = (residualA - optQb - MC) * optQb;
+
+            document.getElementById('val-s1-profit').innerText = profit.toFixed(0);
+            document.getElementById('val-s1-opt-qb').innerText = optQb.toFixed(1);
+
+            // Left Graph: Demand, MR, MC
+            graph1L.clear();
+            graph1L.drawLine(0, residualA, residualA, 0, "blue", 3); // Demand
+            graph1L.drawText("D (Residual)", residualA - 15, 8, "blue");
+
+            let mrEnd = residualA / 2;
+            graph1L.drawLine(0, residualA, mrEnd, 0, "green", 3); // MR
+            graph1L.drawText("MR", mrEnd - 5, 8, "green");
+
+            graph1L.drawLine(0, MC, 100, MC, "red", 2, [6,4]); // MC
+            graph1L.drawText("MC", 90, MC - 5, "red");
+
+            // Current Point
+            graph1L.drawPoint(qb, currentP, "orange", `Current (Q=${qb}, P=${currentP})`, true, 8);
+
+            // Right Graph: Profit Curve
+            graph1R.clear();
+            
+            // Draw Parabola
+            graph1R.ctx.beginPath();
+            graph1R.ctx.moveTo(graph1R.px(0), graph1R.py(0));
+            for(let x=1; x<=residualA; x++) {
+                let p = (residualA - x - MC) * x;
+                graph1R.ctx.lineTo(graph1R.px(x), graph1R.py(p));
+            }
+            graph1R.ctx.strokeStyle = "purple";
+            graph1R.ctx.lineWidth = 3;
+            graph1R.ctx.stroke();
+            graph1R.drawText("Profit Curve", optQb + 10, maxProfit * 0.9, "purple");
+
+            // Max Profit Point
+            graph1R.drawPoint(optQb, maxProfit, "green", `Max Profit`, true, 6);
+            
+            // Current Profit Point
+            graph1R.drawPoint(qb, profit, "orange", `Current`, true, 8);
+        }
+
+        // --- STEP 2 LOGIC ---
+        let graph2;
+        let s2_history = [];
+        let s2_turn = 0; // 0 = start, 1 = B reacts, 2 = A reacts, etc.
+
+        function initStep2() {
+            graph2 = new CanvasGraph("canvas-s2", 100, 100, "Firm A Quantity (Q_A)", "Firm B Quantity (Q_B)");
+            resetStep2();
+        }
+
+        function drawStep2Base() {
+            graph2.clear();
+            // Reaction A: QA = 45 - 0.5 QB => points: (45,0) and (0,90)
+            graph2.drawLine(45, 0, 0, 90, "red", 3);
+            graph2.drawText("Firm A Best Response", 5, 88, "red");
+
+            // Reaction B: QB = 45 - 0.5 QA => points: (0,45) and (90,0)
+            graph2.drawLine(0, 45, 90, 0, "blue", 3);
+            graph2.drawText("Firm B Best Response", 65, 8, "blue");
+
+            // Nash Equilibrium
+            graph2.drawPoint(30, 30, "black", "Nash Eq (30,30)", true, 6);
+        }
+
+        function resetStep2() {
+            let startQA = parseFloat(document.getElementById('slider-s2-start').value);
+            document.getElementById('val-s2-start').innerText = startQA;
+            
+            s2_history = [{ qa: startQA, qb: 0 }];
+            s2_turn = 0;
+            
+            document.getElementById('tbody-s2').innerHTML = `
+                <tr style="background:#f9f9f9;">
+                    <td>0</td>
+                    <td>Start</td>
+                    <td><strong>${startQA.toFixed(1)}</strong></td>
+                    <td>0.0</td>
+                </tr>
+            `;
+            
+            drawStep2Base();
+            graph2.drawPoint(startQA, 0, "orange", "Start", false, 8);
+        }
+
+        function step2NextTurn() {
+            if (s2_turn >= 15) return; // Prevent infinite clicks
+            
+            let last = s2_history[s2_history.length - 1];
+            let nextQA = last.qa;
+            let nextQB = last.qb;
+            let actor = "";
+
+            s2_turn++;
+            if (s2_turn % 2 !== 0) {
+                // Odd turn: Firm B reacts to A
+                actor = "Firm B Reacts";
+                nextQB = Math.max(0, 45 - 0.5 * last.qa);
+            } else {
+                // Even turn: Firm A reacts to B
+                actor = "Firm A Reacts";
+                nextQA = Math.max(0, 45 - 0.5 * last.qb);
+            }
+
+            s2_history.push({ qa: nextQA, qb: nextQB });
+
+            // Redraw everything
+            drawStep2Base();
+            
+            // Draw path
+            graph2.ctx.beginPath();
+            graph2.ctx.moveTo(graph2.px(s2_history[0].qa), graph2.py(s2_history[0].qb));
+            for(let i=1; i<s2_history.length; i++) {
+                graph2.ctx.lineTo(graph2.px(s2_history[i].qa), graph2.py(s2_history[i].qb));
+            }
+            graph2.ctx.strokeStyle = "orange";
+            graph2.ctx.lineWidth = 2;
+            graph2.ctx.stroke();
+
+            // Draw points
+            for(let i=0; i<s2_history.length; i++) {
+                graph2.drawPoint(s2_history[i].qa, s2_history[i].qb, "orange", "", false, 5);
+            }
+            // Highlight current
+            graph2.drawPoint(nextQA, nextQB, "purple", `Turn ${s2_turn}`, false, 7);
+
+            // Update Table
+            let tbody = document.getElementById('tbody-s2');
+            let newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td>${s2_turn}</td>
+                <td>${actor}</td>
+                <td class="${actor === 'Firm A Reacts' ? 'highlight' : ''}">${nextQA.toFixed(1)}</td>
+                <td class="${actor === 'Firm B Reacts' ? 'highlight' : ''}">${nextQB.toFixed(1)}</td>
+            `;
+            tbody.appendChild(newRow);
+            // Scroll to bottom
+            tbody.parentElement.parentElement.scrollTop = tbody.parentElement.parentElement.scrollHeight;
+        }
+
+        // --- STEP 3 LOGIC ---
+        let graph3;
+        function initStep3() {
+            graph3 = new CanvasGraph("canvas-s3", 110, 130, "Total Market Quantity (Q)", "Price & Cost ($)");
+            updateStep3();
+        }
+
+        function updateStep3() {
+            let currentQ = parseFloat(document.getElementById('slider-s3-q').value);
+            document.getElementById('val-s3-q').innerText = currentQ;
+
+            let showMono = document.getElementById('cb-mono').checked;
+            let showCournot = document.getElementById('cb-cournot').checked;
+            let showPC = document.getElementById('cb-pc').checked;
+
+            graph3.clear();
+
+            // Demand & MC
+            graph3.drawLine(0, DEMAND_A, 120, 0, "blue", 3);
+            graph3.drawText("Demand", 105, 10, "blue");
+            
+            graph3.drawLine(0, MC, 110, MC, "red", 2, [6,4]);
+            graph3.drawText("MC", 100, MC - 5, "red");
+
+            // Conditional Equilibriums
+            if (showMono) {
+                graph3.drawLine(0, DEMAND_A, 60, 0, "green", 3);
+                graph3.drawText("MR", 55, 8, "green");
+                graph3.drawPoint(45, 75, "#8e44ad", "Monopoly (45, 75)", true, 6);
+            }
+            if (showCournot) {
+                graph3.drawPoint(60, 60, "#d35400", "Cournot (60, 60)", true, 6);
+            }
+            if (showPC) {
+                graph3.drawPoint(90, 30, "#27ae60", "Perfect Comp (90, 30)", true, 6);
+            }
+
+            // Calculations based on slider
+            let currentP = Math.max(0, DEMAND_A - currentQ);
+            
+            // Draw vertical/horizontal for current state
+            graph3.drawLine(currentQ, 0, currentQ, currentP, "#34495e", 2, [4,4]);
+            graph3.drawLine(0, currentP, currentQ, currentP, "#34495e", 2, [4,4]);
+            graph3.drawPoint(currentQ, currentP, "black", "", false, 8);
+
+            // Shading Areas
+            // CS: triangle (0,120) to (0,P) to (Q,P)
+            graph3.fillPoly([{x:0, y:DEMAND_A}, {x:0, y:currentP}, {x:currentQ, y:currentP}], "rgba(46, 204, 113, 0.3)");
+            
+            // PS: rectangle (0,P) to (0,30) to (Q,30) to (Q,P)
+            if (currentP >= MC) {
+                graph3.fillPoly([{x:0, y:currentP}, {x:0, y:MC}, {x:currentQ, y:MC}, {x:currentQ, y:currentP}], "rgba(52, 152, 219, 0.3)");
+            } else {
+                // Negative PS (Loss)
+                graph3.fillPoly([{x:0, y:MC}, {x:0, y:currentP}, {x:currentQ, y:currentP}, {x:currentQ, y:MC}], "rgba(52, 152, 219, 0.3)");
+            }
+
+            // DWL: triangle (Q,P) to (Q,30) to (90,30) - valid if Q < 90
+            if (currentQ < 90) {
+                graph3.fillPoly([{x:currentQ, y:currentP}, {x:currentQ, y:MC}, {x:90, y:MC}], "rgba(231, 76, 60, 0.4)");
+            } else if (currentQ > 90) {
+                // Overproduction DWL: triangle (90,30) to (Q,30) to (Q,P)
+                graph3.fillPoly([{x:90, y:MC}, {x:currentQ, y:MC}, {x:currentQ, y:currentP}], "rgba(231, 76, 60, 0.4)");
+            }
+
+            // Update Text Data
+            let cs = 0.5 * currentQ * (DEMAND_A - currentP);
+            let ps = currentQ * (currentP - MC);
+            let dwl = (currentQ < 90) ? 0.5 * (90 - currentQ) * (currentP - MC) : 0.5 * (currentQ - 90) * (MC - currentP);
+
+            document.getElementById('stat-q').innerText = currentQ.toFixed(1);
+            document.getElementById('stat-p').innerText = currentP.toFixed(1);
+            document.getElementById('stat-cs').innerText = cs.toFixed(1);
+            document.getElementById('stat-ps').innerText = ps.toFixed(1);
+            document.getElementById('stat-dwl').innerText = dwl.toFixed(1);
+        }
+
+        // --- TAB NAVIGATION ---
+        function switchTab(tabIndex) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('step' + tabIndex).classList.add('active');
+            document.querySelectorAll('.tab-btn')[tabIndex-1].classList.add('active');
+
+            // Force redraw when switching to ensure canvas dimensions are correct
+            if(tabIndex === 1 && !graph1L) initStep1();
+            if(tabIndex === 2 && !graph2) initStep2();
+            if(tabIndex === 3 && !graph3) initStep3();
+        }
+
+        // Initialize Step 1 on load
+        window.onload = () => {
+            initStep1();
+        };
+
+    </script>
+</body>
+</html>
