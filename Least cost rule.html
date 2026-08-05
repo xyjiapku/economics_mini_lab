@@ -110,6 +110,20 @@
         button.hire-btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
         button.hire-btn:disabled { background: #dee2e6; cursor: not-allowed; transform: none; }
 
+        /* Chart View Switcher */
+        .view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 10px; }
+        .view-header h3 { margin: 0; }
+        .view-switch { display: flex; background: #f1f3f5; border-radius: 8px; padding: 3px; gap: 3px; flex: 0 0 auto; }
+        .view-btn { padding: 6px 14px; border: none; background: transparent; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; color: #6c757d; transition: 0.2s; white-space: nowrap; }
+        .view-btn:hover { color: var(--primary); }
+        .view-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .chart-view { flex: 1; display: none; min-height: 0; position: relative; }
+        .chart-view.active { display: block; }
+        .chart-hint { font-size: 12px; color: #999; text-align: center; margin-top: 6px; }
+
+        .sim-reset-btn { width: 100%; padding: 10px; border: 2px solid #e0e0e0; background: #fff; color: #777; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; }
+        .sim-reset-btn:hover { background: #f1f3f5; border-color: #aaa; color: #444; }
+
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
@@ -194,24 +208,35 @@
                 <div class="stat-row"><span>Units:</span> <span class="stat-val" id="q-k">0</span></div>
                 <button class="hire-btn" id="hire-k" onclick="simHire('K')">Add Capital</button>
             </div>
-
-            <button onclick="resetSim()" style="background:none; border:none; text-decoration:underline; color:#999; cursor:pointer; margin-top:auto;">Reset Factory Simulation</button>
+            <button class="sim-reset-btn" onclick="resetSim()">↺ Reset Factory Simulation</button>
         </div>
 
         <div class="chart-panel">
-            <h3 style="margin:0 0 5px 0; text-align:center">Production Cost Visualization</h3>
-            <div style="flex:1;"><canvas id="simChart"></canvas></div>
+            <div class="view-header">
+                <h3 id="chart-title">Production Cost Visualization</h3>
+                <div class="view-switch">
+                    <button class="view-btn active" data-view="growth" onclick="switchView('growth')">📈 Cost & Output</button>
+                    <button class="view-btn" data-view="isoq" onclick="switchView('isoq')">🗺️ Isoquant Map</button>
+                </div>
+            </div>
+            <div id="chart-growth" class="chart-view active">
+                <canvas id="simChart"></canvas>
+            </div>
+            <div id="chart-isoq" class="chart-view">
+                <canvas id="icChart"></canvas>
+            </div>
+            <div class="chart-hint" id="chart-hint">Hire Labor 👷 / Add Capital ⚙️ to hit the 300-unit target at minimum cost.</div>
         </div>
     </div>
 
 <script>
     // --- CONSTANTS & DATA ---
     const PL = 10, PK = 20, TARGET = 300;
-    const Q_ARR = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-    const TPL = [26, 48, 66, 80, 91, 100, 107, 112, 116, 119, 121, 122];
-    const TPK = [60, 112, 156, 192, 220, 242, 260, 274, 284, 292, 298, 302];
-    const MPL = [26, 22, 18, 14, 11, 9, 7, 5, 4, 3, 2, 1];
-    const MPK = [60, 52, 44, 36, 28, 22, 18, 14, 10, 8, 6, 4];
+    const Q_ARR = [1, 2, 3, 4, 5, 6, 7];
+    const TPL = [32, 60, 84, 104, 120, 132, 140];
+    const TPK = [48, 88, 120, 144, 160, 172, 180];
+    const MPL = [32, 28, 24, 20, 16, 12, 8];
+    const MPK = [48, 40, 32, 24, 16, 12, 8];
     
     // Distinct colors for highlighting matched ratios
     const COLORS = ['#ffeaa7', '#fab1a0', '#55efc4', '#81ecec', '#a29bfe', '#dfe6e9', '#f8a5c2', '#f6e58d', '#ffbe76', '#c7ecee', '#badc58'];
@@ -222,7 +247,10 @@
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(`tab${n}`).classList.add('active');
         document.querySelectorAll('.tab-btn')[n-1].classList.add('active');
-        if(n === 2 && chart) chart.resize();
+        if(n === 2) {
+            const inIsoq = document.getElementById('chart-isoq').classList.contains('active');
+            (inIsoq ? icChart : chart).resize();
+        }
     }
 
     // --- THEORY LOGIC ---
@@ -264,8 +292,8 @@
             let cIdx = 0;
             const rlCells = document.querySelectorAll('.r-l');
             const rkCells = document.querySelectorAll('.r-k');
-            for(let i = 0; i < 12; i++) {
-                for(let j = 0; j < 12; j++) {
+            for(let i = 0; i < Q_ARR.length; i++) {
+                for(let j = 0; j < Q_ARR.length; j++) {
                     if(rlCells[i].innerText === rkCells[j].innerText && rlCells[i].innerText !== '0.0') {
                         let color = COLORS[cIdx % COLORS.length];
                         pairs.push({ql: i+1, qk: j+1, ratio: rlCells[i].innerText, color});
@@ -310,24 +338,113 @@
     }
 
     // --- SIMULATOR LOGIC ---
-    let sim = { c: 0, o: 0, ql: 0, qk: 0, path: [{x: 0, y: 0}] };
-    let chart;
+    let sim = { c: 0, o: 0, ql: 0, qk: 0, path: [{x: 0, y: 0}], ipath: [{x: 0, y: 0}] };
+    let chart, icChart;
+    let icCurrentDS, icYourDS, icOptDS, icBundleDS;
 
-    function getOptimalPath() {
+    // Compute the least-cost path in both coordinate spaces (cost→output, and labor→capital bundle space)
+    function computeOptimal() {
         let o = 0, c = 0, l = 0, k = 0;
-        let p = [{x: 0, y: 0}];
+        let g = [{x: 0, y: 0}], bp = [{x: 0, y: 0}];
         while (o < TARGET) {
-            let rl = l < 12 ? MPL[l]/PL : 0;
-            let rk = k < 12 ? MPK[k]/PK : 0;
-            if (rl > rk && rl > 0) { o += MPL[l++]; c += PL; }
-            else if (rk > 0) { o += MPK[k++]; c += PK; } 
+            let rl = l < MPL.length ? MPL[l]/PL : 0;
+            let rk = k < MPK.length ? MPK[k]/PK : 0;
+            if (rl > rk && rl > 0) { o += MPL[l]; c += PL; l++; }
+            else if (rk > 0) { o += MPK[k]; c += PK; k++; }
             else break;
-            p.push({x: c, y: o});
+            g.push({x: c, y: o});
+            bp.push({x: l, y: k});
         }
-        return { path: p, cost: c };
+        return { growth: g, bundle: bp, cost: c, output: o };
+    }
+    const OPTIMAL = computeOptimal();
+
+    // --- Isoquant Map helpers (monotone cubic interpolation of TP data) ---
+    function makeInterp(vals) {
+        const n = vals.length - 1, d = [], m = new Array(n + 1).fill(0);
+        for (let i = 0; i < n; i++) d.push(vals[i+1] - vals[i]);
+        for (let i = 0; i <= n; i++) {
+            if (i === 0) m[i] = d[0];
+            else if (i === n) m[i] = d[n-1];
+            else if (d[i-1] * d[i] <= 0) m[i] = 0;
+            else m[i] = 2 * d[i-1] * d[i] / (d[i-1] + d[i]);
+        }
+        return function(x) {
+            const i = Math.min(n - 1, Math.max(0, Math.floor(x)));
+            const t = x - i, t2 = t*t, t3 = t2*t;
+            return (2*t3 - 3*t2 + 1)*vals[i] + (t3 - 2*t2 + t)*m[i] + (-2*t3 + 3*t2)*vals[i+1] + (t3 - t2)*m[i+1];
+        };
+    }
+    const tpL = makeInterp([0, ...TPL]);
+    const tpK = makeInterp([0, ...TPK]);
+    const tpMax = TPK[TPK.length - 1]; // 180
+
+    // Solve k in [0, maxK] such that f(k) = target (f strictly increasing)
+    function invertTU(f, target) {
+        let lo = 0, hi = MPL.length;
+        for (let i = 0; i < 80; i++) {
+            const mid = (lo + hi) / 2;
+            if (f(mid) < target) lo = mid; else hi = mid;
+        }
+        return (lo + hi) / 2;
     }
 
-    const optimalData = getOptimalPath();
+    // Points (L, K) where TP(L) + TP(K) = Q
+    function isoquant(Q) {
+        const pts = [];
+        for (let l = 0; l <= MPL.length + 0.0001; l += 0.1) {
+            const rem = Q - tpL(l);
+            if (rem < 0) break;
+            if (rem > tpMax) continue;
+            pts.push({ x: l, y: invertTU(tpK, rem) });
+        }
+        return pts;
+    }
+
+    // Output levels of the equimarginal combinations (where MP_L/P_L = MP_K/P_K) —
+    // these become the isoquants shown by default, matching the ratio pairs found in Step 3
+    function optimalIsoquantLevels() {
+        const set = new Set();
+        MPL.forEach((mpL, i) => {
+            MPK.forEach((mpK, j) => {
+                if (mpL * PK === mpK * PL) {
+                    const Q = TPL[i] + TPK[j];
+                    if (Q > 0) set.add(Q);
+                }
+            });
+        });
+        return [...set].sort((a, b) => a - b);
+    }
+
+    // Chart.js plugin: draw labels right next to every curve (both charts — keeps the legend clean)
+    // Per-dataset options: tagText, tagColor, tagAnchor ('start' | 'end' | index), tagDx/tagDy (px offset), tagMinPoints
+    const chartLabelPlugin = {
+        id: 'chartLabels',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = 'bold 12px "Segoe UI", Arial, sans-serif';
+            ctx.textBaseline = 'bottom';
+            chart.data.datasets.forEach(ds => {
+                if (ds.hidden || !ds.tagText || !ds.data || !ds.data.length) return;
+                if (ds.tagMinPoints && ds.data.length < ds.tagMinPoints) return;
+                let p;
+                if (ds.tagAnchor === 'start') p = ds.data[1] || ds.data[0];
+                else if (typeof ds.tagAnchor === 'number') p = ds.data[ds.tagAnchor] || ds.data[ds.data.length - 1];
+                else p = ds.data[ds.data.length - 1];
+                if (!p) return;
+                const xs = chart.scales.x, ys = chart.scales.y;
+                const px = xs.getPixelForValue(p.x) + (ds.tagDx || 0);
+                const py = ys.getPixelForValue(p.y) + (ds.tagDy !== undefined ? ds.tagDy : -3);
+                const w = ctx.measureText(ds.tagText).width;
+                ctx.fillStyle = 'rgba(255,255,255,0.92)';
+                ctx.fillRect(px - 3, py - 14, w + 6, 18);
+                ctx.fillStyle = ds.tagColor || '#7f8c8d';
+                ctx.fillText(ds.tagText, px, py);
+            });
+            ctx.restore();
+        }
+    };
 
     function initChart() {
         const ctx = document.getElementById('simChart').getContext('2d');
@@ -337,12 +454,17 @@
                 datasets: [
                     {
                         label: 'Optimal Least-Cost Path',
-                        data: optimalData.path,
+                        data: OPTIMAL.growth,
                         borderColor: '#8e44ad',
                         borderWidth: 4,
                         pointRadius: 0,
                         hidden: true,
-                        tension: 0
+                        tension: 0,
+                        tagText: 'Optimal Path',
+                        tagColor: '#6c3483',
+                        tagAnchor: 'end',
+                        tagDx: -95,
+                        tagDy: -8
                     },
                     {
                         label: 'Your Strategy',
@@ -351,7 +473,13 @@
                         borderWidth: 4,
                         pointRadius: 6,
                         pointBackgroundColor: '#fff',
-                        tension: 0
+                        tension: 0,
+                        tagText: 'Your Strategy',
+                        tagColor: '#2471a3',
+                        tagAnchor: 'end',
+                        tagDx: 8,
+                        tagDy: -8,
+                        tagMinPoints: 2
                     }
                 ]
             },
@@ -362,26 +490,87 @@
                     y: { min: 0, max: 350, title: { display: true, text: 'Total Output (Units)', font: { size: 15, weight: 'bold' } } }
                 },
                 plugins: {
-                    legend: { labels: { font: { size: 13 } } },
+                    legend: { display: false },
                     annotation: {
                         annotations: {
                             targetLine: { type: 'line', yMin: TARGET, yMax: TARGET, borderColor: 'rgba(231, 76, 60, 0.5)', borderWidth: 2, borderDash: [5, 5], label: { content: `Goal: ${TARGET} Units`, display: true, position: 'start' } }
                         }
                     }
                 }
-            }
+            },
+            plugins: [chartLabelPlugin]
+        });
+    }
+
+    function initICChart() {
+        const ctx = document.getElementById('icChart').getContext('2d');
+        const levels = optimalIsoquantLevels();
+        const gray = ['#e9ebee', '#d8dde2', '#c6cdd4', '#b4bdc6', '#a2adb8', '#909daa', '#7e8d9c', '#6c7a89', '#5a6a7a'];
+        const ds = levels.map((Q, i) => ({
+            label: '',
+            data: isoquant(Q),
+            showLine: true,
+            borderColor: gray[i % gray.length],
+            borderDash: [5, 5],
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0,
+            tagText: `Q = ${Q}`,
+            tagColor: '#5d6d7e',
+            tagAnchor: 'start',
+            tagDx: 10
+        }));
+        // dataset order: isoquants..., then [current output, isocost line, optimal path, optimal bundle, your path]
+        ds.push({ label: '', data: [], showLine: true, borderColor: '#f39c12', borderWidth: 3, borderDash: [6, 3], pointRadius: 0, tension: 0, tagText: '', tagColor: '#e67e22', tagAnchor: 'end', tagDx: -8 });
+        // Isocost line: 10L + 20K = 170  →  K = 8.5 - 0.5L
+        const isoCostPts = [{x:0,y:8.5},{x:2,y:7.5},{x:4,y:6.5},{x:6,y:5.5},{x:8,y:4.5}];
+        ds.push({ label: 'Isocost Line', data: isoCostPts, showLine: true, borderColor: '#e74c3c', borderWidth: 3, pointRadius: 0, tension: 0, tagText: `Cost: $${OPTIMAL.cost}`, tagColor: '#c0392b', tagAnchor: 1, tagDx: 8, tagDy: -8 });
+        ds.push({ label: 'Optimal Least-Cost Path', data: OPTIMAL.bundle, showLine: true, borderColor: '#8e44ad', borderWidth: 3, pointRadius: 4, pointBackgroundColor: '#8e44ad', pointBorderColor: '#fff', pointBorderWidth: 1.5, hidden: true, tagText: 'Optimal Path', tagColor: '#6c3483', tagAnchor: 8, tagDx: 6, tagDy: -8 });
+        const ob = OPTIMAL.bundle[OPTIMAL.bundle.length - 1];
+        ds.push({ label: `Least-Cost Bundle (${ob.x}L, ${ob.y}K)`, data: [ob], showLine: false, pointRadius: 12, pointStyle: 'star', pointBackgroundColor: '#8e44ad', pointBorderColor: '#fff', pointBorderWidth: 2, hidden: true, tagText: `Least-Cost (${ob.x}L, ${ob.y}K)`, tagColor: '#6c3483', tagAnchor: 0, tagDx: 10, tagDy: 26 });
+        ds.push({ label: 'Your Strategy', data: sim.ipath, showLine: true, borderColor: '#3498db', borderWidth: 3, pointRadius: 7, pointBackgroundColor: '#fff', pointBorderColor: '#3498db', pointBorderWidth: 3, tagText: 'Your Strategy', tagColor: '#2471a3', tagAnchor: 'end', tagDx: 8, tagDy: -8, tagMinPoints: 2 });
+
+        icCurrentDS = ds[levels.length];
+        icOptDS = ds[levels.length + 2];
+        icBundleDS = ds[levels.length + 3];
+        icYourDS = ds[levels.length + 4];
+
+        icChart = new Chart(ctx, {
+            type: 'scatter',
+            data: { datasets: ds },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    x: { type: 'linear', min: 0, max: 8, title: { display: true, text: 'Quantity of Labor', font: { size: 15, weight: 'bold' } }, ticks: { stepSize: 1 } },
+                    y: { type: 'linear', min: 0, max: 9, title: { display: true, text: 'Quantity of Capital', font: { size: 15, weight: 'bold' } }, ticks: { stepSize: 1 } }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                const d = ctx.raw;
+                                return ` ${d.x} Labor, ${d.y} Capital  →  Output = ${Math.round(tpL(d.x) + tpK(d.y))}`;
+                            }
+                        }
+                    }
+                }
+            },
+            plugins: [chartLabelPlugin]
         });
     }
 
     function simHire(type) {
         if(sim.o >= TARGET) return;
-        if(type === 'L' && sim.ql < 12) {
+        if(type === 'L' && sim.ql < MPL.length) {
             sim.o += MPL[sim.ql]; sim.c += PL; sim.ql++;
-        } else if(type === 'K' && sim.qk < 12) {
+        } else if(type === 'K' && sim.qk < MPK.length) {
             sim.o += MPK[sim.qk]; sim.c += PK; sim.qk++;
         }
         sim.path.push({x: sim.c, y: sim.o});
-        updateChartVisibility(); 
+        sim.ipath.push({x: sim.ql, y: sim.qk});
+        updateChartVisibility();
+        updateIC();
         updateSimUI();
     }
 
@@ -392,16 +581,16 @@
         document.getElementById('q-k').innerText = sim.qk;
         document.getElementById('prog-bar').style.width = Math.min((sim.o / TARGET) * 100, 100) + "%";
 
-        let rl = sim.ql < 12 ? (MPL[sim.ql]/PL).toFixed(1) : 0;
-        let rk = sim.qk < 12 ? (MPK[sim.qk]/PK).toFixed(1) : 0;
+        let rl = sim.ql < MPL.length ? (MPL[sim.ql]/PL).toFixed(1) : 0;
+        let rk = sim.qk < MPK.length ? (MPK[sim.qk]/PK).toFixed(1) : 0;
         
-        document.getElementById('n-mp-l').innerText = sim.ql < 12 ? MPL[sim.ql] : 'MAX';
+        document.getElementById('n-mp-l').innerText = sim.ql < MPL.length ? MPL[sim.ql] : 'MAX';
         document.getElementById('n-r-l').innerText = rl;
-        document.getElementById('n-mp-k').innerText = sim.qk < 12 ? MPK[sim.qk] : 'MAX';
+        document.getElementById('n-mp-k').innerText = sim.qk < MPK.length ? MPK[sim.qk] : 'MAX';
         document.getElementById('n-r-k').innerText = rk;
 
-        document.getElementById('hire-l').disabled = sim.o >= TARGET || sim.ql >= 12;
-        document.getElementById('hire-k').disabled = sim.o >= TARGET || sim.qk >= 12;
+        document.getElementById('hire-l').disabled = sim.o >= TARGET || sim.ql >= MPL.length;
+        document.getElementById('hire-k').disabled = sim.o >= TARGET || sim.qk >= MPK.length;
     }
 
     function updateChartVisibility() {
@@ -410,9 +599,11 @@
         const anns = chart.options.plugins.annotation.annotations;
 
         chart.setDatasetVisibility(0, isChecked);
+        icOptDS.hidden = !isChecked;
+        icBundleDS.hidden = !isChecked;
 
         if (isChecked) {
-            anns.optCostLine = { type: 'line', xMin: optimalData.cost, xMax: optimalData.cost, borderColor: '#8e44ad', borderWidth: 2, borderDash: [4, 4], label: { content: `Min Cost: $${optimalData.cost}`, display: true, backgroundColor: '#8e44ad', position: 'start' } };
+            anns.optCostLine = { type: 'line', xMin: OPTIMAL.cost, xMax: OPTIMAL.cost, borderColor: '#8e44ad', borderWidth: 2, borderDash: [4, 4], label: { content: `Min Cost: $${OPTIMAL.cost}`, display: true, backgroundColor: '#8e44ad', position: 'start' } };
         } else { delete anns.optCostLine; }
 
         if (reached) {
@@ -420,17 +611,45 @@
         } else { delete anns.actCostLine; }
 
         chart.update();
+        icChart.update();
+    }
+
+    function switchView(v) {
+        const isIsoq = v === 'isoq';
+        document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+        document.getElementById('chart-growth').classList.toggle('active', !isIsoq);
+        document.getElementById('chart-isoq').classList.toggle('active', isIsoq);
+        document.getElementById('chart-title').innerText = isIsoq
+            ? 'Isoquant Map — Journey to Least Cost'
+            : 'Production Cost Visualization';
+        document.getElementById('chart-hint').innerText = isIsoq
+            ? 'Curves mark the output levels reached along the least-cost path. Each hire moves you to a higher isoquant; the cheapest way to 300 touches the target isoquant.'
+            : 'Hire Labor 👷 / Add Capital ⚙️ to hit the 300-unit target at minimum cost.';
+        (isIsoq ? icChart : chart).resize();
+    }
+
+    function updateIC() {
+        if (!icChart) return;
+        const Q = sim.o;
+        icCurrentDS.data = Q > 0 ? isoquant(Q) : [];
+        icCurrentDS.tagText = Q > 0 ? `You: Q = ${Q}` : '';
+        icYourDS.data = sim.ipath;
+        icChart.update();
     }
 
     function resetSim() {
-        sim = { c: 0, o: 0, ql: 0, qk: 0, path: [{x: 0, y: 0}] };
+        sim = { c: 0, o: 0, ql: 0, qk: 0, path: [{x: 0, y: 0}], ipath: [{x: 0, y: 0}] };
         document.getElementById('toggle-opt').checked = false;
         chart.data.datasets[1].data = sim.path;
+        chart.setDatasetVisibility(0, false);
+        icOptDS.hidden = true;
+        icBundleDS.hidden = true;
         updateChartVisibility();
+        updateIC();
         updateSimUI();
     }
 
-    window.onload = () => { initTable(); initChart(); updateSimUI(); };
+    window.onload = () => { initTable(); initChart(); initICChart(); updateSimUI(); };
 </script>
 </body>
 </html>
