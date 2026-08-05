@@ -106,6 +106,20 @@
         button.buy-btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
         button.buy-btn:disabled { background: #dee2e6; cursor: not-allowed; }
 
+        .sim-reset-btn { width: 100%; padding: 10px; border: 2px solid #e0e0e0; background: #fff; color: #777; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; }
+        .sim-reset-btn:hover { background: #f1f3f5; border-color: #aaa; color: #444; }
+
+        /* Chart View Switcher */
+        .view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 10px; }
+        .view-header h3 { margin: 0; }
+        .view-switch { display: flex; background: #f1f3f5; border-radius: 8px; padding: 3px; gap: 3px; flex: 0 0 auto; }
+        .view-btn { padding: 6px 14px; border: none; background: transparent; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; color: #6c757d; transition: 0.2s; white-space: nowrap; }
+        .view-btn:hover { color: var(--primary); }
+        .view-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .chart-view { flex: 1; display: none; min-height: 0; position: relative; }
+        .chart-view.active { display: block; }
+        .chart-hint { font-size: 12px; color: #999; text-align: center; margin-top: 6px; flex: 0 0 auto; }
+
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
@@ -188,12 +202,24 @@
                 <div class="stat-row"><span>Qty:</span> <span class="stat-val" id="q-m">0</span></div>
                 <button class="buy-btn" id="buy-m" onclick="simBuy('M')">Buy Movie</button>
             </div>
-            <button onclick="resetSim()" style="background:none; border:none; text-decoration:underline; color:#999; cursor:pointer; margin-top:auto;">Reset Game Simulation</button>
+            <button class="sim-reset-btn" onclick="resetSim()">↺ Reset Game Simulation</button>
         </div>
 
         <div class="chart-panel">
-            <h3 style="margin:0 0 5px 0; text-align:center">Utility Growth Visualization</h3>
-            <div style="flex:1;"><canvas id="simChart"></canvas></div>
+            <div class="view-header">
+                <h3 id="chart-title">Utility Growth Visualization</h3>
+                <div class="view-switch">
+                    <button class="view-btn active" data-view="growth" onclick="switchView('growth')">📈 Utility Growth</button>
+                    <button class="view-btn" data-view="indiff" onclick="switchView('indiff')">🗺️ Indifference Map</button>
+                </div>
+            </div>
+            <div id="chart-growth" class="chart-view active">
+                <canvas id="simChart"></canvas>
+            </div>
+            <div id="chart-indiff" class="chart-view">
+                <canvas id="icChart"></canvas>
+            </div>
+            <div class="chart-hint" id="chart-hint">Buy Snacks → and Movies ↑ to explore the utility space.</div>
         </div>
     </div>
 
@@ -213,7 +239,10 @@
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(`tab${n}`).classList.add('active');
         document.querySelectorAll('.tab-btn')[n-1].classList.add('active');
-        if(n===2 && chart) chart.resize();
+        if(n === 2) {
+            const inIndiff = document.getElementById('chart-indiff').classList.contains('active');
+            (inIndiff ? icChart : chart).resize();
+        }
     }
 
     // --- THEORY LOGIC ---
@@ -300,22 +329,68 @@
     }
 
     // --- SIMULATOR LOGIC ---
-    let sim = { b: BUDGET, u: 0, qs: 0, qm: 0, path:[{x:0, y:0}] };
-    let chart;
+    let sim = { b: BUDGET, u: 0, qs: 0, qm: 0, path:[{x:0, y:0}], ipath:[{x:0, y:0}] };
+    let chart, icChart;
+    let icCurrentDS, icYourDS, icOptDS, icBundleDS;
 
-    function getOptimalPath() {
+    // Compute the optimal path in both coordinate spaces (cost→utility, and bundle space)
+    function computeOptimal() {
         let b = BUDGET, s = 0, m = 0, u = 0, spent = 0;
-        let p = [{x: 0, y: 0}];
+        let g = [{x: 0, y: 0}], bp = [{x: 0, y: 0}];
         while (b >= PS) {
             let rs = s < 8 ? MUS[s]/PS : 0;
             let rm = m < 8 ? MUM[m]/PM : 0;
-            if (rs >= rm && b >= PS) { u += MUS[s++]; b -= PS; spent += PS; }
-            else if (rm > rs && b >= PM) { u += MUM[m++]; b -= PM; spent += PM; }
-            else if (b >= PS) { u += MUS[s++]; b -= PS; spent += PS; }
+            if (rs >= rm && b >= PS) { u += MUS[s]; b -= PS; spent += PS; s++; }
+            else if (rm > rs && b >= PM) { u += MUM[m]; b -= PM; spent += PM; m++; }
+            else if (b >= PS) { u += MUS[s]; b -= PS; spent += PS; s++; }
             else break;
-            p.push({x: spent, y: u});
+            g.push({x: spent, y: u});
+            bp.push({x: s, y: m});
         }
-        return p;
+        return { growth: g, bundle: bp };
+    }
+    const OPTIMAL = computeOptimal();
+
+    // --- Indifference Map helpers (monotone cubic interpolation of TU data) ---
+    function makeInterp(vals) {
+        const n = vals.length - 1, d = [], m = new Array(n + 1).fill(0);
+        for (let i = 0; i < n; i++) d.push(vals[i+1] - vals[i]);
+        for (let i = 0; i <= n; i++) {
+            if (i === 0) m[i] = d[0];
+            else if (i === n) m[i] = d[n-1];
+            else if (d[i-1] * d[i] <= 0) m[i] = 0;
+            else m[i] = 2 * d[i-1] * d[i] / (d[i-1] + d[i]);
+        }
+        return function(x) {
+            const i = Math.min(n - 1, Math.max(0, Math.floor(x)));
+            const t = x - i, t2 = t*t, t3 = t2*t;
+            return (2*t3 - 3*t2 + 1)*vals[i] + (t3 - 2*t2 + t)*m[i] + (-2*t3 + 3*t2)*vals[i+1] + (t3 - t2)*m[i+1];
+        };
+    }
+    const tuS = makeInterp([0, ...TUS]);
+    const tuM = makeInterp([0, ...TUM]);
+    const tuMax = TUM[TUM.length - 1]; // 160
+
+    // Solve m in [0,8] such that f(m) = target (f strictly increasing)
+    function invertTU(f, target) {
+        let lo = 0, hi = 8;
+        for (let k = 0; k < 80; k++) {
+            const mid = (lo + hi) / 2;
+            if (f(mid) < target) lo = mid; else hi = mid;
+        }
+        return (lo + hi) / 2;
+    }
+
+    // Points (S, M) where TU(S) + TU(M) = U
+    function indifferenceCurve(U) {
+        const pts = [];
+        for (let s = 0; s <= 8.0001; s += 0.1) {
+            const rem = U - tuS(s);
+            if (rem < 0) break;
+            if (rem > tuMax) continue;
+            pts.push({ x: s, y: invertTU(tuM, rem) });
+        }
+        return pts;
     }
 
     function initChart() {
@@ -326,12 +401,17 @@
                 datasets: [
                     {
                         label: 'Optimal Path',
-                        data: getOptimalPath(),
+                        data: OPTIMAL.growth,
                         borderColor: '#2ecc71',
                         borderWidth: 4,
                         pointRadius: 0,
                         hidden: true,
-                        tension: 0
+                        tension: 0,
+                        tagText: 'Optimal Path',
+                        tagColor: '#1e8449',
+                        tagAnchor: 'end',
+                        tagDx: -95,
+                        tagDy: -8
                     },
                     {
                         label: 'Your Path',
@@ -340,7 +420,13 @@
                         borderWidth: 4,
                         pointRadius: 6,
                         pointBackgroundColor: '#fff',
-                        tension: 0
+                        tension: 0,
+                        tagText: 'Your Path',
+                        tagColor: '#2471a3',
+                        tagAnchor: 'end',
+                        tagDx: 8,
+                        tagDy: -8,
+                        tagMinPoints: 2
                     }
                 ]
             },
@@ -350,8 +436,105 @@
                     x: { type:'linear', min:0, max:60, title:{display:true, text:'Total Cost ($)', font:{size:15, weight:'bold'}}},
                     y: { min:0, max:180, title:{display:true, text:'Total Utility', font:{size:15, weight:'bold'}}}
                 },
-                plugins: { legend: { labels: { font: { size: 13 } } } }
-            }
+                plugins: { legend: { display: false } }
+            },
+            plugins: [chartLabelPlugin]
+        });
+    }
+
+    // Utility levels reached along the optimal path (deduplicated) — these become the indifference curves shown by default
+    function optimalCurveLevels() {
+        const set = new Set();
+        OPTIMAL.bundle.forEach(p => {
+            const U = Math.round(tuS(p.x) + tuM(p.y));
+            if (U > 0) set.add(U);
+        });
+        return [...set].sort((a, b) => a - b);
+    }
+
+    // Chart.js plugin: draw labels right next to every curve (both charts — keeps the legend clean)
+    // Per-dataset options: tagText, tagColor, tagAnchor ('start' | 'end' | index), tagDx/tagDy (px offset), tagMinPoints
+    const chartLabelPlugin = {
+        id: 'chartLabels',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = 'bold 12px "Segoe UI", Arial, sans-serif';
+            ctx.textBaseline = 'bottom';
+            chart.data.datasets.forEach(ds => {
+                if (ds.hidden || !ds.tagText || !ds.data || !ds.data.length) return;
+                if (ds.tagMinPoints && ds.data.length < ds.tagMinPoints) return;
+                let p;
+                if (ds.tagAnchor === 'start') p = ds.data[1] || ds.data[0];
+                else if (typeof ds.tagAnchor === 'number') p = ds.data[ds.tagAnchor] || ds.data[ds.data.length - 1];
+                else p = ds.data[ds.data.length - 1];
+                if (!p) return;
+                const xs = chart.scales.x, ys = chart.scales.y;
+                const px = xs.getPixelForValue(p.x) + (ds.tagDx || 0);
+                const py = ys.getPixelForValue(p.y) + (ds.tagDy !== undefined ? ds.tagDy : -3);
+                const w = ctx.measureText(ds.tagText).width;
+                ctx.fillStyle = 'rgba(255,255,255,0.92)';
+                ctx.fillRect(px - 3, py - 14, w + 6, 18);
+                ctx.fillStyle = ds.tagColor || '#7f8c8d';
+                ctx.fillText(ds.tagText, px, py);
+            });
+            ctx.restore();
+        }
+    };
+
+    function initICChart() {
+        const ctx = document.getElementById('icChart').getContext('2d');
+        const levels = optimalCurveLevels();
+        const gray = ['#e9ebee', '#d8dde2', '#c6cdd4', '#b4bdc6', '#a2adb8', '#909daa', '#7e8d9c'];
+        const ds = levels.map((U, i) => ({
+            label: '',
+            data: indifferenceCurve(U),
+            showLine: true,
+            borderColor: gray[i % gray.length],
+            borderDash: [5, 5],
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0,
+            tagText: `U = ${U}`,
+            tagColor: '#5d6d7e',
+            tagAnchor: 'start',
+            tagDx: 10
+        }));
+        // dataset order: curves..., then [current utility, budget line, optimal path, optimal bundle, your path]
+        ds.push({ label: '', data: [], showLine: true, borderColor: '#f39c12', borderWidth: 3, borderDash: [6, 3], pointRadius: 0, tension: 0, tagText: '', tagColor: '#e67e22', tagAnchor: 'end', tagDx: -8 });
+        ds.push({ label: 'Budget Line ($50)', data: [{ x: 0, y: 5 }, { x: 2, y: 4 }, { x: 4, y: 3 }, { x: 6, y: 2 }, { x: 8, y: 1 }, { x: 10, y: 0 }], showLine: true, borderColor: '#e74c3c', borderWidth: 3, pointRadius: 0, tension: 0, tagText: 'Budget: $50', tagColor: '#c0392b', tagAnchor: 1, tagDx: 8, tagDy: -8 });
+        ds.push({ label: 'Optimal Path', data: OPTIMAL.bundle, showLine: true, borderColor: '#2ecc71', borderWidth: 3, pointRadius: 4, pointBackgroundColor: '#2ecc71', pointBorderColor: '#fff', pointBorderWidth: 1.5, hidden: true, tagText: 'Optimal Path', tagColor: '#1e8449', tagAnchor: 3, tagDx: 6, tagDy: -8 });
+        const ob = OPTIMAL.bundle[OPTIMAL.bundle.length - 1];
+        ds.push({ label: `Optimal Bundle (${ob.x}S, ${ob.y}M)`, data: [ob], showLine: false, pointRadius: 12, pointStyle: 'star', pointBackgroundColor: '#2ecc71', pointBorderColor: '#fff', pointBorderWidth: 2, hidden: true, tagText: `Optimal (${ob.x}S, ${ob.y}M)`, tagColor: '#1e8449', tagAnchor: 0, tagDx: 10, tagDy: 26 });
+        ds.push({ label: 'Your Path', data: sim.ipath, showLine: true, borderColor: '#3498db', borderWidth: 3, pointRadius: 7, pointBackgroundColor: '#fff', pointBorderColor: '#3498db', pointBorderWidth: 3, tagText: 'Your Path', tagColor: '#2471a3', tagAnchor: 'end', tagDx: 8, tagDy: -8, tagMinPoints: 2 });
+
+        icCurrentDS = ds[levels.length];
+        icOptDS = ds[levels.length + 2];
+        icBundleDS = ds[levels.length + 3];
+        icYourDS = ds[levels.length + 4];
+
+        icChart = new Chart(ctx, {
+            type: 'scatter',
+            data: { datasets: ds },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    x: { type: 'linear', min: 0, max: 10, title: { display: true, text: 'Quantity of Snacks', font: { size: 15, weight: 'bold' } }, ticks: { stepSize: 1 } },
+                    y: { type: 'linear', min: 0, max: 8, title: { display: true, text: 'Quantity of Movies', font: { size: 15, weight: 'bold' } }, ticks: { stepSize: 1 } }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                const d = ctx.raw;
+                                return ` ${d.x} Snacks, ${d.y} Movies  →  TU = ${Math.round(tuS(d.x) + tuM(d.y))}`;
+                            }
+                        }
+                    }
+                }
+            },
+            plugins: [chartLabelPlugin]
         });
     }
 
@@ -362,7 +545,9 @@
             sim.u += MUM[sim.qm]; sim.b -= PM; sim.qm++;
         }
         sim.path.push({x: BUDGET-sim.b, y: sim.u});
+        sim.ipath.push({x: sim.qs, y: sim.qm});
         chart.update();
+        updateIC();
         updateSimUI();
     }
 
@@ -382,20 +567,50 @@
     }
 
     function updateChartVisibility() {
-        chart.setDatasetVisibility(0, document.getElementById('toggle-opt').checked);
+        const show = document.getElementById('toggle-opt').checked;
+        chart.setDatasetVisibility(0, show);
+        icOptDS.hidden = !show;
+        icBundleDS.hidden = !show;
         chart.update();
+        icChart.update();
+    }
+
+    function switchView(v) {
+        const isIndiff = v === 'indiff';
+        document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+        document.getElementById('chart-growth').classList.toggle('active', !isIndiff);
+        document.getElementById('chart-indiff').classList.toggle('active', isIndiff);
+        document.getElementById('chart-title').innerText = isIndiff
+            ? 'Indifference Curve Map — Journey Across Curves'
+            : 'Utility Growth Visualization';
+        document.getElementById('chart-hint').innerText = isIndiff
+            ? 'Curves mark the utility levels reached along the optimal path. Buy Snacks → / Movies ↑ to climb toward the budget-touching curve.'
+            : 'Buy Snacks → and Movies ↑ to explore the utility space.';
+        (isIndiff ? icChart : chart).resize();
+    }
+
+    function updateIC() {
+        if (!icChart) return;
+        const U = sim.u;
+        icCurrentDS.data = U > 0 ? indifferenceCurve(U) : [];
+        icCurrentDS.tagText = U > 0 ? `You: U = ${U}` : '';
+        icYourDS.data = sim.ipath;
+        icChart.update();
     }
 
     function resetSim() {
-        sim = { b: BUDGET, u: 0, qs: 0, qm: 0, path:[{x:0, y:0}] };
+        sim = { b: BUDGET, u: 0, qs: 0, qm: 0, path:[{x:0, y:0}], ipath:[{x:0, y:0}] };
         document.getElementById('toggle-opt').checked = false;
         chart.data.datasets[1].data = sim.path;
         chart.setDatasetVisibility(0, false);
+        icOptDS.hidden = true;
+        icBundleDS.hidden = true;
         chart.update();
+        updateIC();
         updateSimUI();
     }
 
-    window.onload = () => { initTable(); initChart(); updateSimUI(); };
+    window.onload = () => { initTable(); initChart(); initICChart(); updateSimUI(); };
 </script>
 </body>
 </html>
