@@ -6,11 +6,7 @@
     <title>Economics Teaching Tools</title>
     <style>
         /* ===== Reset & Variables ===== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
             --bg: #f6f8fc;
@@ -20,14 +16,30 @@
             --accent: #c44536;
             --text: #1e2a3a;
             --text-secondary: #5a6a7a;
+            --text-tertiary: #8a97a8;
             --shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 18px 50px rgba(26, 58, 92, 0.14);
             --radius: 14px;
-            --transition: 0.25s ease;
+            --radius-lg: 18px;
+            --transition: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+            --grad-main: linear-gradient(120deg, #1a3a5c 0%, #2a5a8c 55%, #5b6fb0 100%);
+            --grad-accent: linear-gradient(120deg, #c44536, #e07a5f);
+            --glass-bg: rgba(255, 255, 255, 0.66);
+            --glass-border: rgba(255, 255, 255, 0.75);
+            --cat-fundamentals: #b7791f;
+            --cat-micro: #185fa5;
+            --cat-macro: #3b6d11;
+            --cat-advanced: #534ab7;
         }
+
+        html { scroll-behavior: smooth; }
 
         body {
             font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-            background: var(--bg);
+            background:
+                radial-gradient(900px 500px at 12% -8%, rgba(52, 152, 219, 0.10), transparent 60%),
+                radial-gradient(800px 460px at 88% 6%, rgba(155, 89, 182, 0.10), transparent 60%),
+                linear-gradient(180deg, #f7f9fd 0%, #f3f6fc 45%, #f8f5fb 100%);
             color: var(--text);
             padding: 2rem 1.5rem 0;
             min-height: 100vh;
@@ -36,116 +48,191 @@
             align-items: center;
         }
 
+        /* ===== Decorative blobs ===== */
+        .blob {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(70px);
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.55;
+        }
+        .blob-1 { width: 420px; height: 420px; background: rgba(52, 152, 219, 0.14); top: -140px; left: -120px; }
+        .blob-2 { width: 360px; height: 360px; background: rgba(155, 89, 182, 0.12); top: 30%; right: -140px; }
+        .blob-3 { width: 300px; height: 300px; background: rgba(196, 69, 54, 0.09); bottom: -120px; left: 32%; }
+
         .container {
             max-width: 1300px;
             width: 100%;
             flex: 1;
             display: flex;
             flex-direction: column;
+            position: relative;
+            z-index: 1;
         }
 
         /* ===== Header ===== */
         .header {
             text-align: center;
-            margin-bottom: 1.8rem;
+            margin-bottom: 1.6rem;
             position: relative;
+            padding-top: 0.6rem;
+        }
+
+        .header .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--accent);
+            background: rgba(196, 69, 54, 0.08);
+            border: 1px solid rgba(196, 69, 54, 0.22);
+            padding: 5px 14px;
+            border-radius: 40px;
+            margin-bottom: 14px;
+        }
+        .header .eyebrow .dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--accent);
+            animation: pulse 2.2s ease-in-out infinite;
         }
 
         .header h1 {
-            font-size: 2.6rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            color: var(--primary);
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            background: var(--grad-main);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
         }
-
-        .header h1 span {
-            color: var(--accent);
-        }
+        .header h1 .hl { background: var(--grad-accent); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 
         .header p {
-            font-size: 1.1rem;
+            font-size: 1.12rem;
             color: var(--text-secondary);
-            margin-top: 0.4rem;
+            margin-top: 0.5rem;
+            font-weight: 400;
         }
 
-        /* ===== Intro description ===== */
+        /* ===== About button ===== */
+        .about-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border: 1px solid rgba(42, 90, 140, 0.25);
+            border-radius: 40px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: var(--primary-light);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 4px 14px rgba(26, 58, 92, 0.08);
+        }
+        .about-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 26px rgba(26, 58, 92, 0.16);
+            border-color: rgba(42, 90, 140, 0.5);
+            color: var(--primary);
+        }
+        .about-btn .ico {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: var(--grad-main); color: #fff;
+            font-size: 12px; font-weight: 700;
+        }
+
+        /* ===== Glass card ===== */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(26, 58, 92, 0.08);
+        }
+
+        /* ===== Intro ===== */
         .intro {
-            background: var(--surface);
-            padding: 1.6rem 2rem;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            margin-bottom: 2rem;
+            padding: 1.7rem 2.2rem;
+            border-radius: var(--radius-lg);
+            margin-bottom: 1.8rem;
             text-align: center;
-            max-width: 900px;
+            max-width: 920px;
             margin-left: auto;
             margin-right: auto;
         }
-
-        .intro p {
-            font-size: 1.05rem;
-            line-height: 1.6;
-            color: var(--text-secondary);
-        }
-
-        .intro strong {
-            color: var(--primary);
-        }
+        .intro p { font-size: 1.05rem; line-height: 1.7; color: var(--text-secondary); }
+        .intro strong { color: var(--primary); font-weight: 600; }
+        .intro .accent-word { color: var(--accent); font-weight: 600; }
 
         /* ===== Stats ===== */
         .stats {
             display: flex;
             justify-content: center;
-            gap: 2.5rem;
+            gap: 2.8rem;
             flex-wrap: wrap;
-            margin-bottom: 2.5rem;
-            background: var(--surface);
-            padding: 0.8rem 2rem;
+            margin-bottom: 1.8rem;
+            padding: 0.9rem 2.4rem;
             border-radius: 60px;
-            box-shadow: var(--shadow);
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
         }
-
-        .stats span {
-            font-weight: 500;
-            color: var(--text-secondary);
+        .stats .stat { text-align: center; }
+        .stats .stat strong {
+            display: block;
+            font-size: 1.7rem;
+            font-weight: 800;
+            line-height: 1.15;
+            background: var(--grad-main);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
         }
-
-        .stats strong {
-            color: var(--primary);
-            font-weight: 700;
-        }
+        .stats .stat span { font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.04em; }
 
         /* ===== Search ===== */
-        .search-wrap {
-            position: relative;
-            max-width: 480px;
-            margin: 0 auto 2.5rem;
-        }
-
+        .search-wrap { position: relative; max-width: 500px; margin: 0 auto 1.8rem; }
         .search-wrap input {
             width: 100%;
-            padding: 0.8rem 1.2rem 0.8rem 3rem;
-            border: 2px solid #dce3ed;
+            padding: 0.9rem 1.3rem 0.9rem 3.1rem;
+            border: 1.5px solid rgba(42, 90, 140, 0.18);
             border-radius: 60px;
             font-size: 1rem;
-            background: var(--surface);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             transition: var(--transition);
             outline: none;
             color: var(--text);
+            box-shadow: 0 4px 18px rgba(26, 58, 92, 0.06);
         }
-
+        .search-wrap input::placeholder { color: var(--text-tertiary); }
         .search-wrap input:focus {
             border-color: var(--primary-light);
-            box-shadow: 0 0 0 4px rgba(42, 90, 140, 0.12);
+            box-shadow: 0 0 0 4px rgba(42, 90, 140, 0.12), 0 8px 26px rgba(26, 58, 92, 0.1);
         }
-
         .search-wrap::before {
-            content: "🔍";
+            content: "";
             position: absolute;
-            left: 1.1rem;
-            top: 50%;
+            left: 1.25rem; top: 50%;
             transform: translateY(-50%);
-            font-size: 1.1rem;
-            opacity: 0.5;
+            width: 17px; height: 17px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%235a6a7a" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>') center/contain no-repeat;
+            opacity: 0.75;
         }
 
         /* ===== Filter Buttons ===== */
@@ -153,436 +240,431 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 0.5rem 0.8rem;
-            margin-bottom: 2.2rem;
+            gap: 0.55rem 0.8rem;
+            margin-bottom: 2rem;
         }
-
         .filter-tags button {
-            padding: 0.4rem 1.4rem;
-            border: 2px solid #dce3ed;
+            padding: 0.45rem 1.5rem;
+            border: 1.5px solid rgba(42, 90, 140, 0.16);
             border-radius: 40px;
-            background: transparent;
+            background: rgba(255, 255, 255, 0.6);
             font-size: 0.9rem;
-            font-weight: 500;
+            font-weight: 600;
             color: var(--text-secondary);
             cursor: pointer;
             transition: var(--transition);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
         }
-
-        .filter-tags button:hover {
-            border-color: var(--primary-light);
-            color: var(--primary);
-        }
-
+        .filter-tags button:hover { border-color: var(--primary-light); color: var(--primary); transform: translateY(-1px); }
         .filter-tags button.active {
-            background: var(--primary);
-            border-color: var(--primary);
+            background: var(--grad-main);
+            border-color: transparent;
             color: #fff;
+            box-shadow: 0 6px 18px rgba(26, 58, 92, 0.28);
         }
 
         /* ===== Card Grid ===== */
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2.5rem;
+            gap: 1.4rem;
+            margin-bottom: 2.2rem;
         }
-
         .card {
             background: var(--surface);
-            border-radius: var(--radius);
-            padding: 1.6rem 1.8rem 1.8rem;
+            border-radius: var(--radius-lg);
+            padding: 1.5rem 1.6rem 1.5rem;
             box-shadow: var(--shadow);
             transition: var(--transition);
-            border: 1px solid rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(26, 58, 92, 0.06);
             text-decoration: none;
             color: var(--text);
             display: flex;
             flex-direction: column;
             position: relative;
+            overflow: hidden;
         }
-
+        .card::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--grad-main);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover::before { transform: scaleX(1); }
         .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
-            border-color: #dce3ed;
+            transform: translateY(-7px);
+            box-shadow: var(--shadow-lg);
+            border-color: rgba(42, 90, 140, 0.18);
         }
-
         .card .icon {
-            font-size: 1.8rem;
-            margin-bottom: 0.6rem;
+            width: 46px; height: 46px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.35rem;
+            border-radius: 13px;
+            margin-bottom: 0.85rem;
+            transition: var(--transition);
         }
-
-        .card h3 {
-            font-size: 1.05rem;
-            font-weight: 600;
-            line-height: 1.3;
-            margin-bottom: 0.3rem;
-        }
-
+        .card[data-cat="fundamentals"] .icon { background: rgba(183, 121, 31, 0.13); }
+        .card[data-cat="micro"] .icon { background: rgba(24, 95, 165, 0.12); }
+        .card[data-cat="macro"] .icon { background: rgba(59, 109, 17, 0.12); }
+        .card[data-cat="advanced"] .icon { background: rgba(83, 74, 183, 0.12); }
+        .card:hover .icon { transform: translateY(-3px) scale(1.06); }
+        .card h3 { font-size: 1.05rem; font-weight: 600; line-height: 1.35; margin-bottom: 0.3rem; }
+        .card .desc { font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.15rem; line-height: 1.5; flex: 1; }
         .card .badge {
             display: inline-block;
-            margin-top: 0.5rem;
-            font-size: 0.7rem;
-            font-weight: 600;
+            margin-top: 0.7rem;
+            font-size: 0.68rem;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
-            padding: 0.2rem 0.8rem;
+            letter-spacing: 0.06em;
+            padding: 0.22rem 0.85rem;
             border-radius: 40px;
             background: #eef2f7;
             color: var(--text-secondary);
             align-self: flex-start;
-        }
-
-        .card .badge.micro {
-            background: #dbeafe;
-            color: #1a4a7a;
-        }
-        .card .badge.macro {
-            background: #fce8e4;
-            color: #a03a2a;
-        }
-        .card .badge.advanced {
-            background: #e4f0e7;
-            color: #2a6a4a;
-        }
-		.card .badge.fundamentals {
-			background: #fef3c7;
-			color: #92400e;
-		}
-
-        .card .arrow {
-            margin-top: 0.8rem;
-            font-size: 1.2rem;
-            align-self: flex-end;
-            opacity: 0.3;
             transition: var(--transition);
         }
-
-        .card:hover .arrow {
-            opacity: 0.8;
-            transform: translateX(4px);
+        .card[data-cat="fundamentals"] .badge { background: #fef3c7; color: #92400e; }
+        .card[data-cat="micro"] .badge { background: #dbeafe; color: #1a4a7a; }
+        .card[data-cat="macro"] .badge { background: #e4f0e7; color: #2a6a4a; }
+        .card[data-cat="advanced"] .badge { background: #eeedfe; color: #534ab7; }
+        .card .arrow {
+            position: absolute;
+            bottom: 1.15rem; right: 1.3rem;
+            font-size: 1.15rem;
+            opacity: 0;
+            transform: translateX(-8px);
+            transition: var(--transition);
+            color: var(--primary-light);
         }
+        .card:hover .arrow { opacity: 0.85; transform: translateX(0); }
 
-        /* ===== Feedback Section (collapsible) ===== */
+        /* ===== Feedback Section ===== */
         .feedback-section {
-            background: var(--surface);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            margin: 1.5rem 0 2.5rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 8px 32px rgba(26, 58, 92, 0.08);
+            margin: 1.2rem 0 2.2rem;
         }
-
         .feedback-toggle {
             width: 100%;
             background: transparent;
             border: none;
-            padding: 1.2rem 2rem;
-            font-size: 1.2rem;
+            padding: 1.25rem 2rem;
+            font-size: 1.15rem;
             font-weight: 600;
             color: var(--primary);
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-radius: var(--radius);
+            border-radius: var(--radius-lg);
             transition: background 0.2s;
         }
-
-        .feedback-toggle:hover {
-            background: #f0f4fa;
-        }
-
-        .feedback-toggle .arrow-icon {
-            font-size: 1.4rem;
-            transition: transform 0.25s;
-        }
-
-        .feedback-toggle .arrow-icon.open {
-            transform: rotate(180deg);
-        }
-
-        .feedback-content {
-            padding: 0 2rem 2rem;
-            display: none;
-            flex-wrap: wrap;
-            gap: 2rem;
-            align-items: flex-start;
-        }
-
-        .feedback-content.open {
-            display: flex;
-        }
-
-        .feedback-content .form-col {
-            flex: 2;
-            min-width: 280px;
-        }
-
-        .feedback-content .info-col {
-            flex: 1;
-            min-width: 200px;
-            border-left: 2px solid #eef2f7;
-            padding-left: 2rem;
-        }
-
-        .feedback-content h3 {
-            font-size: 1.2rem;
-            margin-bottom: 0.8rem;
-            color: var(--primary);
-        }
-
-        .feedback-content p {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-            line-height: 1.5;
-        }
-
-        .feedback-content form label {
-            display: block;
-            font-weight: 500;
-            margin: 1rem 0 0.3rem;
-            font-size: 0.9rem;
-        }
-
+        .feedback-toggle:hover { background: rgba(240, 244, 250, 0.7); }
+        .feedback-toggle .arrow-icon { font-size: 1.4rem; transition: transform 0.25s; }
+        .feedback-toggle .arrow-icon.open { transform: rotate(180deg); }
+        .feedback-content { padding: 0 2rem 2rem; display: none; flex-wrap: wrap; gap: 2rem; align-items: flex-start; }
+        .feedback-content.open { display: flex; }
+        .feedback-content .form-col { flex: 2; min-width: 280px; }
+        .feedback-content .info-col { flex: 1; min-width: 200px; border-left: 2px solid rgba(222, 227, 237, 0.9); padding-left: 2rem; }
+        .feedback-content h3 { font-size: 1.15rem; margin-bottom: 0.8rem; color: var(--primary); }
+        .feedback-content p { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; }
+        .feedback-content form label { display: block; font-weight: 600; margin: 1rem 0 0.3rem; font-size: 0.9rem; }
         .feedback-content form input,
         .feedback-content form textarea {
             width: 100%;
-            padding: 0.7rem 1rem;
-            border: 2px solid #dce3ed;
-            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            border: 1.5px solid rgba(42, 90, 140, 0.18);
+            border-radius: 10px;
             font-size: 0.95rem;
             font-family: inherit;
             transition: var(--transition);
-            background: var(--bg);
+            background: rgba(246, 248, 252, 0.8);
         }
-
         .feedback-content form input:focus,
         .feedback-content form textarea:focus {
             border-color: var(--primary-light);
             box-shadow: 0 0 0 4px rgba(42, 90, 140, 0.08);
             outline: none;
         }
-
-        .feedback-content form textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
+        .feedback-content form textarea { resize: vertical; min-height: 100px; }
         .feedback-content form button {
             margin-top: 1.2rem;
-            background: var(--primary);
+            background: var(--grad-main);
             color: #fff;
             border: none;
-            padding: 0.7rem 2rem;
+            padding: 0.75rem 2.2rem;
             border-radius: 40px;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
             transition: var(--transition);
+            box-shadow: 0 6px 18px rgba(26, 58, 92, 0.24);
         }
-
-        .feedback-content form button:hover {
-            background: var(--primary-light);
-            transform: translateY(-2px);
-        }
+        .feedback-content form button:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(26, 58, 92, 0.3); }
 
         /* ===== Footer ===== */
-        .footer {
-            text-align: center;
-            padding: 1.8rem 0 2.5rem;
-            border-top: 1px solid #dce3ed;
-            margin-top: 1.5rem;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        .footer strong {
-            color: var(--primary);
-        }
+        .footer { text-align: center; padding: 1.6rem 0 2.2rem; border-top: 1px solid rgba(222, 227, 237, 0.9); margin-top: 1rem; color: var(--text-secondary); font-size: 0.9rem; }
+        .footer strong { color: var(--primary); }
 
         /* ===== Empty State ===== */
-        .empty {
-            text-align: center;
-            padding: 4rem 0;
-            color: var(--text-secondary);
-            display: none;
-        }
+        .empty { text-align: center; padding: 4rem 0; color: var(--text-secondary); display: none; }
+        .empty.show { display: block; }
 
-        .empty.show {
-            display: block;
+        /* ===== About Modal ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(18, 32, 52, 0.45);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1.2rem;
+            z-index: 100;
         }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--surface);
+            border-radius: 22px;
+            max-width: 760px;
+            width: 100%;
+            max-height: 86vh;
+            overflow-y: auto;
+            box-shadow: 0 30px 80px rgba(18, 32, 52, 0.35);
+            animation: modalIn 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.3rem 1.8rem;
+            border-bottom: 1px solid rgba(222, 227, 237, 0.8);
+            position: sticky;
+            top: 0;
+            background: var(--surface);
+            border-radius: 22px 22px 0 0;
+            z-index: 2;
+        }
+        .modal-header h2 {
+            font-size: 1.35rem;
+            font-weight: 800;
+            background: var(--grad-main);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+        .modal-close {
+            width: 36px; height: 36px;
+            border: 1.5px solid rgba(42, 90, 140, 0.18);
+            border-radius: 50%;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .modal-close:hover { background: rgba(196, 69, 54, 0.08); border-color: var(--accent); color: var(--accent); transform: rotate(90deg); }
+        .modal-body { padding: 1.4rem 1.8rem 1.8rem; }
+        .lang-block { margin-bottom: 1.6rem; }
+        .lang-block:last-child { margin-bottom: 0; }
+        .lang-block h3 {
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 0.7rem;
+        }
+        .lang-block p { font-size: 0.95rem; line-height: 1.8; color: var(--text); margin-bottom: 0.6rem; }
+        .lang-block p.muted { color: var(--text-secondary); }
+        .lang-block ul { list-style: none; }
+        .lang-block ul li {
+            font-size: 0.93rem;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            padding-left: 1.4rem;
+            position: relative;
+            margin-bottom: 0.3rem;
+        }
+        .lang-block ul li::before {
+            content: "";
+            position: absolute;
+            left: 2px; top: 0.72em;
+            width: 7px; height: 7px;
+            border-radius: 2px;
+            background: var(--grad-main);
+        }
+        .lang-block .divider-zh { border-top: 1px dashed rgba(42, 90, 140, 0.2); padding-top: 1.2rem; }
 
         /* ===== Responsive ===== */
         @media (max-width: 640px) {
-            body {
-                padding: 1.2rem 1rem 0;
-            }
-
-            .header h1 {
-                font-size: 2rem;
-            }
-
-            .stats {
-                gap: 1.2rem;
-                padding: 0.6rem 1.2rem;
-                border-radius: 30px;
-                font-size: 0.9rem;
-            }
-
-            .grid {
-                grid-template-columns: 1fr;
-            }
-
-            .filter-tags button {
-                font-size: 0.8rem;
-                padding: 0.3rem 1rem;
-            }
-
-            .feedback-content {
-                padding: 0 1.5rem 1.5rem;
-                flex-direction: column;
-            }
-
-            .feedback-content .info-col {
-                border-left: none;
-                padding-left: 0;
-                border-top: 2px solid #eef2f7;
-                padding-top: 1.5rem;
-            }
+            body { padding: 1.1rem 0.9rem 0; }
+            .header h1 { font-size: 2.1rem; }
+            .header p { font-size: 1rem; }
+            .about-btn { position: static; margin-bottom: 1rem; }
+            .stats { gap: 1.4rem; padding: 0.8rem 1.4rem; }
+            .grid { grid-template-columns: 1fr; }
+            .feedback-content { padding: 0 1.4rem 1.5rem; flex-direction: column; }
+            .feedback-content .info-col { border-left: none; padding-left: 0; border-top: 2px solid rgba(222, 227, 237, 0.9); padding-top: 1.2rem; }
+            .modal-body { padding: 1.1rem 1.3rem 1.4rem; }
         }
 
-        /* ===== Animation ===== */
-        .card {
-            animation: fadeUp 0.4s ease both;
-        }
-
+        /* ===== Animations ===== */
         @keyframes fadeUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(22px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-
-        .card:nth-child(1) { animation-delay: 0.02s; }
-        .card:nth-child(2) { animation-delay: 0.04s; }
-        .card:nth-child(3) { animation-delay: 0.06s; }
-        .card:nth-child(4) { animation-delay: 0.08s; }
-        .card:nth-child(5) { animation-delay: 0.10s; }
-        .card:nth-child(6) { animation-delay: 0.12s; }
-        .card:nth-child(7) { animation-delay: 0.14s; }
-        .card:nth-child(8) { animation-delay: 0.16s; }
-        .card:nth-child(9) { animation-delay: 0.18s; }
-        .card:nth-child(10) { animation-delay: 0.20s; }
-        .card:nth-child(11) { animation-delay: 0.22s; }
-        .card:nth-child(12) { animation-delay: 0.24s; }
-        .card:nth-child(13) { animation-delay: 0.26s; }
-        .card:nth-child(14) { animation-delay: 0.28s; }
-        .card:nth-child(15) { animation-delay: 0.30s; }
-        .card:nth-child(16) { animation-delay: 0.32s; }
-        .card:nth-child(17) { animation-delay: 0.34s; }
-        .card:nth-child(18) { animation-delay: 0.36s; }
-		.card:nth-child(19) { animation-delay: 0.38s; }
-		.card:nth-child(20) { animation-delay: 0.40s; }
-		.card:nth-child(21) { animation-delay: 0.42s; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.35; transform: scale(0.8); }
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: translateY(26px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .card { animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
     </style>
 </head>
 <body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
 
 <div class="container">
 
     <!-- ===== Header ===== -->
     <header class="header">
-        <h1>📚 Economics <span>Teaching&Learning Tools</span></h1>
+        <button class="about-btn" id="aboutBtn" type="button">
+            <span class="ico">i</span>
+            <span>About / 关于</span>
+        </button>
+        <span class="eyebrow"><span class="dot"></span>Interactive Economics Lab</span>
+        <h1>Economics <span class="hl">Teaching &amp; Learning</span> Tools</h1>
         <p>Interactive simulations · Visual derivations · Study aid</p>
     </header>
 
     <!-- ===== Intro Description ===== -->
-    <div class="intro">
+    <div class="intro glass">
         <p>
             These interactive tools were built through <strong>vibe coding</strong>.
-            They are designed for <strong>IGCSE, IB, A‑Level, AP, and introductory university</strong> courses in economics.
+            They are designed for <strong>IGCSE, IB, A-Level, AP, and introductory university</strong> courses in economics.
             I hope you find them useful to visualise core concepts, run thought experiments, and reinforce your understanding of key models.
         </p>
     </div>
 
     <!-- ===== Stats ===== -->
-    <div class="stats">
-        <span>📦 <strong id="countDisplay">18</strong> tools</span>
-        <span>🏷️ <strong>4</strong> categories</span>
+    <div class="stats glass">
+        <div class="stat"><strong id="countDisplay">22</strong><span>Tools · 工具</span></div>
+        <div class="stat"><strong>4</strong><span>Categories · 分类</span></div>
     </div>
 
     <!-- ===== Search ===== -->
     <div class="search-wrap">
-        <input type="text" id="searchInput" placeholder="Search tools..." />
+        <input type="text" id="searchInput" placeholder="Search tools... 搜索工具" />
     </div>
 
     <!-- ===== Filter Buttons ===== -->
     <div class="filter-tags" id="filterTags">
-        <button class="active" data-filter="all">All</button>
-		<button data-filter="fundamentals">Fundamentals</button>
-        <button data-filter="micro">Micro Principles</button>
-        <button data-filter="macro">Macro Principles</button>
-        <button data-filter="advanced">Advanced</button>
+        <button class="active" data-filter="all">All · 全部</button>
+        <button data-filter="fundamentals">Fundamentals · 基础</button>
+        <button data-filter="micro">Micro · 微观</button>
+        <button data-filter="macro">Macro · 宏观</button>
+        <button data-filter="advanced">Advanced · 进阶</button>
     </div>
 
     <!-- ===== Card Grid ===== -->
     <div class="grid" id="cardGrid"></div>
 
-    <!-- ===== Feedback Section (collapsible) with Formspree ===== -->
+    <!-- ===== Feedback Section ===== -->
     <div class="feedback-section">
         <button class="feedback-toggle" id="feedbackToggle">
-            <span>💬 Feedback & Suggestions</span>
+            <span>💬 Feedback &amp; Suggestions</span>
             <span class="arrow-icon" id="feedbackArrow">▼</span>
         </button>
         <div class="feedback-content" id="feedbackContent">
             <div class="form-col">
-                <h3>💬 Feedback & Suggestions</h3>
+                <h3>💬 Feedback &amp; Suggestions</h3>
                 <p style="margin-bottom:0.8rem;color:var(--text-secondary);font-size:0.95rem;">
                     Your comments help improve these tools. All submissions are sent privately to the author.
                 </p>
-
-                <!-- Formspree: success and error messages -->
                 <div data-fs-success></div>
                 <div data-fs-error></div>
-
                 <form id="feedback-form">
                     <label for="feedbackName">Your name (optional)</label>
                     <input type="text" id="feedbackName" name="name" placeholder="e.g. Alex" />
-
                     <label for="feedbackEmail">Email (optional, for follow‑up)</label>
                     <input type="email" id="feedbackEmail" name="email" placeholder="alex@example.com" data-fs-field />
-
                     <label for="feedbackMessage">Message *</label>
                     <textarea id="feedbackMessage" name="message" placeholder="What do you think? Suggestions for new tools? …" required data-fs-field></textarea>
                     <span data-fs-error="message"></span>
-
                     <button type="submit" data-fs-submit-btn>Send feedback</button>
-                    <p style="margin-top:0.8rem;font-size:0.8rem;color:var(--text-secondary);">
-                        * Your data will not be shared.
-                    </p>
+                    <p style="margin-top:0.8rem;font-size:0.8rem;color:var(--text-secondary);">* Your data will not be shared.</p>
                 </form>
             </div>
             <div class="info-col">
                 <h3>📬 How feedback helps</h3>
-                <p>
-                    Your suggestions guide future development. I read every message and use them to improve the tools.
-                </p>
+                <p>Your suggestions guide future development. I read every message and use them to improve the tools.</p>
             </div>
         </div>
     </div>
 
     <!-- ===== Footer ===== -->
     <footer class="footer">
-        <p>
-            © Dr. Jia Teaching — all rights reserved.<br />
-            These materials are for educational use only. Not for commercial redistribution.
-        </p>
+        <p>© Dr. Jia Teaching — all rights reserved.<br />These materials are for educational use only. Not for commercial redistribution.</p>
     </footer>
 
+</div>
+
+<!-- ===== About Modal ===== -->
+<div class="modal-overlay" id="aboutModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+        <div class="modal-header">
+            <h2 id="aboutTitle">About This Site / 关于本站</h2>
+            <button class="modal-close" id="aboutClose" type="button" aria-label="Close">✕</button>
+        </div>
+        <div class="modal-body">
+
+            <section class="lang-block">
+                <h3>中文 · 关于本站</h3>
+                <p>这是一个面向 <strong>IGCSE、IB、A-Level、AP 及大学入门经济学</strong>课程设计的互动教学工具集。所有工具均为单文件 HTML,由 Chart.js 驱动,支持滑杆调节、拖拽操作、分步推导与游戏化互动。</p>
+                <ul>
+                    <li><strong>在线使用</strong>:在首页搜索或按分类(基础 / 微观 / 宏观 / 进阶)筛选,点击卡片进入对应工具。</li>
+                    <li><strong>本地使用</strong>:下载本仓库 ZIP,解压后双击 <code>index.html</code> 即可离线使用全部工具,无需安装或联网。</li>
+                    <li><strong>课堂友好</strong>:适合投影演示、小组活动与自主复习;界面以英文为主,便于国际课程教学。</li>
+                    <li><strong>反馈建议</strong>:任意工具页面底部内置反馈表单,你的意见将直接帮助改进这些工具。</li>
+                </ul>
+                <p class="muted">本项目以 CC0-1.0 许可发布,可自由使用、修改与分发(仅限教育用途,请勿商业再分发)。</p>
+            </section>
+
+            <section class="lang-block divider-zh">
+                <h3>English · About This Site</h3>
+                <p>A collection of <strong>interactive teaching tools for IGCSE, IB, A-Level, AP and introductory university</strong> economics courses. Every tool is a single-file HTML page powered by Chart.js — with sliders, drag interactions, step-by-step derivations and gamified activities.</p>
+                <ul>
+                    <li><strong>Online use</strong>: search or filter by category (Fundamentals / Micro / Macro / Advanced) on this page, then open any tool from its card.</li>
+                    <li><strong>Local use</strong>: download the repository as a ZIP, unzip it and open <code>index.html</code> — everything works offline, no installation or build required.</li>
+                    <li><strong>Classroom ready</strong>: designed for projection, group activities and self-study; the interface is in English, suitable for international programmes.</li>
+                    <li><strong>Feedback</strong>: each tool page includes a built-in feedback form — your suggestions directly shape future updates.</li>
+                </ul>
+                <p class="muted">Released under the CC0-1.0 license — free to use, modify and distribute for educational purposes. Not for commercial redistribution.</p>
+            </section>
+
+        </div>
+    </div>
 </div>
 
 <script>
@@ -607,43 +689,11 @@
         { name: 'Monopoly & Regulation', file: 'Monopoly and regulation.html', icon: '🏛️', category: 'micro', desc: 'Monopoly and government regulation' },
         { name: 'Nash Equilibrium Location', file: 'Nash-Eq Location game.html', icon: '📍', category: 'advanced', desc: 'Nash equilibrium in location games' },
         { name: 'Price Control', file: 'Price Control.html', icon: '📏', category: 'micro', desc: 'Price ceilings and floors' },
-        { 
-		name: 'Production Possibility Curve', 
-		file: 'Production Possibility Curve.html', 
-		icon: '📈', 
-		category: 'fundamentals', 
-		desc: 'Production possibility curve/frontier and opportunity cost' 
-		},
-		{	
-		name: 'Supply & Demand Principles',
-		file: 'supply-demand/index.html',   // 确保路径正确
-		icon: '📊',
-		category: 'fundamentals',
-		desc: 'Interactive market analysis with dynamic graphing'
-		},
-		{
-		name: 'Macroeconomic Cycles & Crises',
-		file: 'Macroeconomic Cycles & Crises.html',
-		icon: '🌀',
-		category: 'advanced',
-		desc: 'Say, Marx & Keynes on economic cycles and crises'
-		},
-		// 在最后一个工具条目之后（`]` 之前）插入
-		{
-		name: 'Macro Integrated Model',
-		file: 'IGCSE-Macro-Integrated-Model.html',
-		icon: '📊',
-		category: 'advanced',
-		desc: 'IGCSE-level macroeconomics integrated: fiscal, monetary, supply-side & trade'
-		},
-		// 在 toolsData 数组的最后一个对象之后插入
-		{
-		name: 'Cournot Duopoly Simulation',
-		file: 'Nash-Eq Quantity Game.html',   // 如果文件在子文件夹，请改为 '文件夹名/文件名'
-		icon: '🎯',
-		category: 'advanced',
-		desc: 'Cournot quantity competition: best response, iteration & welfare'
-		}
+        { name: 'Production Possibility Curve', file: 'Production Possibility Curve.html', icon: '📈', category: 'fundamentals', desc: 'Production possibility curve/frontier and opportunity cost' },
+        { name: 'Supply & Demand Principles', file: 'supply-demand/index.html', icon: '📊', category: 'fundamentals', desc: 'Interactive market analysis with dynamic graphing' },
+        { name: 'Macroeconomic Cycles & Crises', file: 'Macroeconomic Cycles & Crises.html', icon: '🌀', category: 'advanced', desc: 'Say, Marx & Keynes on economic cycles and crises' },
+        { name: 'Macro Integrated Model', file: 'IGCSE-Macro-Integrated-Model.html', icon: '📊', category: 'advanced', desc: 'IGCSE-level macroeconomics integrated: fiscal, monetary, supply-side & trade' },
+        { name: 'Cournot Duopoly Simulation', file: 'Nash-Eq Quantity Game.html', icon: '🎯', category: 'advanced', desc: 'Cournot quantity competition: best response, iteration & welfare' }
     ];
 
     // ============================================================
@@ -664,11 +714,7 @@
 
         // ----- Render function -----
         function render() {
-            if (!grid) {
-                console.error('Grid element not found!');
-                return;
-            }
-
+            if (!grid) { console.error('Grid element not found!'); return; }
             const filtered = toolsData.filter(tool => {
                 const matchFilter = currentFilter === 'all' || tool.category === currentFilter;
                 const matchSearch = tool.name.toLowerCase().includes(currentQuery.toLowerCase()) ||
@@ -682,21 +728,18 @@
                 if (countDisplay) countDisplay.textContent = '0';
                 return;
             }
-
             if (emptyState) emptyState.classList.remove('show');
             if (countDisplay) countDisplay.textContent = filtered.length;
 
             grid.innerHTML = filtered.map((tool, idx) => `
-                    <a href="${tool.file}" class="card" style="animation-delay: ${(idx * 0.02).toFixed(2)}s">
-                        <div class="icon">${tool.icon}</div>
-                        <h3>${tool.name}</h3>
-                        <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:0.2rem;">${tool.desc}</p>
-                        <span class="badge ${tool.category}">${tool.category}</span>
-                        <span class="arrow">→</span>
-                    </a>
-                `).join('');
-
-            console.log('✅ Rendered', filtered.length, 'cards');
+                <a href="${tool.file}" class="card" data-cat="${tool.category}" style="animation-delay: ${(idx * 0.05).toFixed(2)}s">
+                    <div class="icon">${tool.icon}</div>
+                    <h3>${tool.name}</h3>
+                    <p class="desc">${tool.desc}</p>
+                    <span class="badge">${tool.category}</span>
+                    <span class="arrow">→</span>
+                </a>
+            `).join('');
         }
 
         // ----- Event listeners -----
@@ -706,7 +749,6 @@
                 render();
             });
         }
-
         filterButtons.forEach(btn => {
             btn.addEventListener('click', function() {
                 filterButtons.forEach(b => b.classList.remove('active'));
@@ -720,7 +762,6 @@
         const toggleBtn = document.getElementById('feedbackToggle');
         const content = document.getElementById('feedbackContent');
         const arrow = document.getElementById('feedbackArrow');
-
         if (toggleBtn && content && arrow) {
             toggleBtn.addEventListener('click', function() {
                 const isOpen = content.classList.toggle('open');
@@ -728,6 +769,31 @@
                 toggleBtn.querySelector('span:first-child').textContent = isOpen ?
                     '💬 Feedback & Suggestions (hide)' :
                     '💬 Feedback & Suggestions';
+            });
+        }
+
+        // ----- About modal -----
+        const aboutBtn = document.getElementById('aboutBtn');
+        const aboutModal = document.getElementById('aboutModal');
+        const aboutClose = document.getElementById('aboutClose');
+        function openAbout() {
+            if (!aboutModal) return;
+            aboutModal.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeAbout() {
+            if (!aboutModal) return;
+            aboutModal.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+        if (aboutBtn) aboutBtn.addEventListener('click', openAbout);
+        if (aboutClose) aboutClose.addEventListener('click', closeAbout);
+        if (aboutModal) {
+            aboutModal.addEventListener('click', function(e) {
+                if (e.target === aboutModal) closeAbout();
+            });
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && aboutModal.classList.contains('open')) closeAbout();
             });
         }
 
@@ -739,27 +805,37 @@
             }
         });
 
+        // ----- Count-up animation for stats -----
+        const statTarget = 22;
+        const countEl = countDisplay;
+        if (countEl && Number(countEl.textContent) === statTarget) {
+            let start = null;
+            const dur = 900;
+            function tick(ts) {
+                if (!start) start = ts;
+                const p = Math.min((ts - start) / dur, 1);
+                const eased = 1 - Math.pow(1 - p, 3);
+                countEl.textContent = Math.round(eased * statTarget);
+                if (p < 1) requestAnimationFrame(tick);
+                else countEl.textContent = statTarget;
+            }
+            requestAnimationFrame(tick);
+        }
+
         // ----- Initial render -----
         render();
-
         console.log('📚 Economics Teaching Tools loaded.');
     });
 
     // ============================================================
     //  FORMSPREE – Vanilla JS (CDN) integration
-    //  Initializes the form with your endpoint ID
-    //  The library is loaded via CDN <script> tag below.
-    //  We call initForm after the library has loaded.
     // ============================================================
     window.formspree = window.formspree || function () {
         (formspree.q = formspree.q || []).push(arguments);
     };
-
-    // This will be executed when the @formspree/ajax library loads.
-    // The library automatically calls any queued initForm calls.
     window.formspree('initForm', {
         formElement: '#feedback-form',
-        formId: 'mykqbggl'   // Your Formspree form ID
+        formId: 'mykqbggl'
     });
 </script>
 
