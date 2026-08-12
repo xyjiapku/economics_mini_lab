@@ -48,6 +48,7 @@ The index page provides search, category filters and one-click access to every t
 | [Macroeconomic Cycles & Crises](Macroeconomic%20Cycles%20%26%20Crises.html) | 进阶 Advanced | 萨伊、马克思与凯恩斯论经济周期与危机 / Say, Marx & Keynes on cycles and crises |
 | [Macro Integrated Model](IGCSE-Macro-Integrated-Model.html) | 进阶 Advanced | IGCSE 宏观经济学综合模型 / IGCSE-level integrated macroeconomics |
 | [Cournot Duopoly Simulation](Nash-Eq%20Quantity%20Game.html) | 进阶 Advanced | 古诺数量竞争模拟 / Cournot quantity competition simulation |
+| [Lorenz Curve & Gini](Lorenz%20Curve%20%26%20Gini%20Coefficient.html) | 微观 Micro | 洛伦茨曲线与基尼系数(收入分配)/ Lorenz curve & Gini coefficient for income distribution |
 
 ## 🚀 使用方式 / How to Use
 
