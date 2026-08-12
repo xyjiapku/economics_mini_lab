@@ -60,14 +60,14 @@
         .view { display: none; gap: 12px; flex: 1; min-height: 0; }
         .view.active { display: flex; }
 
-        /* Mode switcher */
-        .mode-group { display: flex; background: #f1f3f5; border-radius: 9px; padding: 3px; gap: 3px; }
+        /* Mode switcher (Interactive left, Compare all right) */
         .mode-btn {
-            padding: 7px 14px; border: none; background: transparent; border-radius: 7px;
-            font-size: 13px; font-weight: 700; color: #6c757d; cursor: pointer; transition: .2s; white-space: nowrap;
+            padding: 7px 14px; border: 1.5px solid var(--primary-light); background: #fff;
+            border-radius: 8px; font-size: 13px; font-weight: 700; color: var(--primary);
+            cursor: pointer; transition: .2s; white-space: nowrap;
         }
-        .mode-btn:hover { color: var(--primary); }
-        .mode-btn.active { background: var(--primary); color: #fff; box-shadow: 0 2px 6px rgba(26,58,92,.25); }
+        .mode-btn:hover:not(.active) { background: var(--primary-light); color: #fff; }
+        .mode-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 2px 6px rgba(26,58,92,.25); }
 
         /* Table panel now hosts the result box at the bottom */
         .table-panel {
@@ -159,10 +159,7 @@
     </header>
 
     <div class="actions">
-        <span class="mode-group">
-            <button class="mode-btn active" data-mode="single" onclick="setMode('single')">◈ Interactive</button>
-            <button class="mode-btn" data-mode="compare" onclick="setMode('compare')">≡ Compare all</button>
-        </span>
+        <button class="mode-btn active" data-mode="single" onclick="setMode('single')">◈ Interactive</button>
         <span style="width:1px;height:22px;background:#dee2e6;"></span>
         <span id="singleControls" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span class="ds-wrap">Dataset
@@ -183,6 +180,7 @@
             <button class="act-btn" id="btnReset" onclick="restart()" style="display:none;">↺ Restart</button>
             <span class="progress" id="progress" style="display:none;">0 / 34</span>
         </span>
+        <button class="mode-btn" data-mode="compare" onclick="setMode('compare')" style="margin-left:auto;">≡ Compare all</button>
     </div>
 
     <div class="main">
