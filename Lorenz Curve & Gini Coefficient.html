@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorenz Curve &amp; Gini Coefficient</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #1a3a5c;
+            --primary-light: #2a5a8c;
+            --lorenz: #185fa5;
+            --areaA: rgba(24, 95, 165, 0.28);
+            --areaA-hover: rgba(24, 95, 165, 0.55);
+            --areaB: rgba(196, 69, 54, 0.25);
+            --areaB-hover: rgba(196, 69, 54, 0.55);
+            --border: #dee2e6;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(180deg, #f7f9fd, #f3f6fc);
+            margin: 0; padding: 8px 16px;
+            height: 100vh; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .wrap { width: 1400px; max-width: 100%; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+        .header { text-align: center; margin-bottom: 6px; flex: 0 0 auto; }
+        .header h1 {
+            margin: 0; font-size: 23px; letter-spacing: -0.02em;
+            background: linear-gradient(120deg, #1a3a5c, #2a5a8c 55%, #5b6fb0);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent; color: transparent;
+        }
+        .header p { margin: 3px 0 0; color: #6c757d; font-size: 12.5px; }
+
+        .actions {
+            display: flex; gap: 8px; justify-content: center; align-items: center;
+            background: #fff; padding: 6px 12px; border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(26,58,92,.08); margin-bottom: 8px; flex: 0 0 auto; flex-wrap: wrap;
+        }
+        .ds-wrap { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #6c757d; font-weight: 600; }
+        .ds-wrap select {
+            padding: 6px 10px; border: 1.5px solid var(--primary-light); border-radius: 8px;
+            font-size: 13px; font-weight: 600; color: var(--primary); background: #fff; cursor: pointer; outline: none;
+        }
+        .act-btn {
+            padding: 7px 16px; border: 1.5px solid var(--primary-light); background: #fff;
+            color: var(--primary); border-radius: 8px; font-weight: 600; font-size: 13px;
+            cursor: pointer; transition: .2s; white-space: nowrap;
+        }
+        .act-btn:hover:not(:disabled) { background: var(--primary-light); color: #fff; }
+        .act-btn:disabled { opacity: .4; cursor: not-allowed; }
+        .act-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .act-btn.primary:hover:not(:disabled) { background: #2a4a6e; }
+        .progress { margin-left: 4px; font-size: 13px; color: #6c757d; font-family: Consolas, monospace; font-weight: 700; }
+
+        .main { display: flex; gap: 12px; flex: 1; min-height: 0; }
+        .view { display: none; gap: 12px; flex: 1; min-height: 0; }
+        .view.active { display: flex; }
+
+        /* Mode switcher */
+        .mode-group { display: flex; background: #f1f3f5; border-radius: 9px; padding: 3px; gap: 3px; }
+        .mode-btn {
+            padding: 7px 14px; border: none; background: transparent; border-radius: 7px;
+            font-size: 13px; font-weight: 700; color: #6c757d; cursor: pointer; transition: .2s; white-space: nowrap;
+        }
+        .mode-btn:hover { color: var(--primary); }
+        .mode-btn.active { background: var(--primary); color: #fff; box-shadow: 0 2px 6px rgba(26,58,92,.25); }
+
+        /* Table panel now hosts the result box at the bottom */
+        .table-panel {
+            flex: 0 0 37%; max-width: 620px; min-width: 340px;
+            background: #fff; border-radius: 12px; box-shadow: 0 4px 16px rgba(26,58,92,.08);
+            padding: 9px 12px; display: flex; flex-direction: column; min-height: 0;
+        }
+        .table-panel h2 { margin: 0 0 7px; font-size: 14px; color: var(--primary); flex: 0 0 auto; }
+        .table-scroll { flex: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; min-height: 0; }
+        table { width: 100%; border-collapse: collapse; font-size: 12.6px; }
+        th {
+            position: sticky; top: 0; background: #f8f9fa; color: var(--primary);
+            padding: 5px 7px; border-bottom: 2px solid var(--border); font-size: 11.8px; z-index: 2;
+        }
+        td { padding: 3.5px 7px; border-bottom: 1px solid #eef1f4; text-align: center; }
+        tr:nth-child(even) td { background: #fafbfc; }
+        td.num { font-family: 'Consolas', monospace; font-weight: 600; }
+        td.region { text-align: left; }
+        td.cumA { color: var(--lorenz); font-weight: 700; }
+        td.cumB { color: #a32d2d; font-weight: 700; }
+        tr.row-hl td { background: #e8f1fb !important; }
+        tr.fresh td { background: #eef7ff !important; }
+
+        .result {
+            flex: 0 0 auto; margin-top: 8px;
+            background: #fdfdfd; border: 2px solid #eef1f4; border-radius: 10px;
+            padding: 8px 12px; font-size: 12.8px; line-height: 1.6;
+            max-height: 148px; overflow-y: auto;
+        }
+        .result .gini-num {
+            font-size: 27px; font-weight: 800;
+            background: linear-gradient(120deg,#185fa5,#5b6fb0);
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .result.hl-a { border-color: var(--lorenz); background: #f2f8ff; }
+        .result.hl-b { border-color: #c44536; background: #fff5f3; }
+
+        /* Compare table */
+        .gbar { position: relative; height: 10px; background: #eef1f4; border-radius: 5px; overflow: hidden; }
+        .gbar .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; transition: width .3s; }
+        tr.cmp-hl td { background: #f0f6fd !important; }
+        td.gval { font-family: 'Consolas', monospace; font-weight: 800; }
+        td.dname { text-align: left; font-weight: 600; }
+
+        /* Chart panel: chart + one-line area keys only */
+        .chart-panel {
+            flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center;
+            background: #fff; border-radius: 12px; box-shadow: 0 4px 16px rgba(26,58,92,.08); padding: 8px 12px 6px;
+        }
+        .chart-box {
+            aspect-ratio: 1 / 1;
+            width: 100%;
+            max-width: 780px;
+            position: relative;
+            flex: 0 0 auto;
+        }
+        #lorenzChart { width: 100% !important; height: 100% !important; }
+
+        .area-keys { display: flex; gap: 10px; margin-top: 6px; width: 100%; max-width: 780px; }
+        .key {
+            flex: 1; border-radius: 8px; padding: 4px 10px; border: 1.5px solid transparent;
+            transition: .2s; cursor: help; font-size: 11px; line-height: 1.5;
+        }
+        .key .sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; }
+        .key.a { background: #f0f6fd; border-color: rgba(24,95,165,.35); }
+        .key.b { background: #fdf2f0; border-color: rgba(196,69,54,.35); }
+        .key.a .sw { background: var(--areaA-hover); }
+        .key.b .sw { background: var(--areaB-hover); }
+        .key.on { transform: scale(1.02); box-shadow: 0 4px 14px rgba(26,58,92,.15); }
+        .key b { color: var(--primary); }
+
+        .footer { text-align: center; margin-top: 6px; color: #8a97a8; font-size: 11px; flex: 0 0 auto; line-height: 1.5; }
+
+        @media (max-width: 1000px) {
+            body { overflow: auto; height: auto; }
+            .main { flex-direction: column; }
+            .table-panel { flex: none; width: 100%; max-width: none; }
+            .table-scroll { max-height: 260px; }
+            .chart-box { width: min(100%, 560px); }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <header class="header">
+        <h1>Lorenz Curve &amp; Gini Coefficient</h1>
+        <p id="subtitle">People ranked by income · Lorenz curve &amp; Gini</p>
+    </header>
+
+    <div class="actions">
+        <span class="mode-group">
+            <button class="mode-btn active" data-mode="single" onclick="setMode('single')">◈ Interactive</button>
+            <button class="mode-btn" data-mode="compare" onclick="setMode('compare')">≡ Compare all</button>
+        </span>
+        <span style="width:1px;height:22px;background:#dee2e6;"></span>
+        <span id="singleControls" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span class="ds-wrap">Dataset
+                <select id="dsSelect">
+                    <option value="cn">China · 34 regions</option>
+                    <option value="js">Jiangsu · 13 cities</option>
+                    <option value="us">USA · 50 states</option>
+                    <option value="eu">European Union · 27 members</option>
+                    <option value="utopia">Utopia · 10 people</option>
+                    <option value="dystopia">Dystopia · 10 people</option>
+                </select>
+            </span>
+            <span style="width:1px;height:22px;background:#dee2e6;"></span>
+            <button class="act-btn primary" id="btnSort" onclick="sortTable()">① Sort by income</button>
+            <button class="act-btn" id="btnNext" onclick="nextRegion()" style="display:none;">② Next</button>
+            <button class="act-btn" id="btnAuto" onclick="autoPlay()" style="display:none;">▶ Auto</button>
+            <button class="act-btn" id="btnAll" onclick="showAll()" style="display:none;">⏩ Show all</button>
+            <button class="act-btn" id="btnReset" onclick="restart()" style="display:none;">↺ Restart</button>
+            <span class="progress" id="progress" style="display:none;">0 / 34</span>
+        </span>
+    </div>
+
+    <div class="main">
+
+        <!-- ===== Interactive (single dataset) view ===== -->
+        <div class="view active" id="viewSingle">
+            <div class="table-panel">
+                <h2 id="tableTitle">By name</h2>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th style="text-align:left;">Unit</th>
+                                <th>Income<br>(USD)</th>
+                                <th id="thCumA" style="display:none;">Cum. pop %</th>
+                                <th id="thCumB" style="display:none;">Cum. income %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody"></tbody>
+                    </table>
+                </div>
+                <div class="result" id="result"></div>
+            </div>
+
+            <div class="chart-panel">
+                <div class="chart-box single"><canvas id="lorenzChart"></canvas></div>
+                <div class="area-keys" id="areaKeys" style="display:none;">
+                    <div class="key a" id="keyA"><span class="sw"></span><b>Area A</b> — under the Lorenz curve</div>
+                    <div class="key b" id="keyB"><span class="sw"></span><b>Area B</b> — between curve &amp; line</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Compare-all view ===== -->
+        <div class="view" id="viewCompare">
+            <div class="table-panel">
+                <h2 id="compareTitle">All datasets · Gini comparison</h2>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;">Dataset</th>
+                                <th>Units</th>
+                                <th>Gini (G)</th>
+                                <th style="min-width:110px;">Inequality</th>
+                            </tr>
+                        </thead>
+                        <tbody id="compareTbody"></tbody>
+                    </table>
+                </div>
+                <div class="result" id="compareNote"></div>
+            </div>
+
+            <div class="chart-panel">
+                <div class="chart-box compare"><canvas id="compareChart"></canvas></div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="footer" id="footer"></footer>
+</div>
+
+<script>
+    // ============================================================
+    //  DATASETS — { key, label, unitNote, src, data:[{r,v}] }
+    //  Only the China dataset keeps Chinese names; all others are English-only.
+    // ============================================================
+    const DATASETS = {
+        cn: {
+            label: 'China · 中国 (34 regions)',
+            unitNote: 'income = 2025 GDP per capita (USD · FX ¥7.10/USD)',
+            src: 'Mainland 31 provinces: Statista/CEIC 2025 (CNY ÷ 7.10) · HK, Macao, Taiwan: IMF WEO Apr 2026',
+            data: [
+                { r: '甘肃 Gansu', v: 7873 }, { r: '黑龙江 Heilongjiang', v: 7885 }, { r: '广西 Guangxi', v: 8372 },
+                { r: '贵州 Guizhou', v: 8601 }, { r: '吉林 Jilin', v: 9142 }, { r: '河北 Hebei', v: 9427 },
+                { r: '河南 Henan', v: 9611 }, { r: '青海 Qinghai', v: 9798 }, { r: '云南 Yunnan', v: 9926 },
+                { r: '山西 Shanxi', v: 10454 }, { r: '海南 Hainan', v: 10861 }, { r: '宁夏 Ningxia', v: 10983 },
+                { r: '辽宁 Liaoning', v: 11281 }, { r: '江西 Jiangxi', v: 11304 }, { r: '四川 Sichuan', v: 11426 },
+                { r: '西藏 Tibet', v: 11479 }, { r: '新疆 Xinjiang', v: 11489 }, { r: '湖南 Hunan', v: 11956 },
+                { r: '安徽 Anhui', v: 12230 }, { r: '陕西 Shaanxi', v: 13051 }, { r: '山东 Shandong', v: 14446 },
+                { r: '重庆 Chongqing', v: 14912 }, { r: '湖北 Hubei', v: 15157 }, { r: '内蒙古 Inner Mongolia', v: 15800 },
+                { r: '广东 Guangdong', v: 16024 }, { r: '天津 Tianjin', v: 19151 }, { r: '浙江 Zhejiang', v: 19918 },
+                { r: '福建 Fujian', v: 20229 }, { r: '江苏 Jiangsu', v: 23527 }, { r: '上海 Shanghai', v: 32174 },
+                { r: '北京 Beijing', v: 33620 }, { r: '台湾 Taiwan, China', v: 37830 }, { r: '香港 Hong Kong, China', v: 56840 },
+                { r: '澳门 Macao, China', v: 74920 }
+            ]
+        },
+        js: {
+            label: 'Jiangsu (13 cities)',
+            unitNote: 'income = 2025 GDP per capita of Jiangsu\u2019s 13 cities (USD · FX ¥7.10/USD)',
+            src: 'Jiangsu 13 cities, 2025 (CNY ÷ 7.10)',
+            data: [
+                { r: 'Suqian', v: 14211 }, { r: 'Lianyungang', v: 14845 }, { r: 'Xuzhou', v: 15563 },
+                { r: 'Yancheng', v: 16986 }, { r: 'Huai\u2019an', v: 17535 }, { r: 'Taizhou', v: 22845 },
+                { r: 'Nantong', v: 23268 }, { r: 'Yangzhou', v: 24746 }, { r: 'Zhenjiang', v: 25028 },
+                { r: 'Nanjing', v: 28577 }, { r: 'Changzhou', v: 29183 }, { r: 'Suzhou', v: 30042 },
+                { r: 'Wuxi', v: 31479 }
+            ]
+        },
+        us: {
+            label: 'USA (50 states)',
+            unitNote: 'income = 2024 GDP per capita by state (USD)',
+            src: 'US BEA (nominal, 2024) — 50 states',
+            data: [
+                { r: 'Mississippi', v: 53874 }, { r: 'Arkansas', v: 61222 }, { r: 'West Virginia', v: 61242 },
+                { r: 'Alabama', v: 62350 }, { r: 'South Carolina', v: 63206 }, { r: 'Idaho', v: 63797 },
+                { r: 'Kentucky', v: 63798 }, { r: 'Oklahoma', v: 64775 }, { r: 'New Mexico', v: 66049 },
+                { r: 'Montana', v: 66653 }, { r: 'Michigan', v: 69769 }, { r: 'Maine', v: 70363 },
+                { r: 'Vermont', v: 71141 }, { r: 'Louisiana', v: 71398 }, { r: 'Florida', v: 72060 },
+                { r: 'Arizona', v: 72235 }, { r: 'Missouri', v: 72352 }, { r: 'Rhode Island', v: 74143 },
+                { r: 'North Carolina', v: 75386 }, { r: 'Tennessee', v: 75743 }, { r: 'Wisconsin', v: 76039 },
+                { r: 'Indiana', v: 76152 }, { r: 'Oregon', v: 77711 }, { r: 'Ohio', v: 78127 },
+                { r: 'Pennsylvania', v: 78561 }, { r: 'Georgia', v: 78596 }, { r: 'Iowa', v: 78900 },
+                { r: 'Nevada', v: 78913 }, { r: 'Kansas', v: 78979 }, { r: 'Hawaii', v: 80152 },
+                { r: 'South Dakota', v: 81021 }, { r: 'Utah', v: 85512 }, { r: 'Texas', v: 85610 },
+                { r: 'Minnesota', v: 86221 }, { r: 'New Hampshire', v: 86227 }, { r: 'Maryland', v: 86595 },
+                { r: 'Virginia', v: 86598 }, { r: 'New Jersey', v: 88532 }, { r: 'Illinois', v: 89456 },
+                { r: 'Wyoming', v: 90066 }, { r: 'Nebraska', v: 91923 }, { r: 'Colorado', v: 92674 },
+                { r: 'North Dakota', v: 93548 }, { r: 'Alaska', v: 94306 }, { r: 'Delaware', v: 97428 },
+                { r: 'Connecticut', v: 99355 }, { r: 'California', v: 104181 }, { r: 'Washington', v: 106698 },
+                { r: 'Massachusetts', v: 108960 }, { r: 'New York', v: 115565 }
+            ]
+        },
+        eu: {
+            label: 'European Union (27 members)',
+            unitNote: 'income = 2025 GDP per capita of EU-27 (current USD)',
+            src: 'World Bank, 2025 (current USD)',
+            data: [
+                { r: 'Bulgaria', v: 20328 }, { r: 'Romania', v: 22538 }, { r: 'Hungary', v: 25907 },
+                { r: 'Latvia', v: 26312 }, { r: 'Greece', v: 26948 }, { r: 'Croatia', v: 27104 },
+                { r: 'Poland', v: 28420 }, { r: 'Slovakia', v: 28544 }, { r: 'Portugal', v: 32082 },
+                { r: 'Lithuania', v: 32959 }, { r: 'Estonia', v: 34418 }, { r: 'Czechia', v: 35917 },
+                { r: 'Slovenia', v: 37376 }, { r: 'Spain', v: 38627 }, { r: 'Cyprus', v: 41783 },
+                { r: 'Italy', v: 43309 }, { r: 'Malta', v: 47907 }, { r: 'France', v: 48986 },
+                { r: 'Finland', v: 56149 }, { r: 'Germany', v: 60496 }, { r: 'Belgium', v: 60750 },
+                { r: 'Austria', v: 62930 }, { r: 'Sweden', v: 63133 }, { r: 'Netherlands', v: 73684 },
+                { r: 'Denmark', v: 76970 }, { r: 'Ireland', v: 131592 }, { r: 'Luxembourg', v: 147252 }
+            ]
+        },
+        utopia: {
+            label: 'Utopia (10 people)',
+            unitNote: 'a perfect society — 10 people, identical incomes',
+            src: 'Illustrative',
+            data: [
+                { r: 'Citizen 01', v: 10000 }, { r: 'Citizen 02', v: 10000 }, { r: 'Citizen 03', v: 10000 },
+                { r: 'Citizen 04', v: 10000 }, { r: 'Citizen 05', v: 10000 }, { r: 'Citizen 06', v: 10000 },
+                { r: 'Citizen 07', v: 10000 }, { r: 'Citizen 08', v: 10000 }, { r: 'Citizen 09', v: 10000 },
+                { r: 'Citizen 10', v: 10000 }
+            ]
+        },
+        dystopia: {
+            label: 'Dystopia (10 people)',
+            unitNote: 'one person owns everything, the other nine earn nothing',
+            src: 'Illustrative',
+            data: [
+                { r: 'Citizen 01', v: 0 }, { r: 'Citizen 02', v: 0 }, { r: 'Citizen 03', v: 0 },
+                { r: 'Citizen 04', v: 0 }, { r: 'Citizen 05', v: 0 }, { r: 'Citizen 06', v: 0 },
+                { r: 'Citizen 07', v: 0 }, { r: 'Citizen 08', v: 0 }, { r: 'Citizen 09', v: 0 },
+                { r: 'Citizen 10', v: 100000 }
+            ]
+        }
+    };
+
+    // ============================================================
+    //  STATE
+    // ============================================================
+    let DS = DATASETS.cn;
+    let N, TOTAL, INCOME_ORDER, NAME_ORDER, cumX, cumY, GINI, areaUnder;
+    let phase = 'name', cur = 0, rows = [], autoTimer = null, hoverRegion = null;
+    let chart;
+
+    function buildDS() {
+        N = DS.data.length;
+        TOTAL = DS.data.reduce((s, d) => s + d.v, 0);
+        INCOME_ORDER = [...DS.data];
+        NAME_ORDER = [...DS.data].sort((a, b) => a.r.localeCompare(b.r, 'zh-Hans-CN'));
+        cumX = [0]; cumY = [0]; let cum = 0;
+        INCOME_ORDER.forEach((d, i) => { cum += d.v; cumX.push((i + 1) / N * 100); cumY.push(cum / TOTAL * 100); });
+        areaUnder = 0;
+        for (let i = 1; i < cumX.length; i++) areaUnder += (cumX[i] - cumX[i-1]) * (cumY[i] + cumY[i-1]) / 2;
+        GINI = (1 - 2 * areaUnder / 10000).toFixed(3);
+        rows = NAME_ORDER;
+        phase = 'name'; cur = 0;
+    }
+
+    // ============================================================
+    //  CHART
+    // ============================================================
+    function lorenzData(n) { return cumX.slice(0, n).map((x, i) => ({ x, y: cumY[i] })); }
+    function getAColor() { return hoverRegion === 'A' ? 'rgba(24,95,165,0.55)' : 'rgba(24,95,165,0.28)'; }
+    function getBColor() { return hoverRegion === 'B' ? 'rgba(196,69,54,0.55)' : 'rgba(196,69,54,0.25)'; }
+
+    function initChart() {
+        chart = new Chart(document.getElementById('lorenzChart'), {
+            type: 'line',
+            data: {
+                datasets: [
+                    { label: 'Perfect equality', data: [{ x: 0, y: 0 }, { x: 100, y: 100 }],
+                      borderColor: '#8a97a8', borderWidth: 1.5, borderDash: [6, 5], pointRadius: 0, tension: 0,
+                      fill: { target: 1, above: getBColor() } },
+                    { label: 'Lorenz curve', data: lorenzData(1),
+                      borderColor: '#185fa5', backgroundColor: getAColor(), borderWidth: 3,
+                      pointRadius: 3, pointBackgroundColor: '#185fa5', pointBorderColor: '#fff', pointBorderWidth: 1,
+                      tension: 0, fill: 'origin' }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                animation: { duration: 250 },
+                interaction: { mode: 'nearest', intersect: false },
+                onHover: handleHover,
+                scales: {
+                    x: { type: 'linear', min: 0, max: 100, title: { display: true, text: 'Cumulative % of people', font: { size: 12, weight: 'bold' } }, ticks: { callback: v => v + '%' } },
+                    y: { type: 'linear', min: 0, max: 100, title: { display: true, text: 'Cumulative % of income', font: { size: 12, weight: 'bold' } }, ticks: { callback: v => v + '%' } }
+                },
+                plugins: {
+                    legend: { display: true, position: 'top', labels: { font: { size: 12 }, boxWidth: 18 } },
+                    tooltip: { callbacks: { label: c => ' ' + c.raw.x.toFixed(1) + '% of people hold ' + c.raw.y.toFixed(1) + '% of income' } }
+                }
+            }
+        });
+        chart.canvas.addEventListener('mouseleave', () => setHover(null));
+    }
+
+    function handleHover(e) {
+        if (phase !== 'done') { setHover(null); return; }
+        if (!e || e.x == null) { setHover(null); return; }
+        const px = chart.scales.x.getValueForPixel(e.x);
+        const py = chart.scales.y.getValueForPixel(e.y);
+        if (px < 0 || px > 100 || py < 0 || py > 100) { setHover(null); return; }
+        const pts = chart.data.datasets[1].data;
+        let ly = null;
+        for (let i = 1; i < pts.length; i++) {
+            if (px <= pts[i].x) { const a = pts[i-1], b = pts[i], t = (px - a.x) / (b.x - a.x || 1); ly = a.y + t * (b.y - a.y); break; }
+        }
+        if (ly == null) ly = 100;
+        setHover(py <= ly ? 'A' : (py <= px ? 'B' : null));
+    }
+
+    function setHover(region) {
+        if (region === hoverRegion) return;
+        hoverRegion = region;
+        chart.data.datasets[0].fill = { target: 1, above: getBColor() };
+        chart.data.datasets[1].backgroundColor = getAColor();
+        chart.update('none');
+        const ka = document.getElementById('keyA'), kb = document.getElementById('keyB');
+        if (ka) ka.classList.toggle('on', region === 'A');
+        if (kb) kb.classList.toggle('on', region === 'B');
+        const res = document.getElementById('result');
+        res.classList.toggle('hl-a', region === 'A');
+        res.classList.toggle('hl-b', region === 'B');
+        if (phase === 'done') {
+            if (region === 'A') res.innerHTML = '<b style="color:#185fa5">Area A highlighted</b> — the region under the Lorenz curve.<br>With perfect equality the curve would lie on the diagonal, and A would be exactly half of the square.';
+            else if (region === 'B') res.innerHTML = '<b style="color:#a32d2d">Area B highlighted</b> — the gap between the Lorenz curve and the equality line.<br>Area B is the "inequality area": the larger B is relative to A+B, the more unequal the distribution.';
+            else res.innerHTML = doneHTML();
+        }
+    }
+
+    // ============================================================
+    //  TABLE
+    // ============================================================
+    function renderTable(highlightLast) {
+        const tb = document.getElementById('tbody');
+        tb.innerHTML = rows.map((d, i) => {
+            const shown = (phase === 'name' || i >= cur) ? 'col-hide' : '';
+            return `<tr id="row-${i}" data-i="${i}" class="${(highlightLast && i === cur - 1) ? 'fresh' : ''}">
+                <td class="num">${i + 1}</td>
+                <td class="region">${d.r}</td>
+                <td class="num">$${d.v.toLocaleString()}</td>
+                <td class="num cumA ${shown}">${phase === 'name' ? '' : (i < cur ? cumX[i+1].toFixed(1) + '%' : '—')}</td>
+                <td class="num cumB ${shown}">${phase === 'name' ? '' : (i < cur ? cumY[i+1].toFixed(1) + '%' : '—')}</td>
+            </tr>`;
+        }).join('');
+        if (highlightLast) {
+            const row = document.getElementById('row-' + (cur - 1));
+            if (row) setTimeout(() => row.classList.remove('fresh'), 900);
+        }
+        bindRowHover();
+    }
+
+    function bindRowHover() {
+        document.querySelectorAll('#tbody tr').forEach(tr => {
+            tr.onmouseenter = () => {
+                if (phase === 'name') return;
+                const i = +tr.dataset.i + 1;
+                if (i > cur) return;
+                tr.classList.add('row-hl');
+                chart.data.datasets[1].pointRadius = Array.from({ length: cur }, (_, k) => (k === i ? 8 : 3));
+                chart.update('none');
+            };
+            tr.onmouseleave = () => {
+                tr.classList.remove('row-hl');
+                chart.data.datasets[1].pointRadius = 3;
+                chart.update('none');
+            };
+        });
+    }
+
+    // ============================================================
+    //  ACTIONS
+    // ============================================================
+    function refreshButtons() {
+        const show = id => document.getElementById(id).style.display = '';
+        const hide = id => document.getElementById(id).style.display = 'none';
+        hide('btnSort'); hide('btnNext'); hide('btnAuto'); hide('btnAll'); hide('btnReset'); hide('progress');
+        if (phase === 'name') show('btnSort');
+        else if (phase === 'done') show('btnReset');
+        else { show('btnNext'); show('btnAuto'); show('btnAll'); show('btnReset'); show('progress'); }
+    }
+
+    function sortTable() {
+        if (phase !== 'name') return;
+        phase = 'sorted';
+        rows = INCOME_ORDER;
+        cur = 0;
+        document.getElementById('tableTitle').innerText = 'Sorted by income · low → high';
+        document.getElementById('thCumA').style.display = '';
+        document.getElementById('thCumB').style.display = '';
+        renderTable();
+        refreshButtons();
+        result(`<b>Sorted by income</b><br>
+            All ${N} units now appear from the <b>lowest</b> income (${INCOME_ORDER[0].r}, $${INCOME_ORDER[0].v.toLocaleString()}) to the <b>highest</b> (${INCOME_ORDER[N-1].r}, $${INCOME_ORDER[N-1].v.toLocaleString()}).
+            Total income = <b>$${TOTAL.toLocaleString()}</b>; the richest earns <b>${(INCOME_ORDER[N-1].v / Math.max(INCOME_ORDER[0].v, 1)).toFixed(1)}×</b> the poorest.
+            <br>Now click <b>② Next</b> to compute cumulative shares one by one — watch the Lorenz curve take shape point by point.`);
+    }
+
+    function nextRegion() {
+        if (phase !== 'sorted' && phase !== 'building') return;
+        if (cur >= N) return;
+        phase = 'building';
+        cur++;
+        chart.data.datasets[1].data = lorenzData(cur + 1);
+        chart.data.datasets[0].fill = { target: 1, above: getBColor() };
+        chart.update();
+        renderTable(true);
+        document.getElementById('progress').innerText = cur + ' / ' + N;
+        if (cur === N) { finish(); return; }
+        const d = INCOME_ORDER[cur - 1];
+        result(`<b>Unit ${cur} of ${N}</b> — ${d.r} ($${d.v.toLocaleString()})<br>
+            The bottom ${cumX[cur].toFixed(1)}% of people now hold <b>${cumY[cur].toFixed(1)}%</b> of total income.<br>
+            Keep clicking <b>② Next</b> (or <b>▶ Auto</b>) — each point bends the curve further from the equality line.`);
+    }
+
+    function finish() {
+        phase = 'done';
+        document.getElementById('areaKeys').style.display = 'flex';
+        refreshButtons();
+        result(doneHTML());
+    }
+
+    function doneHTML() {
+        const g = parseFloat(GINI);
+        let note;
+        if (g < 0.001) note = '<i>Perfect equality — the curve lies exactly on the diagonal, so inequality is zero.</i>';
+        else if (g > 0.85) note = '<i>Extreme inequality — the bottom 90% hold 0% of income; one person owns everything.</i>';
+        else note = `<i>Bottom 10% hold ${cumY[3].toFixed(1)}% of income; the top 10% hold ${(100 - cumY[Math.max(0, N - 4)]).toFixed(1)}%.</i>`;
+        return `<b>All ${N} units plotted — Lorenz curve complete</b><br>
+            <b>Gini = A / (A+B)</b> &nbsp;→&nbsp; A = ${areaUnder.toFixed(0)} units, A+B = 5,000 units
+            &nbsp;·&nbsp; <span class="gini-num">G = ${GINI}</span>
+            <br>Move the mouse over the chart — <b>Area A</b> (under curve) or <b>Area B</b> (between curve &amp; line) will highlight. ${note}`;
+    }
+
+    function autoPlay() {
+        if (autoTimer) { clearInterval(autoTimer); autoTimer = null; document.getElementById('btnAuto').innerText = '▶ Auto'; return; }
+        document.getElementById('btnAuto').innerText = '⏸ Pause';
+        autoTimer = setInterval(() => {
+            if (phase === 'done' || cur >= N) { clearInterval(autoTimer); autoTimer = null; document.getElementById('btnAuto').innerText = '▶ Auto'; return; }
+            nextRegion();
+        }, 420);
+    }
+
+    function showAll() {
+        if (autoTimer) { clearInterval(autoTimer); autoTimer = null; document.getElementById('btnAuto').innerText = '▶ Auto'; }
+        if (phase === 'name') return;
+        cur = N;
+        chart.data.datasets[1].data = lorenzData(N + 1);
+        chart.data.datasets[0].fill = { target: 1, above: getBColor() };
+        chart.update();
+        renderTable();
+        document.getElementById('progress').innerText = N + ' / ' + N;
+        finish();
+    }
+
+    function restart() {
+        if (autoTimer) { clearInterval(autoTimer); autoTimer = null; document.getElementById('btnAuto').innerText = '▶ Auto'; }
+        buildDS();
+        hoverRegion = null;
+        chart.data.datasets[1].data = lorenzData(1);
+        chart.data.datasets[1].backgroundColor = getAColor();
+        chart.data.datasets[0].fill = { target: 1, above: getBColor() };
+        chart.update('none');
+        document.getElementById('areaKeys').style.display = 'none';
+        document.getElementById('tableTitle').innerText = 'By name';
+        document.getElementById('thCumA').style.display = 'none';
+        document.getElementById('thCumB').style.display = 'none';
+        document.getElementById('progress').innerText = '0 / ' + N;
+        renderTable();
+        refreshButtons();
+        updateMeta();
+        result(`<b>Welcome</b><br>
+            ${DS.label} — all ${N} units are listed <b>by name</b>. Their "income" is the ${DS.unitNote}.
+            Click <b>① Sort by income</b> to arrange them from lowest to highest and compute the total.`);
+    }
+
+    function updateMeta() {
+        document.getElementById('subtitle').innerText = DS.label + ' · ' + DS.unitNote;
+        document.getElementById('footer').innerHTML = 'Data: ' + DS.src + '.<br>Each unit counts as one "person", so cumulative population % = rank ÷ ' + N + ' × 100. For teaching use only.';
+    }
+
+    function result(html) {
+        const res = document.getElementById('result');
+        res.classList.remove('hl-a', 'hl-b');
+        res.innerHTML = html;
+    }
+
+    // Keep the 1:1 chart as large as possible without overlapping anything
+    let mode = 'single';
+    function fitChart() {
+        const box = document.querySelector(mode === 'single' ? '.chart-box.single' : '.chart-box.compare');
+        const panel = box ? box.closest('.chart-panel') : null;
+        const main = document.querySelector('.main');
+        if (!box || !panel || !main) return;
+        const availW = panel.clientWidth - 24;
+        const availH = main.clientHeight - (mode === 'single' ? 96 : 40);   // compare view has no keys/result
+        box.style.width = Math.max(280, Math.min(availW, availH)) + 'px';
+    }
+
+    // ============================================================
+    //  COMPARE-ALL MODE
+    // ============================================================
+    const DCOLORS = { cn: '#185fa5', js: '#27ae60', us: '#8e44ad', eu: '#e67e22', utopia: '#95a5a6', dystopia: '#c44536' };
+    const DSORT = { cn: 'China', js: 'Jiangsu', us: 'USA', eu: 'EU', utopia: 'Utopia', dystopia: 'Dystopia' };
+    let compareData = [];
+    let compareChart;
+
+    function buildCompareData() {
+        compareData = Object.keys(DATASETS).map(key => {
+            const ds = DATASETS[key];
+            const inc = [...ds.data].sort((a, b) => a.v - b.v);
+            const total = inc.reduce((s, d) => s + d.v, 0);
+            const n = inc.length;
+            let c = 0; const xs = [0], ys = [0];
+            inc.forEach((d, i) => { c += d.v; xs.push((i + 1) / n * 100); ys.push(c / total * 100); });
+            let A = 0;
+            for (let i = 1; i < xs.length; i++) A += (xs[i] - xs[i-1]) * (ys[i] + ys[i-1]) / 2;
+            return { key, name: DSORT[key], N: n, G: 1 - 2 * A / 10000, xs, ys, color: DCOLORS[key] };
+        }).sort((a, b) => a.G - b.G);
+    }
+
+    function initCompareChart() {
+        const ctx = document.getElementById('compareChart').getContext('2d');
+        const datasets = [
+            { label: 'Perfect equality', data: [{ x: 0, y: 0 }, { x: 100, y: 100 }],
+              borderColor: '#b8c2cc', borderWidth: 1.5, borderDash: [6, 5], pointRadius: 0, tension: 0, order: 99 }
+        ];
+        compareData.forEach(d => {
+            datasets.push({
+                label: d.name + ' · G=' + d.G.toFixed(3),
+                data: d.xs.map((x, i) => ({ x, y: d.ys[i] })),
+                borderColor: d.color,
+                backgroundColor: 'transparent',
+                borderWidth: 2.5,
+                pointRadius: 0,
+                tension: 0
+            });
+        });
+        compareChart = new Chart(ctx, {
+            type: 'line',
+            data: { datasets },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                animation: { duration: 300 },
+                interaction: { mode: 'nearest', intersect: false },
+                scales: {
+                    x: { type: 'linear', min: 0, max: 100, title: { display: true, text: 'Cumulative % of people', font: { size: 12, weight: 'bold' } }, ticks: { callback: v => v + '%' } },
+                    y: { type: 'linear', min: 0, max: 100, title: { display: true, text: 'Cumulative % of income', font: { size: 12, weight: 'bold' } }, ticks: { callback: v => v + '%' } }
+                },
+                plugins: {
+                    legend: { display: true, position: 'top', labels: { font: { size: 11 }, boxWidth: 16, usePointStyle: false } },
+                    tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ' — ' + c.raw.x.toFixed(0) + '% of people hold ' + c.raw.y.toFixed(1) + '% of income' } }
+                }
+            }
+        });
+    }
+
+    function renderCompareTable() {
+        const tb = document.getElementById('compareTbody');
+        tb.innerHTML = compareData.map((d, i) => `
+            <tr data-cmp="${d.key}">
+                <td class="dname" style="color:${d.color};">${d.name}</td>
+                <td class="num">${d.N}</td>
+                <td class="num gval" style="color:${d.color};">${d.G.toFixed(3)}</td>
+                <td><div class="gbar"><div class="fill" style="width:${(d.G * 100).toFixed(1)}%;background:${d.color};"></div></div></td>
+            </tr>`).join('');
+        tb.querySelectorAll('tr').forEach(tr => {
+            tr.addEventListener('mouseenter', () => {
+                tr.classList.add('cmp-hl');
+                highlightCompare(tr.dataset.cmp, true);
+            });
+            tr.addEventListener('mouseleave', () => {
+                tr.classList.remove('cmp-hl');
+                highlightCompare(tr.dataset.cmp, false);
+            });
+        });
+        document.getElementById('compareNote').innerHTML = `<b>Compare all datasets at once</b><br>
+            Each curve shows one world's Lorenz curve; the legend shows its Gini coefficient.
+            Hover a row in the table to highlight that curve. The inequality bar = G (0 = perfect equality, 1 = total inequality).`;
+    }
+
+    function highlightCompare(key, on) {
+        if (!compareChart) return;
+        compareChart.data.datasets.forEach((ds, i) => {
+            if (i === 0) return; // diagonal
+            ds.borderWidth = (on && ds.label.startsWith(DSORT[key])) ? 6 : 2.5;
+        });
+        compareChart.update('none');
+    }
+
+    function setMode(m) {
+        mode = m;
+        document.getElementById('viewSingle').classList.toggle('active', m === 'single');
+        document.getElementById('viewCompare').classList.toggle('active', m === 'compare');
+        document.getElementById('singleControls').style.display = m === 'single' ? 'flex' : 'none';
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+        fitChart();
+    }
+
+    function switchDataset(key) {
+        if (autoTimer) { clearInterval(autoTimer); autoTimer = null; document.getElementById('btnAuto').innerText = '▶ Auto'; }
+        DS = DATASETS[key] || DATASETS.cn;
+        restart();
+    }
+
+    window.onload = () => {
+        document.getElementById('dsSelect').addEventListener('change', e => switchDataset(e.target.value));
+        buildDS();
+        initChart();
+        buildCompareData();
+        initCompareChart();
+        fitChart();
+        window.addEventListener('resize', fitChart);
+        renderTable();
+        renderCompareTable();
+        updateMeta();
+        result(`<b>Welcome</b><br>
+            ${DS.label} — all ${N} units are listed <b>by name</b>. Their "income" is the ${DS.unitNote}.
+            Click <b>① Sort by income</b> to arrange them from lowest to highest and compute the total.`);
+    };
+</script>
+</body>
+</html>
