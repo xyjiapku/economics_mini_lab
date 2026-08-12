@@ -320,7 +320,7 @@
         .card .desc { font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.15rem; line-height: 1.5; flex: 1; }
         .card .badge {
             display: inline-block;
-            margin-top: 0.7rem;
+            margin: 0.7rem 0.3rem 0 0;
             font-size: 0.68rem;
             font-weight: 700;
             text-transform: uppercase;
@@ -332,10 +332,10 @@
             align-self: flex-start;
             transition: var(--transition);
         }
-        .card[data-cat="fundamentals"] .badge { background: #fef3c7; color: #92400e; }
-        .card[data-cat="micro"] .badge { background: #dbeafe; color: #1a4a7a; }
-        .card[data-cat="macro"] .badge { background: #e4f0e7; color: #2a6a4a; }
-        .card[data-cat="advanced"] .badge { background: #eeedfe; color: #534ab7; }
+        .badge[data-cat="fundamentals"] { background: #fef3c7; color: #92400e; }
+        .badge[data-cat="micro"] { background: #dbeafe; color: #1a4a7a; }
+        .badge[data-cat="macro"] { background: #e4f0e7; color: #2a6a4a; }
+        .badge[data-cat="advanced"] { background: #eeedfe; color: #534ab7; }
         .card .arrow {
             position: absolute;
             bottom: 1.15rem; right: 1.3rem;
@@ -682,21 +682,21 @@
         { name: 'Externality', file: 'Externality.html', icon: '🌍', category: 'micro', desc: 'Externalities and social cost' },
         { name: 'Financial Sector', file: 'Financial Sector.html', icon: '🏦', category: 'macro', desc: 'Money market and financial sector' },
         { name: 'International Trade', file: 'International trade and protection.html', icon: '🌐', category: 'micro', desc: 'Trade and protection policies' },
-        { name: 'IS-LM to AD', file: 'IS-LM to AD.html', icon: '📉', category: 'advanced', desc: 'Deriving AD from IS-LM' },
+        { name: 'IS-LM to AD', file: 'IS-LM to AD.html', icon: '📉', category: ['macro', 'advanced'], desc: 'Deriving AD from IS-LM' },
         { name: 'Least Cost Rule', file: 'Least cost rule.html', icon: '🎯', category: 'micro', desc: 'Cost‑minimization rule' },
         { name: 'Long Run Adjustment', file: 'Long run adjustment.html', icon: '⏳', category: 'micro', desc: 'Long‑run equilibrium adjustment' },
         { name: 'Marginal Analysis', file: 'Marginal analysis.html', icon: '📐', category: 'fundamentals', desc: 'Marginal benefit and cost analysis' },
         { name: 'Monopolistic Competition', file: 'Monopolistic Competition.html', icon: '🏪', category: 'micro', desc: 'Monopolistic competition model' },
         { name: 'Monopoly & Regulation', file: 'Monopoly and regulation.html', icon: '🏛️', category: 'micro', desc: 'Monopoly and government regulation' },
-        { name: 'Nash Equilibrium Location', file: 'Nash-Eq Location game.html', icon: '📍', category: 'advanced', desc: 'Nash equilibrium in location games' },
+        { name: 'Nash Equilibrium Location', file: 'Nash-Eq Location game.html', icon: '📍', category: ['micro', 'advanced'], desc: 'Nash equilibrium in location games' },
         { name: 'Price Control', file: 'Price Control.html', icon: '📏', category: 'micro', desc: 'Price ceilings and floors' },
         { name: 'Production Possibility Curve', file: 'Production Possibility Curve.html', icon: '📈', category: 'fundamentals', desc: 'Production possibility curve/frontier and opportunity cost' },
         { name: 'Supply & Demand Principles', file: 'supply-demand/index.html', icon: '📊', category: 'fundamentals', desc: 'Interactive market analysis with dynamic graphing' },
-        { name: 'Macroeconomic Cycles & Crises', file: 'Macroeconomic Cycles & Crises.html', icon: '🌀', category: 'advanced', desc: 'Say, Marx & Keynes on economic cycles and crises' },
-        { name: 'Macro Integrated Model', file: 'IGCSE-Macro-Integrated-Model.html', icon: '📊', category: 'advanced', desc: 'IGCSE-level macroeconomics integrated: fiscal, monetary, supply-side & trade' },
-        { name: 'Cournot Duopoly Simulation', file: 'Nash-Eq Quantity Game.html', icon: '🎯', category: 'advanced', desc: 'Cournot quantity competition: best response, iteration & welfare' },
+        { name: 'Macroeconomic Cycles & Crises', file: 'Macroeconomic Cycles & Crises.html', icon: '🌀', category: ['macro', 'advanced'], desc: 'Say, Marx & Keynes on economic cycles and crises' },
+        { name: 'Macro Integrated Model', file: 'IGCSE-Macro-Integrated-Model.html', icon: '📊', category: ['macro', 'advanced'], desc: 'IGCSE-level macroeconomics integrated: fiscal, monetary, supply-side & trade' },
+        { name: 'Cournot Duopoly Simulation', file: 'Nash-Eq Quantity Game.html', icon: '🎯', category: ['micro', 'advanced'], desc: 'Cournot quantity competition: best response, iteration & welfare' },
         { name: 'Lorenz Curve & Gini', file: 'Lorenz Curve & Gini Coefficient.html', icon: '⚖️', category: 'micro', desc: 'Lorenz curve & Gini coefficient for income distribution' },
-        { name: 'Solow Growth Model', file: 'Solow Growth Model.html', icon: '🌱', category: 'macro', desc: 'Capital accumulation, steady state & golden rule: year-by-year, curves & convergence' }
+        { name: 'Solow Growth Model', file: 'Solow Growth Model.html', icon: '🌱', category: ['macro', 'advanced'], desc: 'Capital accumulation, steady state & golden rule: year-by-year, curves & convergence' }
     ];
 
     // ============================================================
@@ -720,7 +720,8 @@
             if (!grid) { console.error('Grid element not found!'); return; }
             const sorted = [...toolsData].sort((a, b) => a.name.localeCompare(b.name));
             const filtered = sorted.filter(tool => {
-                const matchFilter = currentFilter === 'all' || tool.category === currentFilter;
+                const cats = Array.isArray(tool.category) ? tool.category : [tool.category];
+                const matchFilter = currentFilter === 'all' || cats.includes(currentFilter);
                 const matchSearch = tool.name.toLowerCase().includes(currentQuery.toLowerCase()) ||
                     tool.desc.toLowerCase().includes(currentQuery.toLowerCase());
                 return matchFilter && matchSearch;
@@ -735,15 +736,19 @@
             if (emptyState) emptyState.classList.remove('show');
             if (countDisplay) countDisplay.textContent = filtered.length;
 
-            grid.innerHTML = filtered.map((tool, idx) => `
-                <a href="${tool.file}" class="card" data-cat="${tool.category}" style="animation-delay: ${(idx * 0.05).toFixed(2)}s">
+            grid.innerHTML = filtered.map((tool, idx) => {
+                const cats = Array.isArray(tool.category) ? tool.category : [tool.category];
+                const badges = cats.map(c => `<span class="badge" data-cat="${c}">${c}</span>`).join('');
+                return `
+                <a href="${tool.file}" class="card" data-cat="${cats[0]}" style="animation-delay: ${(idx * 0.05).toFixed(2)}s">
                     <div class="icon">${tool.icon}</div>
                     <h3>${tool.name}</h3>
                     <p class="desc">${tool.desc}</p>
-                    <span class="badge">${tool.category}</span>
+                    ${badges}
                     <span class="arrow">→</span>
                 </a>
-            `).join('');
+            `;
+            }).join('');
         }
 
         // ----- Event listeners -----
