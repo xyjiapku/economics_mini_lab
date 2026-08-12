@@ -245,7 +245,8 @@
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab(1)">Step 1: Best Response</button>
         <button class="tab-btn" onclick="switchTab(2)">Step 2: Game Iteration</button>
-        <button class="tab-btn" onclick="switchTab(3)">Step 3: Market Comparison</button>
+        <button class="tab-btn" onclick="switchTab(3)">Step 3: Stackelberg</button>
+        <button class="tab-btn" onclick="switchTab(4)">Step 4: Market Comparison</button>
     </div>
 
     <!-- STEP 1 -->
@@ -314,13 +315,14 @@
         </div>
     </div>
 
-    <!-- STEP 3 -->
-    <div id="step3" class="tab-content">
-        <h2>Step 3: Market Outcomes & Welfare Analysis</h2>
+    <!-- STEP 4 -->
+    <div id="step4" class="tab-content">
+        <h2>Step 4: Market Outcomes & Welfare Analysis</h2>
         <div class="controls">
             <div style="margin-bottom: 15px;">
                 <span style="font-weight: bold; margin-right: 15px;">Show Equilibriums:</span>
                 <label class="checkbox-label"><input type="checkbox" id="cb-mono" onchange="updateStep3()"> Monopoly</label>
+                <label class="checkbox-label"><input type="checkbox" id="cb-stackelberg" onchange="updateStep3()" checked> Stackelberg</label>
                 <label class="checkbox-label"><input type="checkbox" id="cb-cournot" onchange="updateStep3()" checked> Cournot</label>
                 <label class="checkbox-label"><input type="checkbox" id="cb-pc" onchange="updateStep3()"> Perfect Competition</label>
             </div>
@@ -342,9 +344,49 @@
                 <p style="color: #27ae60;"><strong>Consumer Surplus (CS):</strong> $<span id="stat-cs">...</span></p>
                 <p style="color: #2980b9;"><strong>Producer Surplus (PS):</strong> $<span id="stat-ps">...</span></p>
                 <p style="color: #c0392b;"><strong>Deadweight Loss (DWL):</strong> $<span id="stat-dwl">...</span></p>
+
+                <hr style="margin-top: 14px;">
+                <h3 style="margin: 8px 0 3px; font-size: 15px;">Profit Split by Equilibrium</h3>
+                <p style="font-size: 12px; color: #777; margin: 0 0 6px;">Blue = Firm A (Stackelberg leader) · Orange = Firm B</p>
+                <div id="profitSplit"></div>
+
                 <p style="margin-top: 20px; font-size: 16px; color: #555;">
                     <em>* Move the slider to explore how quantity limits affect overall welfare compared to the marked equilibria.</em>
                 </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div id="step3" class="tab-content">
+        <h2>Step 3: Stackelberg Model — A Leads, B Follows</h2>
+        <div class="controls">
+            <div class="control-row">
+                <label><strong>1. Choose Leader Output (Q_A): <span id="val-s4-qa" class="highlight">45</span></strong></label>
+                <input type="range" id="slider-s4-qa" min="0" max="90" step="1" value="45" oninput="updateStep4()">
+            </div>
+            <p style="text-align: center; margin-top: 10px; margin-bottom: 0;">
+                B reacts with Q_B = <span class="highlight" id="val-s4-qb">...</span>
+                &nbsp;|&nbsp; P = $<span id="val-s4-p">...</span>
+                &nbsp;|&nbsp; A's Profit: <b style="color:#e74c3c;">$<span id="val-s4-piA">...</span></b>
+                &nbsp;|&nbsp; B's Profit: $<span id="val-s4-piB">...</span>
+                &nbsp;|&nbsp; Max πA at Q_A = <span class="highlight" id="val-s4-opt">...</span>
+            </p>
+            <p style="text-align: center; font-size: 16px; color: #555; margin: 6px 0 0;">
+                <em>A moves first and predicts B's reaction (Q_B = 45 − 0.5·Q_A). Move the slider to find the Q_A that
+                maximizes A's profit — the leader earns more than in Cournot (30, 30).</em>
+            </p>
+        </div>
+
+        <div class="flex-container">
+            <div class="graph-wrapper">
+                <canvas id="canvas-s4-left" width="450" height="450"></canvas>
+            </div>
+            <div class="graph-wrapper">
+                <canvas id="canvas-s4-middle" width="450" height="450"></canvas>
+            </div>
+            <div class="graph-wrapper">
+                <canvas id="canvas-s4-right" width="450" height="450"></canvas>
             </div>
         </div>
     </div>
@@ -698,6 +740,7 @@
             document.getElementById('val-s3-q').innerText = currentQ;
 
             let showMono = document.getElementById('cb-mono').checked;
+            let showStack = document.getElementById('cb-stackelberg').checked;
             let showCournot = document.getElementById('cb-cournot').checked;
             let showPC = document.getElementById('cb-pc').checked;
 
@@ -713,6 +756,9 @@
                 graph3.drawLine(0, DEMAND_A, 60, 0, "green", 3);
                 graph3.drawText("MR", 55, 8, "green");
                 graph3.drawPoint(45, 75, "#8e44ad", "Monopoly (45, 75)", true, 6);
+            }
+            if (showStack) {
+                graph3.drawPoint(67.5, 52.5, "#16a085", "Stackelberg (67.5, 52.5)", true, 6);
             }
             if (showCournot) {
                 graph3.drawPoint(60, 60, "#d35400", "Cournot (60, 60)", true, 6);
@@ -757,6 +803,132 @@
             document.getElementById('stat-cs').innerText = cs.toFixed(1);
             document.getElementById('stat-ps').innerText = ps.toFixed(1);
             document.getElementById('stat-dwl').innerText = dwl.toFixed(1);
+
+            renderProfitSplit();
+        }
+
+        // Profit distribution between the two firms at each equilibrium
+        function renderProfitSplit() {
+            const show = {
+                mono: document.getElementById('cb-mono').checked,
+                stack: document.getElementById('cb-stackelberg').checked,
+                cournot: document.getElementById('cb-cournot').checked,
+                pc: document.getElementById('cb-pc').checked
+            };
+            const max = 2250; // monopoly profit = full bar width
+            const rows = [];
+            if (show.mono) rows.push({
+                name: 'Monopoly', color: '#8e44ad', total: '$2,250',
+                bars: [{ w: 100, c: '#8e44ad' }],
+                lbl: 'single firm earns the whole pie'
+            });
+            if (show.stack) rows.push({
+                name: 'Stackelberg', color: '#16a085', total: '$1,518.8', hl: true,
+                bars: [{ w: 45.0, c: '#3498db' }, { w: 22.5, c: '#e67e22' }],
+                lbl: 'A (leader): $1,012.5 · B (follower): $506.3 · leader keeps 2/3'
+            });
+            if (show.cournot) rows.push({
+                name: 'Cournot', color: '#d35400', total: '$1,800',
+                bars: [{ w: 40.0, c: '#3498db' }, { w: 40.0, c: '#e67e22' }],
+                lbl: 'A: $900 · B: $900 · symmetric'
+            });
+            if (show.pc) rows.push({
+                name: 'Perfect Comp.', color: '#27ae60', total: '$0',
+                bars: [], lbl: 'both firms earn zero economic profit'
+            });
+
+            document.getElementById('profitSplit').innerHTML = rows.map(r => `
+                <div style="margin-bottom:7px;padding:4px 6px;border-radius:6px;${r.hl ? 'background:#eafaf6;border:1.5px solid #16a085;' : ''}">
+                    <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:bold;color:${r.color};">
+                        <span>${r.name}${r.hl ? ' ★' : ''}</span>
+                        <span>Total: ${r.total}</span>
+                    </div>
+                    <div style="display:flex;gap:2px;margin:3px 0 2px;${r.bars.length === 0 ? 'align-items:center;' : ''}">
+                        ${r.bars.length
+                            ? r.bars.map(b => `<div style="height:13px;background:${b.c};width:${b.w.toFixed(1)}%;border-radius:3px;"></div>`).join('')
+                            : '<div style="height:13px;background:#eee;width:100%;border-radius:3px;line-height:13px;text-align:center;font-size:10px;color:#999;">0</div>'}
+                    </div>
+                    <div style="font-size:11.5px;color:#666;">${r.lbl}</div>
+                </div>`).join('');
+        }
+
+        let graph4L, graph4M, graph4R;
+
+        function initStep4() {
+            const s4Scale = 1.2;
+            graph4L = new CanvasGraph("canvas-s4-left", 100, 130, "Firm A Quantity (Q_A)", "Price & Cost ($)", s4Scale);
+            graph4M = new CanvasGraph("canvas-s4-middle", 100, 1300, "Firm A Quantity (Q_A)", "Firm A Profit ($)", s4Scale);
+            graph4R = new CanvasGraph("canvas-s4-right", 100, 100, "Firm A Quantity (Q_A)", "Firm B Quantity (Q_B)", s4Scale);
+            updateStep4();
+        }
+
+        function updateStep4() {
+            let qa = parseFloat(document.getElementById('slider-s4-qa').value);
+            document.getElementById('val-s4-qa').innerText = qa;
+
+            // B reacts optimally to A's choice; A anticipates this reaction
+            let qb = Math.max(0, 45 - 0.5 * qa);              // B's best response
+            let P = Math.max(0, 75 - 0.5 * qa);               // A's effective demand (after B reacts)
+            let piA = Math.max(0, (45 - 0.5 * qa) * qa);      // A's profit on the reaction line
+            let piB = Math.max(0, (P - MC) * qb);
+
+            const optQa = 45, optQb = 22.5, optP = 52.5, optPiA = 1012.5, optPiB = 506.25;
+
+            document.getElementById('val-s4-qb').innerText = qb.toFixed(1);
+            document.getElementById('val-s4-p').innerText = P.toFixed(1);
+            document.getElementById('val-s4-piA').innerText = piA.toFixed(0);
+            document.getElementById('val-s4-piB').innerText = piB.toFixed(0);
+            document.getElementById('val-s4-opt').innerText = optQa.toFixed(0);
+
+            // --- Left: A's effective demand + MR + MC ---
+            graph4L.clear();
+            graph4L.drawLine(0, 75, 100, 25, "blue", 3);       // P = 75 - 0.5 qA
+            graph4L.drawText("D_A (after B reacts)", 55, 10, "blue");
+            graph4L.drawLine(0, 75, 75, 0, "green", 3);        // MR = 75 - qA
+            graph4L.drawText("MR_A", 70, 8, "green");
+            graph4L.drawLine(0, MC, 100, MC, "red", 2, [6, 4]);
+            graph4L.drawText("MC", 90, MC - 5, "red");
+            graph4L.drawPoint(optQa, optP, "green", `Optimum Q_A=${optQa}`, true, 8, 'star');
+            graph4L.drawPoint(qa, P, "orange", "Current", true, 8, 'circle');
+
+            // --- Middle: A's profit curve on the reaction line ---
+            graph4M.clear();
+            graph4M.ctx.beginPath();
+            let started = false;
+            for (let x = 0; x <= 90; x++) {
+                let p = Math.max(0, (45 - 0.5 * x) * x);
+                if (p >= 0) {
+                    if (!started) { graph4M.ctx.moveTo(graph4M.px(x), graph4M.py(p)); started = true; }
+                    else { graph4M.ctx.lineTo(graph4M.px(x), graph4M.py(p)); }
+                }
+            }
+            graph4M.ctx.strokeStyle = "purple";
+            graph4M.ctx.lineWidth = 3 * graph4M.scale;
+            graph4M.ctx.stroke();
+            graph4M.drawText("πA (with B's reaction)", 52, 1080, "purple");
+            graph4M.drawPoint(optQa, optPiA, "green", "Max πA", true, 8, 'star');
+            graph4M.drawPoint(qa, piA, "orange", "Current", true, 8, 'circle');
+
+            // --- Right: B's reaction function & Stackelberg point ---
+            graph4R.clear();
+            graph4R.drawLine(0, 45, 90, 0, "blue", 3);         // qb = 45 - 0.5 qa
+            graph4R.drawText("B's Reaction", 40, 42, "blue");
+
+            graph4R.ctx.beginPath();
+            graph4R.ctx.setLineDash([4, 4]);
+            graph4R.ctx.moveTo(graph4R.px(qa), graph4R.py(0));
+            graph4R.ctx.lineTo(graph4R.px(qa), graph4R.py(qb));
+            graph4R.ctx.moveTo(graph4R.px(0), graph4R.py(qb));
+            graph4R.ctx.lineTo(graph4R.px(qa), graph4R.py(qb));
+            graph4R.ctx.strokeStyle = "#999";
+            graph4R.ctx.lineWidth = 1.5 * graph4R.scale;
+            graph4R.ctx.stroke();
+            graph4R.ctx.setLineDash([]);
+
+            graph4R.drawPoint(optQa, optQb, "green", "Stackelberg (45, 22.5)", true, 8, 'star');
+            graph4R.drawPoint(qa, qb, "orange", "B reacts", true, 8, 'circle');
+            graph4R.drawText("Q_A = " + qa.toFixed(0), 5, qa + 3, "#2c3e50", "left");
+            graph4R.drawText("Q_B = " + qb.toFixed(1), qb + 3, 5, "#2c3e50", "left");
         }
 
         function switchTab(tabIndex) {
@@ -768,7 +940,8 @@
 
             if (tabIndex === 1 && !graph1L) initStep1();
             if (tabIndex === 2 && !graph2) initStep2();
-            if (tabIndex === 3 && !graph3) initStep3();
+            if (tabIndex === 3 && !graph4L) initStep4();
+            if (tabIndex === 4 && !graph3) initStep3();
         }
 
         window.onload = () => {
