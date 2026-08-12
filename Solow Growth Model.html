@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solow Growth Model — Interactive Lab</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+    :root {
+        --primary: #1a3a5c;
+        --bg: #f4f7fb;
+        --card: #ffffff;
+        --cK: #2e86de;      /* capital blue */
+        --cL: #e67e22;      /* labor orange */
+        --cY: #1a5276;      /* output deep blue */
+        --cC: #27ae60;      /* consumption green */
+        --cS: #f39c12;      /* saving amber */
+        --cD: #e74c3c;      /* depreciation red */
+        --cP: #8e44ad;      /* population purple */
+        --text: #2c3e50;
+        --text-secondary: #7f8c8d;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: var(--bg); color: var(--text);
+        min-height: 100vh; display: flex; justify-content: center; padding: 10px;
+    }
+    .app {
+        width: 100%; max-width: 1420px; background: var(--card); border-radius: 14px;
+        box-shadow: 0 8px 32px rgba(26, 58, 92, 0.12); padding: 12px 16px 10px;
+        display: flex; flex-direction: column; min-height: calc(100vh - 20px);
+    }
+    header { text-align: center; margin-bottom: 8px; }
+    header h1 { font-size: 27px; color: var(--primary); }
+    header .sub { color: var(--text-secondary); font-size: 14px; margin-top: 2px; }
+
+    .tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; }
+    .tab-btn {
+        padding: 9px 26px; border: 1.5px solid rgba(42, 90, 140, 0.25); border-radius: 30px;
+        background: #fff; font-size: 15px; font-weight: 700; color: var(--primary); cursor: pointer; transition: .2s;
+    }
+    .tab-btn:hover { border-color: var(--primary); }
+    .tab-btn.active { background: var(--primary); color: #fff; }
+    .tab-content { display: none; flex: 1; min-height: 0; }
+    .tab-content.active { display: block; }
+
+    /* ============ TAB 1: YEAR BY YEAR (horizontal bars) ============ */
+    .yy-wrap { display: flex; flex-direction: column; height: 100%; min-height: 520px; }
+    .yy-body { display: flex; gap: 12px; flex: 1; min-height: 0; }
+    .yy-svg {
+        flex: 2.4 1 0; min-width: 0; background: #fbfdff; border: 1px solid #e8eef5; border-radius: 12px;
+        padding: 4px; display: flex; align-items: stretch; justify-content: center;
+        height: 430px; min-height: 430px; max-height: 430px;
+    }
+    .yy-svg svg { width: 100%; max-width: 1060px; height: 100%; min-height: 380px; }
+    .yy-svg svg text { font-family: "Segoe UI", Arial, sans-serif; }
+    .yy-side { flex: 1; min-width: 210px; display: flex; flex-direction: column; gap: 8px; }
+    .yy-controls {
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        background: #f8fafc; border: 1px solid #e8eef5; border-radius: 10px; padding: 8px 12px;
+    }
+    .step-pill { font-size: 14px; font-weight: 700; color: var(--primary); background: #eaf2fb; border-radius: 20px; padding: 5px 13px; }
+    .step-pill b { color: #2e86de; }
+    .step-dots { display: flex; gap: 4px; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; background: #d5dbe3; border: 1.5px solid #b8c2cf; transition: .25s; }
+    .dot.on { background: #2e86de; border-color: #2e86de; transform: scale(1.15); }
+    .mini-btn {
+        padding: 6px 15px; border: 1.5px solid rgba(42, 90, 140, 0.3); border-radius: 8px;
+        background: #fff; font-size: 13.5px; font-weight: 700; color: var(--primary); cursor: pointer; transition: .2s;
+    }
+    .mini-btn:hover { background: #eaf2fb; }
+    .mini-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .mini-btn.primary:hover { background: #264d78; }
+    .yy-sliders {
+        display: flex; flex-direction: column; gap: 9px; flex: 1;
+        background: #f8fafc; border: 1px solid #e8eef5; border-radius: 10px; padding: 10px 14px; min-height: 0; overflow-y: auto;
+    }
+    .yy-slider { display: flex; flex-direction: column; gap: 2px; padding: 5px 8px; border-radius: 8px; background: #fff; border: 1.5px solid #e8eef5; }
+    .yy-slider.show { display: flex; }
+    .yy-slider.hide { display: none; }
+    .yy-slider .lab { display: flex; justify-content: space-between; font-size: 14px; font-weight: 800; align-items: baseline; }
+    .yy-slider .lab .val { font-family: Consolas, monospace; color: #2e86de; font-size: 13px; }
+    .yy-slider input[type=range] { width: 100%; cursor: pointer; height: 20px; }
+    .yy-slider.s-K { border-color: var(--cK); } .yy-slider.s-K .lab { color: #1a5276; } .yy-slider.s-K input { accent-color: var(--cK); }
+    .yy-slider.s-L { border-color: var(--cL); } .yy-slider.s-L .lab { color: #935116; } .yy-slider.s-L input { accent-color: var(--cL); }
+    .yy-slider.s-s { border-color: var(--cS); } .yy-slider.s-s .lab { color: #a57d12; } .yy-slider.s-s input { accent-color: var(--cS); }
+    .yy-slider.s-d { border-color: var(--cD); } .yy-slider.s-d .lab { color: #a02a2a; } .yy-slider.s-d input { accent-color: var(--cD); }
+    .yy-slider.s-n { border-color: var(--cP); } .yy-slider.s-n .lab { color: #6c3483; } .yy-slider.s-n input { accent-color: var(--cP); }
+    .factor-panel {
+        display: flex; gap: 8px; flex-wrap: wrap; align-items: center; min-height: 40px;
+        background: #f8fafc; border: 1px solid #e8eef5; border-radius: 10px; padding: 7px 12px; font-size: 14px;
+    }
+    .f-chip { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid; border-radius: 16px; padding: 4px 13px; font-weight: 700; font-size: 13.5px; background: #fff; }
+    .f-chip .sw { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+    .f-chip.cK { border-color: var(--cK); color: #1a5276; } .f-chip.cK .sw { background: var(--cK); }
+    .f-chip.cL { border-color: var(--cL); color: #935116; } .f-chip.cL .sw { background: var(--cL); }
+    .f-chip.cY { border-color: var(--cY); color: #1a5276; } .f-chip.cY .sw { background: var(--cY); }
+    .f-chip.cC { border-color: var(--cC); color: #1e8449; } .f-chip.cC .sw { background: var(--cC); }
+    .f-chip.cS { border-color: var(--cS); color: #a57d12; } .f-chip.cS .sw { background: var(--cS); }
+    .f-chip.cD { border-color: var(--cD); color: #a02a2a; } .f-chip.cD .sw { background: #e8e8e8; }
+    .f-chip.cP { border-color: var(--cP); color: #6c3483; } .f-chip.cP .sw { background: #f3f3f3; }
+    .f-chip.ghost { border-style: dashed; border-color: #bdc3c7; color: #95a5a6; background: transparent; }
+    .step-hint {
+        background: #eaf2fb; border-left: 4px solid #2e86de; border-radius: 8px;
+        padding: 9px 12px; font-size: 14px; font-weight: 700; color: #1a5276; line-height: 1.5;
+        min-height: 44px; flex-shrink: 0;
+    }
+
+    /* ============ TAB 2 & 3: SIMULATION LAYOUT (panel left + chart right) ============ */
+    .sim-wrap { display: flex; gap: 14px; height: 100%; min-height: 520px; }
+    .control-panel {
+        width: 270px; flex-shrink: 0; background: #f8fafc; border: 1px solid #e8eef5; border-radius: 12px;
+        padding: 13px 14px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto;
+    }
+    .cp-sec h4 { font-size: 13px; color: var(--primary); border-bottom: 2px solid #dfe8f2; padding-bottom: 5px; margin-bottom: 8px; }
+    .cp-stage { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .slider-row { margin-bottom: 2px; }
+    .slider-row .lab { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; align-items: baseline; }
+    .slider-row .lab .val { color: #2e86de; font-weight: 800; font-family: Consolas, monospace; font-size: 13px; }
+    .slider-row input[type=range] { width: 100%; accent-color: var(--primary); cursor: pointer; height: 22px; }
+    .slider-row.s2 { display: none; }
+    .slider-row.s2.show { display: block; }
+    .slider-row.s-s .lab { color: #d35400; } .slider-row.s-s input { accent-color: #e67e22; }
+    .slider-row.s-d .lab { color: #a02a2a; } .slider-row.s-d input { accent-color: #e74c3c; }
+    .slider-row.s-n .lab { color: #6c3483; } .slider-row.s-n input { accent-color: #8e44ad; }
+    .stat-box { background: #fff; border: 1px solid #e8eef5; border-radius: 10px; padding: 10px 12px; }
+    .stat-row { display: flex; justify-content: space-between; font-size: 14px; padding: 3px 0; }
+    .stat-row .k { color: var(--text-secondary); }
+    .stat-row .v { font-weight: 800; font-family: Consolas, monospace; color: var(--primary); }
+    .stat-row .v.gold { color: var(--cP); }
+    .status-box { border-radius: 10px; padding: 9px 12px; font-size: 13.5px; line-height: 1.55; border: 1.5px solid; }
+    .status-box.below { background: #fef9f0; border-color: #e67e22; color: #a05a10; }
+    .status-box.at { background: #f0faf4; border-color: #27ae60; color: #1a7a3a; }
+    .status-box.above { background: #fdf0f2; border-color: #e74c3c; color: #a02a2a; }
+    .btn-row { display: flex; gap: 8px; margin-top: 4px; }
+    .act-btn {
+        flex: 1; padding: 9px 10px; border: 1.5px solid rgba(42, 90, 140, 0.3); border-radius: 9px;
+        background: #fff; font-size: 13.5px; font-weight: 700; color: var(--primary); cursor: pointer; transition: .2s;
+    }
+    .act-btn:hover { background: #eaf2fb; }
+    .act-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .act-btn.primary:hover { background: #264d78; }
+    .chart-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .chart-panel.row { flex-direction: row; flex-wrap: wrap; }
+    .chart-panel.row .view-header { flex-basis: 100%; }
+    .chart-panel.row .chart-box { flex: 1; min-width: 0; }
+    .view-header { display: flex; justify-content: center; margin-bottom: 8px; }
+    .view-switch { display: flex; background: #f1f3f5; border-radius: 9px; padding: 3px; gap: 3px; }
+    .view-btn {
+        padding: 7px 18px; border: none; background: transparent; border-radius: 7px;
+        font-size: 14px; font-weight: 700; color: #6c757d; cursor: pointer; transition: .2s; white-space: nowrap;
+    }
+    .view-btn.active { background: #fff; color: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+    .chart-box { flex: 1; position: relative; min-height: 380px; background: #fbfdff; border: 1px solid #e8eef5; border-radius: 12px; padding: 8px; }
+    .gold-btn { margin-top: 2px; border-color: var(--cP, #8e44ad); color: #6c3483; background: #faf5fc; }
+
+    footer { text-align: center; color: var(--text-secondary); font-size: 12px; margin-top: 10px; line-height: 1.6; }
+    @media (max-width: 900px) {
+        .yy-body, .sim-wrap { flex-direction: column; }
+        .yy-side { flex-direction: row; flex-wrap: wrap; }
+        .control-panel { width: 100%; }
+        .yy-svg svg { min-height: 300px; }
+    }
+</style>
+</head>
+<body>
+<div class="app">
+    <header>
+        <h1>🌱 Solow Growth Model</h1>
+        <div class="sub">Year by year · curves · convergence — the mechanics of long-run growth</div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" id="tabbtn1" onclick="switchTab(1)">🗓 Year by Year</button>
+        <button class="tab-btn" id="tabbtn2" onclick="switchTab(2)">📈 Curve Simulation</button>
+        <button class="tab-btn" id="tabbtn3" onclick="switchTab(3)">⏱ Convergence Path</button>
+    </div>
+
+    <!-- ============ TAB 1: YEAR BY YEAR ============ -->
+    <div class="tab-content active" id="tab1">
+        <div class="yy-wrap">
+            <div class="yy-body">
+                <div class="yy-svg"><svg id="yearSvg" viewBox="0 0 1060 400" xmlns="http://www.w3.org/2000/svg"></svg></div>
+                <div class="yy-side">
+                    <div class="yy-controls">
+                        <span class="step-pill">Year <b id="yearNow">1</b> · Step <b id="actNow">1</b>/7</span>
+                        <div class="step-dots" id="actDots"></div>
+                        <button class="mini-btn primary" id="playBtn" onclick="playAll()">▶ Play</button>
+                        <button class="mini-btn" onclick="nextAct()">Next ➤</button>
+                        <button class="mini-btn" onclick="resetAnim()">↺</button>
+                    </div>
+                    <div class="yy-sliders" id="yySliders">
+                        <div class="yy-slider s-K hide" id="slK">
+                            <div class="lab"><span>Initial capital K₀</span><b class="val" id="aValK">100</b></div>
+                            <input type="range" id="aInK" min="20" max="400" step="1" value="100" oninput="updateAnimParams()">
+                        </div>
+                        <div class="yy-slider s-L hide" id="slL">
+                            <div class="lab"><span>Initial labor L₀</span><b class="val" id="aValL">50</b></div>
+                            <input type="range" id="aInL" min="10" max="200" step="1" value="50" oninput="updateAnimParams()">
+                        </div>
+                        <div class="yy-slider s-s hide" id="slS">
+                            <div class="lab"><span>Saving rate s</span><b class="val" id="aValS">0.20</b></div>
+                            <input type="range" id="aInS" min="0.05" max="0.90" step="0.01" value="0.20" oninput="updateAnimParams()">
+                        </div>
+                        <div class="yy-slider s-d hide" id="slD">
+                            <div class="lab"><span>Depreciation δ</span><b class="val" id="aValD">0.05</b></div>
+                            <input type="range" id="aInD" min="0.01" max="0.20" step="0.01" value="0.05" oninput="updateAnimParams()">
+                        </div>
+                        <div class="yy-slider s-n hide" id="slN">
+                            <div class="lab"><span>Pop. growth n</span><b class="val" id="aValN">0.05</b></div>
+                            <input type="range" id="aInN" min="0.00" max="0.15" step="0.01" value="0.05" oninput="updateAnimParams()">
+                        </div>
+                    </div>
+                    <div class="step-hint" id="stepHint"></div>
+                </div>
+            </div>
+            <div class="factor-panel" id="factorPanel"></div>
+        </div>
+    </div>
+
+    <!-- ============ TAB 2: CURVE SIMULATION ============ -->
+    <div class="tab-content" id="tab2">
+        <div class="sim-wrap">
+            <div class="control-panel">
+                <div class="cp-sec">
+                    <h4>🧭 Stages</h4>
+                    <div class="cp-stage">
+                        <span class="step-pill">Stage <b id="stageNow">1</b>/7</span>
+                        <div class="step-dots" id="stageDots"></div>
+                    </div>
+                    <div class="btn-row">
+                        <button class="act-btn primary" id="autoBtn" onclick="autoStages()">▶ Auto</button>
+                        <button class="act-btn" onclick="nextStage()">Next ➤</button>
+                        <button class="act-btn" onclick="resetStages()">↺</button>
+                    </div>
+                </div>
+                <div class="cp-sec">
+                    <h4>⚙️ Parameters</h4>
+                    <div class="slider-row s-s s2" id="cvSRow">
+                        <div class="lab"><span>Saving rate s</span><span class="val" id="cvSVal">0.20</span></div>
+                        <input type="range" id="cvS" min="0.05" max="0.90" step="0.005" value="0.20" oninput="updateCurveParams()">
+                    </div>
+                    <div class="slider-row s-d s2" id="cvDRow">
+                        <div class="lab"><span>Depreciation δ</span><span class="val" id="cvDVal">0.05</span></div>
+                        <input type="range" id="cvD" min="0.01" max="0.20" step="0.01" value="0.05" oninput="updateCurveParams()">
+                    </div>
+                    <div class="slider-row s-n s2" id="cvNRow">
+                        <div class="lab"><span>Population growth n</span><span class="val" id="cvNVal">0.02</span></div>
+                        <input type="range" id="cvN" min="0.00" max="0.10" step="0.01" value="0.02" oninput="updateCurveParams()">
+                    </div>
+                </div>
+                <div class="cp-sec">
+                    <h4>Steady state</h4>
+                    <div class="stat-box">
+                        <div class="stat-row"><span class="k">Capital k*</span><span class="v" id="cvK">4.48</span></div>
+                        <div class="stat-row"><span class="k">Output y*</span><span class="v" id="cvY">1.57</span></div>
+                        <div class="stat-row"><span class="k">Consumption c*</span><span class="v" id="cvC">1.25</span></div>
+                        <div class="stat-row"><span class="k">Golden rate s*</span><span class="v gold" id="cvGold">0.30</span></div>
+                    </div>
+                </div>
+                <div class="status-box below" id="cvStatus"><b>Below the Golden Rule</b> — raising s would raise c*.</div>
+                <button class="act-btn gold-btn" id="goldBtn" style="display:none;" onclick="snapGolden()">🎯 Snap to Golden Rule (s = 0.30)</button>
+            </div>
+            <div class="chart-panel">
+                <div class="chart-box"><canvas id="curveChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ TAB 3: CONVERGENCE PATH ============ -->
+    <div class="tab-content" id="tab3">
+        <div class="sim-wrap">
+            <div class="control-panel">
+                <div class="cp-sec">
+                    <h4>⚙️ Parameters</h4>
+                    <div class="slider-row s-s">
+                        <div class="lab"><span>Saving rate s</span><span class="val" id="cSVal">0.20</span></div>
+                        <input type="range" id="cInS" min="0.05" max="0.90" step="0.01" value="0.20" oninput="updateConvParams()">
+                    </div>
+                    <div class="slider-row s-d">
+                        <div class="lab"><span>Depreciation δ</span><span class="val" id="cDVal">0.05</span></div>
+                        <input type="range" id="cInD" min="0.01" max="0.20" step="0.01" value="0.05" oninput="updateConvParams()">
+                    </div>
+                    <div class="slider-row s-n">
+                        <div class="lab"><span>Population growth n</span><span class="val" id="cNVal">0.02</span></div>
+                        <input type="range" id="cInN" min="0.00" max="0.10" step="0.01" value="0.02" oninput="updateConvParams()">
+                    </div>
+                    <div class="slider-row">
+                        <div class="lab"><span>Initial capital k₀</span><span class="val" id="cK0Val">0.5</span></div>
+                        <input type="range" id="cInK0" min="0.2" max="16" step="0.1" value="0.5" oninput="updateConvParams()">
+                    </div>
+                </div>
+                <div class="cp-sec">
+                    <h4>Steady state</h4>
+                    <div class="stat-box">
+                        <div class="stat-row"><span class="k">Capital k*</span><span class="v" id="cK">4.48</span></div>
+                        <div class="stat-row"><span class="k">Output y*</span><span class="v" id="cY">1.57</span></div>
+                        <div class="stat-row"><span class="k">Consumption c*</span><span class="v" id="cC">1.25</span></div>
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="act-btn primary" onclick="animateConv()">▶ Converge</button>
+                    <button class="act-btn" onclick="stopAnim(); resetConv()">↺ Reset</button>
+                </div>
+            </div>
+            <div class="chart-panel" id="cpanel">
+                <div class="view-header">
+                    <div class="view-switch">
+                        <button class="view-btn active" id="cvb1" onclick="switchConvView(1)">📈 Solow Diagram</button>
+                        <button class="view-btn" id="cvb2" onclick="switchConvView(2)">⏱ Time Series</button>
+                        <button class="view-btn" id="cvb3" onclick="switchConvView(3)">⇄ Both</button>
+                    </div>
+                </div>
+                <div class="chart-box" id="cbox1"><canvas id="solowConvChart"></canvas></div>
+                <div class="chart-box" id="cbox2" style="display:none;"><canvas id="convChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <footer>Cobb-Douglas Y = K<sup>α</sup>L<sup>β</sup> · per worker y = k<sup>α</sup> · Δk = s·y − (n+δ)k · Golden Rule s* = α · for teaching purposes only.</footer>
+</div>
+
+<script>
+    // ===================== MATH =====================
+    const ALPHA = 0.30;
+    const KMAX = 16, KSTEP = 0.05;
+    const yOf = k => Math.pow(k, ALPHA);
+    const syOf = (k, sv) => sv * Math.pow(k, ALPHA);
+    const dilOf = (k, nv, dv) => (nv + dv) * k;
+    const kStarOf = (sv, nv, dv) => Math.pow(sv / (nv + dv), 1 / (1 - ALPHA));
+    const sGold = () => ALPHA;
+    const kGoldOf = (nv, dv) => Math.pow(ALPHA / (nv + dv), 1 / (1 - ALPHA));
+    const yMax = () => Math.max(3.2, yOf(KMAX) * 1.05);
+    const mpk = k => ALPHA * Math.pow(k, ALPHA - 1);
+    function genPts(fn, kmax) {
+        const pts = [];
+        for (let k = 0; k <= (kmax || KMAX) + 0.001; k += KSTEP) pts.push({ x: +k.toFixed(3), y: +fn(k).toFixed(4) });
+        return pts;
+    }
+
+    // ===================== LABEL PLUGIN =====================
+    const labelPlugin = {
+        id: 'curveLabels',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = 'bold 13px "Segoe UI", Arial, sans-serif';
+            ctx.textBaseline = 'bottom';
+            chart.data.datasets.forEach(ds => {
+                if (!ds.tagText || ds.hidden || !ds.data || !ds.data.length) return;
+                const xs = chart.scales.x, ys = chart.scales.y;
+                let i = (ds.tagAnchor !== undefined && ds.tagAnchor < ds.data.length) ? ds.tagAnchor : ds.data.length - 1;
+                if (ds.tagAnchorFrac !== undefined) i = Math.max(0, Math.min(ds.data.length - 1, Math.floor(ds.data.length * ds.tagAnchorFrac)));
+                const p = ds.data[i];
+                if (p === undefined) return;
+                const w = ctx.measureText(ds.tagText).width;
+                const L = chart.chartArea.left + 3, R = chart.chartArea.right - w - 9;
+                const T = chart.chartArea.top + 18, B = chart.chartArea.bottom - 2;
+                let px = Math.max(L, Math.min(xs.getPixelForValue(p.x) + (ds.tagDx || 0), R));
+                let py = Math.max(T, Math.min(ys.getPixelForValue(p.y) + (ds.tagDy || 0), B));
+                ctx.fillStyle = 'rgba(255,255,255,0.92)';
+                ctx.fillRect(px - 3, py - 14, w + 6, 18);
+                ctx.fillStyle = ds.tagColor || '#7f8c8d';
+                ctx.fillText(ds.tagText, px, py - 3);
+            });
+            ctx.restore();
+        }
+    };
+    function baseLineDS(color, tagText, tagColor, frac, dy, dash) {
+        const d = { label: '', data: [], showLine: true, borderColor: color, borderWidth: 2.5, pointRadius: 0, tension: 0, tagText, tagColor, tagAnchorFrac: frac, tagDy: dy };
+        if (dash) d.borderDash = dash;
+        return d;
+    }
+
+    // ===================== TAB 1: YEAR BY YEAR (horizontal bars) =====================
+    const C = { K: '#2e86de', L: '#e67e22', Y: '#1a5276', CC: '#27ae60', S: '#f39c12', D: '#e74c3c', P: '#8e44ad' };
+    const INIT_K = 100, INIT_L = 50;
+    let P = { K: INIT_K, L: INIT_L, s: 0.20, d: 0.05, n: 0.05 };
+    let act = 1, year = 1, playTimer = null;
+    const ACTS = 7;
+
+    function calcYear() {
+        const Y1 = Math.pow(P.K, ALPHA) * Math.pow(P.L, 1 - ALPHA);
+        const I = P.s * Y1, CC = (1 - P.s) * Y1, dK = P.d * P.K;
+        const K2 = P.K + I - dK, L2 = P.L * (1 + P.n);
+        const Y2 = Math.pow(K2, ALPHA) * Math.pow(L2, 1 - ALPHA);
+        const k1 = P.K / P.L, y1 = Y1 / P.L;
+        const dk = P.s * y1 - (P.n + P.d) * k1;
+        const k2 = k1 + dk, y2 = Math.pow(k2, ALPHA);
+        const m = mpk(k1);
+        const eInv = m * P.s * y1, eDep = m * P.d * k1, ePop = m * P.n * k1, eNet = y2 - y1;
+        return { Y1, I, CC, dK, K2, L2, Y2, k1, y1, dk, k2, y2, eInv, eDep, ePop, eNet };
+    }
+
+    // horizontal bar layout: rows from top to bottom: K, L, Y, y
+    const AX = 150;                 // origin (axis) x
+    const ROWS = { K: 72, L: 138, Y: 204, y: 270 };   // bar centre y
+    const TH = 42;                  // bar thickness
+    const SK = 2.4, SL = 2.4, SY = 2.0, SP = 360;     // px per unit
+
+    function buildSvg() {
+        const svg = document.getElementById('yearSvg');
+        svg.innerHTML = `
+            <defs>
+                <marker id="arrG" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#95a5a6"/></marker>
+                <marker id="arrO" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#e67e22"/></marker>
+            </defs>
+            <!-- axis -->
+            <line x1="${AX}" y1="30" x2="${AX}" y2="310" stroke="#b8c2cf" stroke-width="1.5" stroke-dasharray="4 3"/>
+            <text x="${AX}" y="24" font-size="12.5" font-weight="700" fill="#95a5a6" text-anchor="middle">− (deducted) | + (added)</text>
+            <!-- divider: total economy (K/L/Y) vs per worker (y) — different scales -->
+            <line x1="12" y1="237" x2="1048" y2="237" stroke="#c5cedb" stroke-width="1.5" stroke-dasharray="6 5"/>
+            <text x="16" y="232" font-size="11.5" font-weight="800" fill="#8fa3b8">TOTAL</text>
+            <text x="16" y="256" font-size="11.5" font-weight="800" fill="#8fa3b8">PER WORKER</text>
+            <!-- loop marker shown on step 7 -->
+            <text id="loopMark" x="500" y="196" font-size="34" fill="#1a5276" text-anchor="middle" opacity="0">↻</text>
+            <text id="loopTxt" x="548" y="190" font-size="13" font-weight="800" fill="#1a5276" opacity="0">next year</text>
+            <!-- bars (y = ROWS[i] - TH/2 so each sits on its own row).
+                 Deduction bands are drawn AFTER the bars and match their y/height,
+                 so they fully cover the shifted-left part of the bar. -->
+            <rect id="barK" x="${AX}" y="${ROWS.K - TH/2}" width="0" height="${TH}" fill="${C.K}"/>
+            <rect id="barKInv" x="${AX}" y="${ROWS.K - TH/2}" width="0" height="${TH}" fill="${C.S}"/>
+            <rect id="barKDep" x="${AX}" y="${ROWS.K - TH/2}" width="0" height="${TH}" fill="#e8e8e8" stroke="#e74c3c" stroke-width="1.5"/>
+            <rect id="barL" x="${AX}" y="${ROWS.L - TH/2}" width="0" height="${TH}" fill="${C.L}"/>
+            <rect id="barLPop" x="${AX}" y="${ROWS.L - TH/2}" width="0" height="${TH}" fill="${C.P}"/>
+            <rect id="barYFull" x="${AX}" y="${ROWS.Y - TH/2}" width="0" height="${TH}" fill="${C.Y}"/>
+            <rect id="barYCons" x="${AX}" y="${ROWS.Y - TH/2}" width="0" height="${TH}" fill="${C.CC}"/>
+            <rect id="barYSave" x="${AX}" y="${ROWS.Y - TH/2}" width="0" height="${TH}" fill="${C.S}"/>
+            <rect id="barY" x="${AX}" y="${ROWS.y - TH/2}" width="0" height="${TH}" fill="#2e86de" opacity="0.88"/>
+            <rect id="barYInv" x="${AX}" y="${ROWS.y - TH/2}" width="0" height="${TH}" fill="${C.S}"/>
+            <rect id="barYDep" x="${AX}" y="${ROWS.y - TH/2}" width="0" height="${TH}" fill="#e8e8e8" stroke="#e74c3c" stroke-width="1.5"/>
+            <rect id="barYPop" x="${AX}" y="${ROWS.y - TH/2}" width="0" height="${TH}" fill="#f3f3f3" stroke="#8e44ad" stroke-width="1.5"/>
+            <!-- bar name labels -->
+            <text id="nmK" x="12" y="${ROWS.K + 5}" font-size="15" font-weight="800" fill="#1a5276">K</text>
+            <text id="nmL" x="12" y="${ROWS.L + 5}" font-size="15" font-weight="800" fill="#935116">L</text>
+            <text id="nmY" x="12" y="${ROWS.Y + 5}" font-size="15" font-weight="800" fill="#1a5276">Y</text>
+            <text id="nmP" x="12" y="${ROWS.y + 5}" font-size="15" font-weight="800" fill="#1a5276">y</text>
+            <!-- value labels (right of bars) -->
+            <text id="labK" x="${AX}" y="${ROWS.K + 5}" font-size="13.5" font-weight="700" fill="#1a5276"></text>
+            <text id="labL" x="${AX}" y="${ROWS.L + 5}" font-size="13.5" font-weight="700" fill="#935116"></text>
+            <text id="labY" x="${AX}" y="${ROWS.Y + 5}" font-size="13.5" font-weight="700" fill="#1a5276"></text>
+            <text id="labP" x="${AX}" y="${ROWS.y + 5}" font-size="13.5" font-weight="700" fill="#1a5276"></text>
+            <!-- arrows -->
+            <path id="arrKL1" d="" fill="none" stroke="#95a5a6" stroke-width="2" marker-end="url(#arrG)"/>
+            <path id="arrKL2" d="" fill="none" stroke="#95a5a6" stroke-width="2" marker-end="url(#arrG)"/>
+            <path id="arrS2K" d="" fill="none" stroke="#e67e22" stroke-width="2.5" marker-end="url(#arrO)"/>
+        `;
+    }
+
+    function upd(id, attrs) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+    }
+
+    function setBar(id, x, w, opacity) {
+        upd(id, { x, width: Math.max(0, w), opacity: opacity === undefined ? 1 : opacity });
+    }
+
+    function renderAnim() {
+        if (act === ACTS) { renderLoop(); return; }
+        const R = calcYear();
+        // step counter & dots
+        document.getElementById('actNow').innerText = act;
+        document.getElementById('yearNow').innerText = year;
+        document.querySelectorAll('#actDots .dot').forEach((d, i) => d.classList.toggle('on', i < act));
+        upd('loopMark', { opacity: 0 }); upd('loopTxt', { opacity: 0 });
+
+        // --- K bar: blue(K) + amber(investment). When depreciation happens the WHOLE bar shifts left by wD:
+        //     the part pushed past the axis (left) is the deducted amount, shown as a gray band with red frame;
+        //     the right end recedes by wD → K is visibly reduced. ---
+        const wK = P.K * SK, wI = R.I * SK, wD = R.dK * SK;
+        const shiftK = act >= 5 ? wD : 0;
+        setBar('barK', AX - shiftK, wK);
+        setBar('barKInv', AX - shiftK + wK, wI, act >= 4 ? 1 : 0);
+        setBar('barKDep', AX - wD, wD, act >= 5 ? 0.95 : 0);
+        const labK = document.getElementById('labK');
+        labK.textContent = act >= 5 ? `K: ${P.K.toFixed(1)} → ${R.K2.toFixed(1)}` : (act >= 4 ? `K = ${(P.K + R.I).toFixed(1)}` : `K = ${P.K.toFixed(1)}`);
+        labK.setAttribute('x', AX - shiftK + wK + wI + 8);
+
+        // --- L bar: orange(L) + purple(population) ---
+        const wL = P.L * SL, wPop = (P.L * P.n) * SL;
+        setBar('barL', AX, wL);
+        setBar('barLPop', AX + wL, wPop, act >= 6 ? 0.95 : 0);
+        const labL = document.getElementById('labL');
+        labL.textContent = act >= 6 ? `L: ${P.L.toFixed(1)} → ${R.L2.toFixed(1)}` : `L = ${P.L.toFixed(1)}`;
+        labL.setAttribute('x', AX + wL + wPop + 8);
+
+        // --- Y bar: full deep blue -> split C(green) + S(amber). ---
+        const wY = R.Y1 * SY, wC = R.CC * SY, wS = R.I * SY;
+        setBar('barYFull', AX, wY, act === 2 ? 1 : 0);
+        setBar('barYCons', AX, wC, act >= 3 ? 1 : 0);
+        setBar('barYSave', AX + wC, wS, act >= 3 ? 1 : 0);
+        const labY = document.getElementById('labY');
+        labY.textContent = `Y = ${R.Y1.toFixed(1)}  [C ${R.CC.toFixed(1)} | S ${R.I.toFixed(1)}]`;
+        labY.setAttribute('x', AX + wY + 8);
+
+        // --- per-worker y bar: blue(y1) + amber(investment effect); depreciation & dilution shift the
+        //     whole bar LEFT (right end recedes), with gray bands (red/purple frames) past the axis. ---
+        const wY1 = R.y1 * SP, wYI = R.eInv * SP, wYD = R.eDep * SP, wYP = R.ePop * SP;
+        const shiftY = (act >= 5 ? wYD : 0) + (act >= 6 ? wYP : 0);
+        setBar('barY', AX - shiftY, wY1, 0.88);
+        setBar('barYInv', AX - shiftY + wY1, wYI, act >= 4 ? 1 : 0);
+        setBar('barYDep', AX - wYD, wYD, act >= 5 ? 0.95 : 0);
+        setBar('barYPop', AX - wYD - wYP, wYP, act >= 6 ? 0.95 : 0);
+        const labP = document.getElementById('labP');
+        labP.textContent = act >= 6 ? `y: ${R.y1.toFixed(2)} → ${R.y2.toFixed(2)}` : `y = ${R.y1.toFixed(2)}`;
+        labP.setAttribute('x', AX - shiftY + wY1 + wYI + 8);
+
+        // --- arrows: production K,L -> Y ; saving -> K ---
+        const kEnd = AX + wK + wI, lEnd = AX + wL, yEnd = AX + wY;
+        upd('arrKL1', { d: `M ${kEnd} ${ROWS.K + TH + 2} C ${kEnd + 6} ${ROWS.Y - 18}, ${kEnd - 4} ${ROWS.Y - 18}, ${kEnd + 2} ${ROWS.Y - 2}`, opacity: act >= 2 ? 1 : 0 });
+        upd('arrKL2', { d: `M ${lEnd} ${ROWS.L + TH + 2} C ${lEnd + 6} ${ROWS.Y - 18}, ${lEnd - 4} ${ROWS.Y - 18}, ${lEnd + 2} ${ROWS.Y - 2}`, opacity: act >= 2 ? 1 : 0 });
+        const sMidX = AX + wC + wS / 2;
+        upd('arrS2K', { d: `M ${sMidX} ${ROWS.Y - 2} C ${sMidX + 20} ${ROWS.Y - 60}, ${AX + wK + wI + 30} ${ROWS.K - 40}, ${AX + wK + wI + 6} ${ROWS.K + 4}`, opacity: act >= 4 ? 1 : 0 });
+
+        // ---- factor panel (coloured legend chips only) + step hint (bottom of right panel) ----
+        const fp = document.getElementById('factorPanel');
+        const hint = document.getElementById('stepHint');
+        const chip = (cls, txt) => `<span class="f-chip ${cls}"><span class="sw"></span>${txt}</span>`;
+        if (act === 1) {
+            fp.innerHTML = chip('cK', `Capital K = ${P.K.toFixed(1)}`) + chip('cL', `Labor L = ${P.L.toFixed(1)}`);
+            hint.innerHTML = `① Adjust <b>K₀ / L₀</b> if you like, then Next ➤`;
+        } else if (act === 2) {
+            fp.innerHTML = chip('cY', `Output Y = ${R.Y1.toFixed(1)} = K<sup>α</sup>·L<sup>β</sup>`) + chip('cK', `K = ${P.K.toFixed(1)}`) + chip('cL', `L = ${P.L.toFixed(1)}`);
+            hint.innerHTML = `② y = Y/L = ${R.y1.toFixed(2)} — next: output splits into consumption &amp; saving`;
+        } else if (act === 3) {
+            fp.innerHTML = chip('cC', `Consumption C = ${R.CC.toFixed(1)}`) + chip('cS', `Saving S = ${R.I.toFixed(1)}`);
+            hint.innerHTML = `③ <b>s slider unlocked</b> — drag it to change the C / S split`;
+        } else if (act === 4) {
+            fp.innerHTML = chip('cS', `+S = ${R.I.toFixed(1)} invested → K`) + chip('cK', 'K increases');
+            hint.innerHTML = `④ Investment increases K: ${P.K.toFixed(1)} → ${(P.K + R.I).toFixed(1)}`;
+        } else if (act === 5) {
+            fp.innerHTML = chip('cD', `−δK = ${R.dK.toFixed(1)} depreciation`) + chip('cS', '+ investment stays');
+            hint.innerHTML = `⑤ <b>δ slider unlocked</b> — depreciation reduces K (${(P.K + R.I).toFixed(1)} → ${R.K2.toFixed(1)})`;
+        } else if (act === 6) {
+            fp.innerHTML = chip('cP', `+nL = ${(P.L * P.n).toFixed(1)} new workers`) +
+                chip('cS', `+${R.eInv.toFixed(3)} investment`) + chip('cD', `−${R.eDep.toFixed(3)} depreciation`) + chip('cP', `−${R.ePop.toFixed(3)} dilution`) +
+                chip('cC', `= Δy ${R.eNet >= 0 ? '+' : ''}${R.eNet.toFixed(3)}`);
+            hint.innerHTML = `⑥ <b>n slider unlocked</b> — all sliders available; y: ${R.y1.toFixed(2)} → ${R.y2.toFixed(2)}`;
+        }
+
+        // --- sliders appear progressively ---
+        document.getElementById('slK').className = 'yy-slider s-K show';
+        document.getElementById('slL').className = 'yy-slider s-L show';
+        document.getElementById('slS').className = 'yy-slider s-s ' + (act >= 3 ? 'show' : 'hide');
+        document.getElementById('slD').className = 'yy-slider s-d ' + (act >= 5 ? 'show' : 'hide');
+        document.getElementById('slN').className = 'yy-slider s-n ' + (act >= 6 ? 'show' : 'hide');
+    }
+
+    // ---- STEP 7: close the loop — output resets (a flow), K & L are updated and carried into next year ----
+    function renderLoop() {
+        const R = calcYear();
+        document.getElementById('actNow').innerText = ACTS;
+        document.getElementById('yearNow').innerText = year;
+        document.querySelectorAll('#actDots .dot').forEach(d => d.classList.add('on'));
+        // output bars reset (flows are re-created each year) — but per-worker y is CARRIED:
+        // it is determined by the carried capital k2, so it keeps standing at its new level.
+        setBar('barYFull', AX, 0, 0); setBar('barYCons', AX, 0, 0); setBar('barYSave', AX, 0, 0);
+        const wy2 = R.y2 * SP;
+        setBar('barY', AX, wy2, 0.88);
+        setBar('barYInv', AX, 0, 0);
+        setBar('barYDep', AX, 0, 0); setBar('barYPop', AX, 0, 0);
+        // K & L collapse into their new base values (investment/depreciation/population already absorbed)
+        const wK2 = R.K2 * SK, wL2 = R.L2 * SL;
+        setBar('barK', AX, wK2); setBar('barKInv', AX, 0, 0); setBar('barKDep', AX, 0, 0);
+        setBar('barL', AX, wL2); setBar('barLPop', AX, 0, 0);
+        // arrows gone
+        upd('arrKL1', { opacity: 0 }); upd('arrKL2', { opacity: 0 }); upd('arrS2K', { opacity: 0 });
+        // labels
+        const labK = document.getElementById('labK');
+        labK.textContent = `K = ${R.K2.toFixed(1)} (carried)`;
+        labK.setAttribute('x', AX + wK2 + 8);
+        const labL = document.getElementById('labL');
+        labL.textContent = `L = ${R.L2.toFixed(1)} (carried)`;
+        labL.setAttribute('x', AX + wL2 + 8);
+        document.getElementById('labY').textContent = 'Y — resets (a flow)';
+        document.getElementById('labY').setAttribute('x', AX + 8);
+        const labP = document.getElementById('labP');
+        labP.textContent = `y = ${R.y2.toFixed(2)} (carried)`;
+        labP.setAttribute('x', AX + wy2 + 8);
+        // loop marker
+        upd('loopMark', { opacity: 1 }); upd('loopTxt', { opacity: 1 });
+        // factor panel (legend only) + step hint
+        const fp = document.getElementById('factorPanel');
+        fp.innerHTML =
+            `<span class="f-chip cY"><span class="sw"></span>Output Y resets — a flow</span>` +
+            `<span class="f-chip cK"><span class="sw"></span>K ${R.K2.toFixed(1)} carried</span>` +
+            `<span class="f-chip cL"><span class="sw"></span>L ${R.L2.toFixed(1)} carried</span>` +
+            `<span class="f-chip cY"><span class="sw"></span>y = ${R.y2.toFixed(2)} carried (by k₂)</span>`;
+        document.getElementById('stepHint').innerHTML =
+            `↻ Year ${year} complete — <b>Next ➤</b> starts Year ${year + 1} with K = ${R.K2.toFixed(1)}, L = ${R.L2.toFixed(1)}`;
+        // all sliders available
+        document.getElementById('slK').className = 'yy-slider s-K show';
+        document.getElementById('slL').className = 'yy-slider s-L show';
+        document.getElementById('slS').className = 'yy-slider s-s show';
+        document.getElementById('slD').className = 'yy-slider s-d show';
+        document.getElementById('slN').className = 'yy-slider s-n show';
+    }
+
+    function nextAct() {
+        if (act === ACTS) {
+            // roll the updated K & L into the next year (normalise to 2dp to avoid float drift)
+            const R = calcYear();
+            P.K = Math.round(R.K2 * 100) / 100;
+            P.L = Math.round(R.L2 * 100) / 100;
+            year++;
+            document.getElementById('aInK').value = Math.min(400, Math.max(20, Math.round(P.K)));
+            document.getElementById('aInL').value = Math.min(200, Math.max(10, Math.round(P.L)));
+            document.getElementById('aValK').innerText = document.getElementById('aInK').value;
+            document.getElementById('aValL').innerText = document.getElementById('aInL').value;
+            act = 1;
+        } else {
+            act++;
+        }
+        renderAnim();
+    }
+    function resetAnim() {
+        stopPlay();
+        year = 1; act = 1;
+        P.K = INIT_K; P.L = INIT_L;
+        document.getElementById('aInK').value = INIT_K;
+        document.getElementById('aInL').value = INIT_L;
+        document.getElementById('aValK').innerText = INIT_K;
+        document.getElementById('aValL').innerText = INIT_L;
+        renderAnim();
+    }
+    function playAll() {
+        if (playTimer) { stopPlay(); return; }
+        document.getElementById('playBtn').innerText = '⏸ Pause';
+        // keep looping across years until paused
+        playTimer = setInterval(() => { nextAct(); }, 2400);
+    }
+    function stopPlay() {
+        if (playTimer) { clearInterval(playTimer); playTimer = null; }
+        document.getElementById('playBtn').innerText = '▶ Play';
+    }
+    function updateAnimParams() {
+        P.s = +document.getElementById('aInS').value;
+        P.d = +document.getElementById('aInD').value;
+        P.n = +document.getElementById('aInN').value;
+        P.K = +document.getElementById('aInK').value;
+        P.L = +document.getElementById('aInL').value;
+        document.getElementById('aValS').innerText = P.s.toFixed(2);
+        document.getElementById('aValD').innerText = P.d.toFixed(2);
+        document.getElementById('aValN').innerText = P.n.toFixed(2);
+        document.getElementById('aValK').innerText = P.K;
+        document.getElementById('aValL').innerText = P.L;
+        renderAnim();
+    }
+
+    // ===================== TAB 2: CURVE SIMULATION =====================
+    let cvS = 0.20, cvD = 0.05, cvN = 0.02, stage = 1, stageTimer = null;
+    const STAGES = 7;
+    let curveChart;
+
+    function initCurveChart() {
+        const ctx = document.getElementById('curveChart').getContext('2d');
+        const ds = [];
+        ds.push(baseLineDS('#2e86de', 'y = k^α', '#2e86de', 0.7, 6));
+        ds.push(baseLineDS('#e67e22', 'i = s·y', '#e67e22', 0.7, 6));
+        ds.push(baseLineDS('#e74c3c', 'δ·k', '#c0392b', 0.72, 6));
+        ds.push(baseLineDS('#e74c3c', '(n+δ)k', '#a93226', 0.72, 6, [5, 5]));
+        ds.push({ label: '', data: [], showLine: true, borderColor: '#27ae60', borderDash: [6, 4], borderWidth: 2.5, pointRadius: 0, tagText: 'k*', tagColor: '#1e8449', tagAnchor: 0, tagDx: 8, tagDy: -4 });
+        ds.push({ label: '', data: [], showLine: true, borderColor: '#16a085', borderWidth: 3, pointRadius: 0, tagText: '', tagColor: '#117864' });
+        ds.push({ label: '', data: [], showLine: true, borderColor: '#8e44ad', borderDash: [3, 5], borderWidth: 2, pointRadius: 0, tagText: 'k_gold', tagColor: '#6c3483', tagAnchor: 0, tagDx: 8, tagDy: -4 });
+        ds.push({ label: '', data: [], showLine: false, pointRadius: 10, pointStyle: 'star', pointBackgroundColor: '#27ae60', pointBorderColor: '#fff', pointBorderWidth: 2, tagText: 'Δk = 0', tagColor: '#1e8449', tagAnchor: 0, tagDx: 10, tagDy: 24 });
+        curveChart = new Chart(ctx, {
+            type: 'line',
+            data: { datasets: ds },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    x: { type: 'linear', min: 0, max: KMAX, title: { display: true, text: 'Capital per worker  k', font: { size: 15, weight: 'bold' } }, ticks: { stepSize: 2 } },
+                    y: { min: 0, max: yMax(), title: { display: true, text: 'Output / Investment per worker', font: { size: 14, weight: 'bold' } } }
+                },
+                plugins: { legend: { display: false }, tooltip: { enabled: false } }
+            },
+            plugins: [labelPlugin]
+        });
+        refreshCurveData();
+        renderStage(1);
+    }
+
+    function refreshCurveData() {
+        if (!curveChart) return;
+        curveChart.data.datasets[0].data = genPts(k => yOf(k));
+        curveChart.data.datasets[1].data = genPts(k => syOf(k, cvS));
+        curveChart.data.datasets[2].data = genPts(k => dilOf(k, 0, cvD));
+        curveChart.data.datasets[3].data = genPts(k => dilOf(k, cvN, cvD));
+        const ym = yMax();
+        const ks = kStarOf(cvS, cvN, cvD);
+        curveChart.data.datasets[4].data = [{ x: ks, y: 0 }, { x: ks, y: ym }];
+        curveChart.data.datasets[4].tagText = 'k* = ' + ks.toFixed(2);
+        curveChart.data.datasets[5].data = [{ x: ks, y: syOf(ks, cvS) }, { x: ks, y: yOf(ks) }];
+        curveChart.data.datasets[5].tagText = 'c* = ' + ((1 - cvS) * yOf(ks)).toFixed(2);
+        const kg = kGoldOf(cvN, cvD);
+        curveChart.data.datasets[6].data = [{ x: kg, y: 0 }, { x: kg, y: ym }];
+        curveChart.data.datasets[7].data = [{ x: ks, y: syOf(ks, cvS) }];
+        curveChart.update();
+    }
+
+    const STAGE_INFO = [
+        '',
+        { ds: [0], sliders: [], note: 'Drag s to lift the orange curve (unlocked in Stage 2)' },
+        { ds: [0, 1], sliders: ['s'], note: 'Drag s to lift the orange curve' },
+        { ds: [0, 1, 2], sliders: ['s', 'd'], note: 'Drag δ to steepen the red line' },
+        { ds: [0, 1, 3], sliders: ['s', 'd', 'n'], note: 'Drag n to steepen the line further' },
+        { ds: [0, 1, 3, 4, 7], sliders: ['s', 'd', 'n'], note: 'Green star = steady state k*' },
+        { ds: [0, 1, 3, 4, 5, 7], sliders: ['s', 'd', 'n'], note: 'Teal segment = c*' },
+        { ds: [0, 1, 3, 4, 5, 6, 7], sliders: ['s', 'd', 'n'], note: 'Drag s to maximise c* — or snap!' }
+    ];
+    const STAGE_TEXT = {
+        1: 'Stage 1 · Production: <b>y = k<sup>α</sup></b> — diminishing returns.',
+        2: 'Stage 2 · Saving: <b>i = s·y</b> — the <span style="color:#d35400">orange s slider</span> unlocks.',
+        3: 'Stage 3 · Depreciation: <b>δ·k</b> — the <span style="color:#a02a2a">red δ slider</span> unlocks.',
+        4: 'Stage 4 · Population: <b>(n+δ)k</b> — the <span style="color:#6c3483">purple n slider</span> unlocks.',
+        5: 'Stage 5 · Steady state: where i = (n+δ)k, <b>Δk = 0 → k*</b>. Self-correcting!',
+        6: 'Stage 6 · Consumption: <b>c* = (1−s)·y*</b> — teal segment.',
+        7: 'Stage 7 · Golden Rule: drag <b>s</b> so the teal c* segment is tallest → <b>s_gold = α = 0.30</b>. Beyond it: dynamically inefficient.'
+    };
+
+    function renderStage(st) {
+        stage = st;
+        document.getElementById('stageNow').innerText = st;
+        document.querySelectorAll('#stageDots .dot').forEach((d, i) => d.classList.toggle('on', i < st));
+        const cfg = STAGE_INFO[st];
+        curveChart.data.datasets.forEach((d, i) => { d.hidden = cfg.ds.indexOf(i) < 0; });
+        document.getElementById('cvSRow').classList.toggle('show', cfg.sliders.indexOf('s') >= 0);
+        document.getElementById('cvDRow').classList.toggle('show', cfg.sliders.indexOf('d') >= 0);
+        document.getElementById('cvNRow').classList.toggle('show', cfg.sliders.indexOf('n') >= 0);
+        document.getElementById('goldBtn').style.display = st >= 7 ? 'block' : 'none';
+        curveChart.update();
+        const ks = kStarOf(cvS, cvN, cvD), ys = yOf(ks), cs = (1 - cvS) * ys;
+        document.getElementById('cvK').innerText = ks.toFixed(2);
+        document.getElementById('cvY').innerText = ys.toFixed(2);
+        document.getElementById('cvC').innerText = cs.toFixed(2);
+        document.getElementById('cvGold').innerText = sGold().toFixed(2);
+        const box = document.getElementById('cvStatus');
+        if (st >= 7) {
+            if (cvS < sGold() - 1e-9) { box.className = 'status-box below'; box.innerHTML = `<b>Below Golden Rule</b> (s = ${cvS.toFixed(2)}) — raise s to raise c*.`; }
+            else if (cvS > sGold() + 1e-9) { box.className = 'status-box above'; box.innerHTML = `<b>Above Golden Rule</b> (s = ${cvS.toFixed(2)}) — dynamically inefficient: cut s to raise c*.`; }
+            else { box.className = 'status-box at'; box.innerHTML = `🎯 <b>Golden Rule!</b> (s = ${cvS.toFixed(2)}) — c* maximised.`; }
+        } else {
+            box.className = 'status-box below';
+            box.innerHTML = STAGE_TEXT[st];
+        }
+    }
+    function nextStage() { if (stage < STAGES) renderStage(stage + 1); }
+    function resetStages() { stopStages(); document.getElementById('autoBtn').innerText = '▶ Auto'; renderStage(1); }
+    function autoStages() {
+        const btn = document.getElementById('autoBtn');
+        if (stageTimer) { stopStages(); btn.innerText = '▶ Auto'; return; }
+        btn.innerText = '⏸ Pause';
+        stageTimer = setInterval(() => {
+            if (stage >= STAGES) { stopStages(); btn.innerText = '▶ Auto'; return; }
+            renderStage(stage + 1);
+        }, 2200);
+    }
+    function stopStages() { if (stageTimer) { clearInterval(stageTimer); stageTimer = null; } }
+    function snapGolden() {
+        cvS = sGold();
+        document.getElementById('cvS').value = cvS;
+        document.getElementById('cvSVal').innerText = cvS.toFixed(2);
+        refreshCurveData();
+        renderStage(stage);
+    }
+    function updateCurveParams() {
+        cvS = +document.getElementById('cvS').value;
+        cvD = +document.getElementById('cvD').value;
+        cvN = +document.getElementById('cvN').value;
+        document.getElementById('cvSVal').innerText = cvS.toFixed(2);
+        document.getElementById('cvDVal').innerText = cvD.toFixed(2);
+        document.getElementById('cvNVal').innerText = cvN.toFixed(2);
+        refreshCurveData();
+        renderStage(stage);
+    }
+
+    // ===================== TAB 3: CONVERGENCE PATH (dual view) =====================
+    let cS = 0.20, cD = 0.05, cN = 0.02, ck0 = 0.5, curK = 0.5, animTimer = null;
+    let convChart, solowConvChart, convPathDS, convKStarDS;
+    let csCurDS, csTrailDS, csSSDS;
+
+    function initSolowConvChart() {
+        const ctx = document.getElementById('solowConvChart').getContext('2d');
+        const ds = [];
+        ds.push(baseLineDS('#2e86de', 'y = k^α', '#2e86de', 0.7, 6));
+        ds.push(baseLineDS('#e67e22', 's·y', '#e67e22', 0.7, 6));
+        ds.push(baseLineDS('#e74c3c', '(n+δ)k', '#c0392b', 0.72, 6));
+        csSSDS = { label: '', data: [], showLine: true, borderColor: '#27ae60', borderDash: [6, 4], borderWidth: 2.5, pointRadius: 0, tagText: 'k*', tagColor: '#1e8449', tagAnchor: 0, tagDx: 8, tagDy: -4 };
+        ds.push(csSSDS);
+        csCurDS = { label: '', data: [], showLine: false, pointRadius: 9, pointBackgroundColor: '#1a3a5c', pointBorderColor: '#fff', pointBorderWidth: 3, tagText: '', tagColor: '#1a3a5c', tagAnchor: 0, tagDx: 10, tagDy: -16 };
+        ds.push(csCurDS);
+        csTrailDS = { label: '', data: [], showLine: true, borderColor: 'rgba(26,58,92,0.35)', borderWidth: 2, pointRadius: 0, tension: 0 };
+        ds.push(csTrailDS);
+        solowConvChart = new Chart(ctx, {
+            type: 'line',
+            data: { datasets: ds },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    x: { type: 'linear', min: 0, max: KMAX, title: { display: true, text: 'Capital per worker  k', font: { size: 15, weight: 'bold' } }, ticks: { stepSize: 2 } },
+                    y: { min: 0, max: yMax(), title: { display: true, text: 'Output / Investment per worker', font: { size: 14, weight: 'bold' } } }
+                },
+                plugins: { legend: { display: false }, tooltip: { enabled: false } }
+            },
+            plugins: [labelPlugin]
+        });
+        refreshConvData();
+    }
+
+    function initConvChart() {
+        const ctx = document.getElementById('convChart').getContext('2d');
+        const ds = [];
+        convPathDS = baseLineDS('#1a3a5c', 'k(t)', '#1a3a5c', 0.55, 6);
+        ds.push(convPathDS);
+        convKStarDS = { label: '', data: [], showLine: true, borderColor: '#27ae60', borderDash: [6, 4], borderWidth: 2.5, pointRadius: 0, tagText: 'k*', tagColor: '#1e8449', tagAnchor: 0, tagDx: 8, tagDy: -4 };
+        ds.push(convKStarDS);
+        convChart = new Chart(ctx, {
+            type: 'line',
+            data: { datasets: ds },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    x: { type: 'linear', min: 0, max: 200, title: { display: true, text: 'Time  t', font: { size: 15, weight: 'bold' } }, ticks: { stepSize: 50 } },
+                    y: { min: 0, max: 15, title: { display: true, text: 'Capital per worker  k', font: { size: 15, weight: 'bold' } }, ticks: { stepSize: 5 } }
+                },
+                plugins: { legend: { display: false }, tooltip: { enabled: false } }
+            },
+            plugins: [labelPlugin]
+        });
+        refreshConvData();
+    }
+
+    function refreshConvData() {
+        if (!convChart) return;
+        const ks = kStarOf(cS, cN, cD);
+        convChart.options.scales.y.max = Math.max(15, Math.ceil(ks * 1.3), Math.ceil(ck0 * 1.2));
+        convKStarDS.data = [{ x: 0, y: ks }, { x: 3000, y: ks }];
+        convKStarDS.tagText = 'k* = ' + ks.toFixed(2);
+        convChart.update();
+        if (solowConvChart) {
+            solowConvChart.data.datasets[0].data = genPts(k => yOf(k));
+            solowConvChart.data.datasets[1].data = genPts(k => syOf(k, cS));
+            solowConvChart.data.datasets[2].data = genPts(k => dilOf(k, cN, cD));
+            const ym = yMax();
+            csSSDS.data = [{ x: ks, y: 0 }, { x: ks, y: ym }];
+            csSSDS.tagText = 'k* = ' + ks.toFixed(2);
+            csCurDS.data = [{ x: curK, y: syOf(curK, cS) }];
+            csCurDS.tagText = 'k = ' + curK.toFixed(1);
+            solowConvChart.update();
+        }
+    }
+
+    function updateConvParams() {
+        cS = +document.getElementById('cInS').value;
+        cD = +document.getElementById('cInD').value;
+        cN = +document.getElementById('cInN').value;
+        ck0 = +document.getElementById('cInK0').value;
+        document.getElementById('cSVal').innerText = cS.toFixed(2);
+        document.getElementById('cDVal').innerText = cD.toFixed(2);
+        document.getElementById('cNVal').innerText = cN.toFixed(2);
+        document.getElementById('cK0Val').innerText = ck0.toFixed(1);
+        stopAnim();
+        curK = ck0;
+        convPathDS.data = [{ x: 0, y: curK }];
+        csTrailDS.data = [];
+        convChart.options.scales.x.max = 200;
+        refreshConvData();
+        updateConvStats();
+    }
+
+    function updateConvStats() {
+        const ks = kStarOf(cS, cN, cD), ys = yOf(ks), cs = (1 - cS) * ys;
+        document.getElementById('cK').innerText = ks.toFixed(2);
+        document.getElementById('cY').innerText = ys.toFixed(2);
+        document.getElementById('cC').innerText = cs.toFixed(2);
+    }
+
+    function animateConv() {
+        stopAnim();
+        curK = ck0;
+        const pts = [{ x: 0, y: curK }];
+        csTrailDS.data = [{ x: curK, y: syOf(curK, cS) }];
+        let t = 0;
+        animTimer = setInterval(() => {
+            t++;
+            const dk = syOf(curK, cS) - dilOf(curK, cN, cD);
+            if (Math.abs(dk) < 0.0008 || t > 900) { stopAnim(); return; }
+            curK += dk * 0.35;
+            pts.push({ x: t, y: curK });
+            convPathDS.data = pts;
+            csTrailDS.data.push({ x: curK, y: syOf(curK, cS) });
+            csCurDS.data = [{ x: curK, y: syOf(curK, cS) }];
+            csCurDS.tagText = 'k = ' + curK.toFixed(1);
+            const need = Math.ceil(t * 1.25) + 10;
+            if (need > convChart.options.scales.x.max) convChart.options.scales.x.max = need;
+            convChart.update('none');
+            solowConvChart.update('none');
+        }, 30);
+    }
+    function stopAnim() { if (animTimer) { clearInterval(animTimer); animTimer = null; } }
+    function resetConv() {
+        curK = ck0;
+        convPathDS.data = [{ x: 0, y: curK }];
+        csTrailDS.data = [];
+        convChart.options.scales.x.max = 200;
+        refreshConvData();
+    }
+    function switchConvView(v) {
+        document.getElementById('cvb1').classList.toggle('active', v === 1);
+        document.getElementById('cvb2').classList.toggle('active', v === 2);
+        document.getElementById('cvb3').classList.toggle('active', v === 3);
+        const panel = document.getElementById('cpanel');
+        panel.classList.toggle('row', v === 3);
+        const one = v === 1, two = v === 2, both = v === 3;
+        document.getElementById('cbox1').style.display = (one || both) ? 'block' : 'none';
+        document.getElementById('cbox2').style.display = (two || both) ? 'block' : 'none';
+        setTimeout(() => { solowConvChart.resize(); convChart.resize(); }, 30);
+    }
+
+    // ===================== TAB SWITCH =====================
+    function switchTab(t) {
+        document.getElementById('tabbtn1').classList.toggle('active', t === 1);
+        document.getElementById('tabbtn2').classList.toggle('active', t === 2);
+        document.getElementById('tabbtn3').classList.toggle('active', t === 3);
+        document.getElementById('tab1').classList.toggle('active', t === 1);
+        document.getElementById('tab2').classList.toggle('active', t === 2);
+        document.getElementById('tab3').classList.toggle('active', t === 3);
+        setTimeout(() => {
+            if (t === 2) curveChart.resize();
+            if (t === 3) { solowConvChart.resize(); convChart.resize(); }
+        }, 30);
+    }
+
+    // ===================== INIT =====================
+    window.onload = () => {
+        document.getElementById('actDots').innerHTML = new Array(ACTS).fill(0).map(() => '<span class="dot"></span>').join('');
+        document.getElementById('stageDots').innerHTML = new Array(STAGES).fill(0).map(() => '<span class="dot"></span>').join('');
+        buildSvg();
+        renderAnim();
+        initCurveChart();
+        initSolowConvChart();
+        initConvChart();
+        updateConvStats();
+    };
+</script>
+</body>
+</html>
