@@ -160,9 +160,18 @@ body {
 .confirm-box button { flex:1; padding:12px; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; border:2px solid #d8e2f0; background:#fafcff; color:#4a5a76; }
 .confirm-box button.ok { background:#c0392b; color:#fff; border-color:#c0392b; }
 .confirm-box button.ok2 { background:#1f4e79; color:#fff; border-color:#1f4e79; }
+/* ===== 返回首页按钮 ===== */
+.home-btn {
+  position:fixed; top:14px; right:14px; z-index:1000;
+  background:#1f4e79; color:#fff; text-decoration:none;
+  padding:9px 18px; border-radius:24px; font-size:14px; font-weight:700;
+  box-shadow:0 4px 14px rgba(31,78,121,.25); transition:.2s;
+}
+.home-btn:hover { background:#2e74b5; }
 </style>
 </head>
 <body>
+<a href="./index.html" class="home-btn" title="返回首页">🏠 首页</a>
 <div class="wrap">
 
   <!-- 开始界面 -->
