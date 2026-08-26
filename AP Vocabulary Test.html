@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AP Economics 词汇卡片小测试</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: "PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+  background: linear-gradient(135deg,#eef3fb 0%,#f7f9fc 100%);
+  min-height:100vh; color:#2b3a55;
+}
+.wrap { max-width:760px; margin:0 auto; padding:24px 16px calc(60px + env(safe-area-inset-bottom)); }
+
+/* ===== 卡片通用 ===== */
+.card {
+  background:#fff; border-radius:18px; box-shadow:0 8px 30px rgba(31,78,121,.12);
+  padding:36px 32px; margin-top:28px;
+}
+.card h1 { font-size:26px; color:#1f4e79; text-align:center; margin-bottom:6px; }
+.card .sub { text-align:center; color:#8a97ad; font-size:13px; margin-bottom:26px; }
+.field { margin-bottom:22px; }
+.field label { display:block; font-size:14px; font-weight:600; color:#1f4e79; margin-bottom:8px; }
+.field input[type=text], .field input[type=number] {
+  width:100%; padding:12px 14px; border:2px solid #d8e2f0; border-radius:10px;
+  font-size:16px; outline:none; transition:.2s;
+}
+.field input:focus { border-color:#2e74b5; }
+.chip-options { display:flex; gap:12px; flex-wrap:wrap; }
+.chip-options label {
+  flex:1; min-width:130px; text-align:center; padding:14px 10px; cursor:pointer;
+  border:2px solid #d8e2f0; border-radius:12px; font-size:15px; font-weight:600;
+  color:#4a5a76; transition:.18s; user-select:none; background:#fafcff;
+}
+.chip-options label:hover { border-color:#2e74b5; }
+.chip-options input { display:none; }
+.chip-options label:has(input:checked) { background:#1f4e79; border-color:#1f4e79; color:#fff; }
+.chip-options .cnt { display:block; font-size:11px; font-weight:400; opacity:.75; margin-top:2px; }
+.chip-options label:has(input:checked) .cnt { opacity:.85; }
+.btn-start {
+  width:100%; padding:14px; border:none; border-radius:12px; font-size:17px; font-weight:700;
+  background:linear-gradient(135deg,#1f4e79,#2e74b5); color:#fff; cursor:pointer; transition:.2s;
+  letter-spacing:2px;
+}
+.btn-start:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(31,78,121,.35); }
+.btn-start:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+.hint { text-align:center; color:#b0bccd; font-size:12px; margin-top:12px; }
+.toolbar { display:flex; gap:10px; margin-top:16px; }
+.tool-btn {
+  flex:1; padding:11px 8px; border:2px solid #d8e2f0; border-radius:10px; font-size:14px;
+  font-weight:600; color:#4a5a76; background:#fafcff; cursor:pointer; transition:.15s;
+}
+.tool-btn:hover { border-color:#2e74b5; color:#1f4e79; background:#f0f6fd; }
+
+/* ===== 测试界面 ===== */
+.topbar { display:flex; justify-content:space-between; align-items:center; margin:14px 0 10px; gap:8px; flex-wrap:wrap; }
+.topbar .user { font-weight:700; color:#1f4e79; }
+.topbar .stat { font-size:13px; color:#4a5a76; background:#fff; padding:6px 12px; border-radius:20px; box-shadow:0 2px 8px rgba(31,78,121,.08); }
+.topbar .timer { font-weight:700; color:#c0392b; }
+.topbar .timer.warn { animation: blink .6s infinite; }
+@keyframes blink { 50% { opacity:.35; } }
+.progress { height:8px; background:#e3eaf5; border-radius:6px; overflow:hidden; margin-bottom:16px; }
+.progress .bar { height:100%; background:linear-gradient(90deg,#2e74b5,#1f4e79); border-radius:6px; transition:width .3s; }
+
+.quiz-card {
+  background:#fff; border-radius:18px; box-shadow:0 8px 30px rgba(31,78,121,.12);
+  padding:28px 26px; min-height:330px; display:flex; flex-direction:column;
+}
+.word-row { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+.word { font-size:34px; font-weight:800; color:#1f4e79; letter-spacing:.5px; }
+.pos { font-size:14px; color:#0070c0; background:#eaf3fc; padding:3px 10px; border-radius:8px; }
+.ex-label { font-size:12px; color:#8a97ad; margin-top:14px; margin-bottom:4px; }
+.example { font-size:14.5px; color:#5a6a85; line-height:1.7; background:#f7f9fc; border-left:4px solid #b9d4f0; padding:12px 14px; border-radius:0 8px 8px 0; font-style:italic; }
+
+.options { margin-top:22px; display:flex; flex-direction:column; gap:10px; }
+.opt {
+  display:flex; align-items:center; gap:12px; padding:13px 16px; border:2px solid #d8e2f0;
+  border-radius:12px; cursor:pointer; transition:.15s; font-size:15.5px; background:#fafcff;
+}
+.opt:hover { border-color:#2e74b5; background:#f0f6fd; }
+.opt .tag { width:28px; height:28px; border-radius:50%; background:#e3eaf5; color:#4a5a76; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+.opt.correct { border-color:#1e8e5a; background:#e8f8f0; }
+.opt.correct .tag { background:#1e8e5a; color:#fff; }
+.opt.wrong { border-color:#c0392b; background:#fdecec; }
+.opt.wrong .tag { background:#c0392b; color:#fff; }
+.opt.dim { opacity:.55; }
+.opt.disabled { pointer-events:none; }
+
+.feedback { margin-top:16px; padding:13px 16px; border-radius:12px; font-size:14.5px; line-height:1.6; display:none; }
+.feedback.show { display:block; }
+.feedback.right { background:#e8f8f0; color:#15593a; border:1px solid #b5e6cd; }
+.feedback.wrong { background:#fdecec; color:#8f2d20; border:1px solid #f3c4bd; }
+.feedback .cn { font-weight:700; font-size:16px; }
+
+.btn-next {
+  margin-top:18px; padding:12px; border:none; border-radius:10px; font-size:15px; font-weight:700;
+  background:#1f4e79; color:#fff; cursor:pointer; transition:.2s; display:none;
+}
+.btn-next.show { display:block; }
+.btn-next:hover { background:#2e74b5; }
+
+/* ===== 结果界面 ===== */
+.result-head { text-align:center; margin-bottom:20px; }
+.result-head .big-score { font-size:64px; font-weight:800; color:#1f4e79; line-height:1.1; }
+.result-head .pct { font-size:18px; color:#8a97ad; }
+.stats { display:flex; gap:14px; justify-content:center; margin:18px 0; flex-wrap:wrap; }
+.stats .item { background:#f0f6fd; border-radius:12px; padding:12px 22px; text-align:center; }
+.stats .item .v { font-size:22px; font-weight:800; color:#1f4e79; }
+.stats .item .k { font-size:12px; color:#8a97ad; margin-top:2px; }
+.review { margin-top:18px; }
+.review h3 { font-size:15px; color:#1f4e79; margin-bottom:10px; }
+.review-item { display:flex; justify-content:space-between; gap:10px; padding:10px 14px; border-radius:10px; background:#fafcff; border:1px solid #e8eef7; margin-bottom:6px; font-size:14px; }
+.review-item .w { font-weight:700; color:#1f4e79; white-space:nowrap; }
+.review-item .a { color:#1e8e5a; font-weight:600; }
+.review-item .u { color:#c0392b; text-decoration:line-through; margin-right:8px; }
+.btn-again { margin-top:22px; padding:13px; border:none; border-radius:12px; font-size:16px; font-weight:700; background:linear-gradient(135deg,#1f4e79,#2e74b5); color:#fff; cursor:pointer; width:100%; }
+.btn-again:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(31,78,121,.3); }
+.save-note { text-align:center; font-size:12px; color:#8a97ad; margin-top:12px; }
+
+/* ===== 历史记录弹层 ===== */
+.mask { position:fixed; inset:0; background:rgba(31,50,80,.45); display:none; align-items:flex-end; justify-content:center; z-index:100; }
+.mask.show { display:flex; }
+.sheet {
+  background:#fff; width:100%; max-width:760px; max-height:82vh; border-radius:20px 20px 0 0;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.sheet-head { padding:18px 22px 14px; border-bottom:1px solid #e8eef7; display:flex; justify-content:space-between; align-items:center; }
+.sheet-head h3 { font-size:17px; color:#1f4e79; }
+.sheet-close { width:44px; height:44px; border:none; background:#eef3fb; color:#4a5a76; border-radius:12px; font-size:18px; cursor:pointer; }
+.sheet-body { padding:14px 22px 20px; overflow-y:auto; }
+.hist-item { border:1px solid #e8eef7; border-radius:12px; padding:12px 14px; margin-bottom:10px; background:#fafcff; }
+.hist-item .row1 { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+.hist-item .who { font-weight:700; color:#1f4e79; font-size:15px; }
+.hist-item .meta { font-size:12px; color:#8a97ad; }
+.hist-item .score { font-size:16px; font-weight:800; }
+.hist-item .score.good { color:#1e8e5a; }
+.hist-item .score.bad { color:#c0392b; }
+.hist-item .badge { font-size:11px; background:#eaf3fc; color:#0070c0; padding:2px 8px; border-radius:8px; }
+.hist-item .badge.range { background:#fdf3e7; color:#b97a1e; }
+.hist-item .badge.cnt { background:#eef6ee; color:#1e7a4a; }
+.hist-item .detail { margin-top:8px; font-size:12.5px; color:#5a6a85; line-height:1.6; display:none; }
+.hist-item .detail.show { display:block; }
+.hist-item .btn-toggle { font-size:12.5px; color:#2e74b5; background:none; border:none; cursor:pointer; padding:6px 0; text-decoration:underline; }
+.hist-item .btn-del { font-size:12.5px; color:#c0392b; background:none; border:none; cursor:pointer; padding:6px 0 6px 12px; text-decoration:underline; }
+.hist-empty { text-align:center; color:#b0bccd; padding:40px 0; font-size:14px; }
+.sheet-actions { display:flex; gap:10px; margin-top:14px; }
+.sheet-actions button {
+  flex:1; padding:12px 8px; border:2px solid #d8e2f0; border-radius:10px; font-size:14px;
+  font-weight:600; color:#4a5a76; background:#fafcff; cursor:pointer;
+}
+.sheet-actions button.danger { color:#c0392b; border-color:#f3c4bd; background:#fdf3f3; }
+.sheet-actions button:hover { border-color:#2e74b5; }
+.footer { text-align:center; color:#b0bccd; font-size:12px; margin-top:26px; }
+.confirm-mask { position:fixed; inset:0; background:rgba(31,50,80,.5); display:none; align-items:center; justify-content:center; z-index:200; padding:24px; }
+.confirm-mask.show { display:flex; }
+.confirm-box { background:#fff; border-radius:16px; padding:26px 24px; max-width:340px; width:100%; text-align:center; }
+.confirm-box p { font-size:15px; color:#2b3a55; line-height:1.6; margin-bottom:18px; }
+.confirm-box .btns { display:flex; gap:12px; }
+.confirm-box button { flex:1; padding:12px; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; border:2px solid #d8e2f0; background:#fafcff; color:#4a5a76; }
+.confirm-box button.ok { background:#c0392b; color:#fff; border-color:#c0392b; }
+.confirm-box button.ok2 { background:#1f4e79; color:#fff; border-color:#1f4e79; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 开始界面 -->
+  <div id="startScreen">
+    <div class="card">
+      <h1>📇 AP Economics 词汇卡片小测试</h1>
+      <div class="sub">AP 微观 + AP 宏观 · 非术语词汇 · 显示词汇与例句，选出正确释义</div>
+      <div class="field">
+        <label>你的名字</label>
+        <input type="text" id="nameInput" placeholder="请输入名字后开始" maxlength="20" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>词汇范围</label>
+        <div class="chip-options" id="rangeBox">
+          <label><input type="radio" name="range" value="all" checked><span>全部词汇</span><span class="cnt" id="cntAll"></span></label>
+          <label><input type="radio" name="range" value="micro"><span>微观（Micro）</span><span class="cnt" id="cntMicro"></span></label>
+          <label><input type="radio" name="range" value="macro"><span>宏观（Macro）</span><span class="cnt" id="cntMacro"></span></label>
+        </div>
+      </div>
+      <div class="field">
+        <label>本次测试词汇数量</label>
+        <div class="chip-options" id="countBox">
+          <label><input type="radio" name="count" value="10"><span>10 词</span></label>
+          <label><input type="radio" name="count" value="20" checked><span>20 词</span></label>
+          <label><input type="radio" name="count" value="50"><span>50 词</span></label>
+          <label><input type="radio" name="count" value="100"><span>100 词</span></label>
+          <label><input type="radio" name="count" value="all"><span>全部</span></label>
+        </div>
+        <div class="hint" id="countHint"></div>
+      </div>
+      <button class="btn-start" id="btnStart" onclick="startQuiz()">开 始 测 试</button>
+      <div class="toolbar">
+        <button class="tool-btn" onclick="openHistory()">📋 历史记录</button>
+        <button class="tool-btn" onclick="exportBackup()">💾 导出备份</button>
+        <button class="tool-btn" onclick="importBackup()">📥 导入恢复</button>
+      </div>
+      <div class="hint">每题限时 20 秒 · 选错会揭晓正确答案 · 测试结果自动保存</div>
+    </div>
+  </div>
+
+  <!-- 测试界面 -->
+  <div id="quizScreen" style="display:none">
+    <div class="topbar">
+      <span class="user" id="userLabel"></span>
+      <span class="stat" id="progressLabel"></span>
+      <span class="stat" id="scoreLabel"></span>
+      <span class="stat timer" id="timerLabel">20</span>
+    </div>
+    <div class="progress"><div class="bar" id="progressBar"></div></div>
+    <div class="quiz-card">
+      <div class="word-row">
+        <span class="word" id="wordText"></span>
+        <span class="pos" id="posText"></span>
+      </div>
+      <div class="ex-label">例句：</div>
+      <div class="example" id="exampleText"></div>
+      <div class="options" id="optionsBox"></div>
+      <div class="feedback" id="feedback"></div>
+      <button class="btn-next" id="btnNext" onclick="nextQuestion()">下一题 →</button>
+    </div>
+  </div>
+
+  <!-- 结果界面 -->
+  <div id="resultScreen" style="display:none">
+    <div class="card">
+      <div class="result-head">
+        <div style="font-size:20px;color:#4a5a76;margin-bottom:4px" id="resultUser"></div>
+        <div class="big-score" id="resultScore"></div>
+        <div class="pct" id="resultPct"></div>
+      </div>
+      <div class="stats">
+        <div class="item"><div class="v" id="statCorrect"></div><div class="k">答对</div></div>
+        <div class="item"><div class="v" id="statWrong"></div><div class="k">答错/超时</div></div>
+        <div class="item"><div class="v" id="statTime"></div><div class="k">用时</div></div>
+        <div class="item"><div class="v" id="statAcc"></div><div class="k">正确率</div></div>
+      </div>
+      <div class="review" id="reviewBox" style="display:none">
+        <h3>📝 错题回顾</h3>
+        <div id="reviewList"></div>
+      </div>
+      <button class="btn-again" onclick="location.reload()">再测一次</button>
+      <div class="save-note" id="saveNote"></div>
+    </div>
+  </div>
+
+  <div class="footer">AP Economics · 词汇卡片测试 · 微观 + 宏观 非术语词汇</div>
+</div>
+
+<!-- 历史记录弹层 -->
+<div class="mask" id="histMask" onclick="if(event.target===this)closeHistory()">
+  <div class="sheet">
+    <div class="sheet-head">
+      <h3>📋 历史测试记录</h3>
+      <button class="sheet-close" onclick="closeHistory()">✕</button>
+    </div>
+    <div class="sheet-body" id="histList"></div>
+    <div style="padding:0 22px 16px">
+      <div class="sheet-actions">
+        <button onclick="exportBackup()">💾 导出备份</button>
+        <button onclick="importBackup()">📥 导入恢复</button>
+        <button class="danger" onclick="confirmClearAll()">🗑 清空记录</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 确认弹窗 -->
+<div class="confirm-mask" id="confirmMask">
+  <div class="confirm-box">
+    <p id="confirmText">确定要执行此操作吗？</p>
+    <div class="btns">
+      <button onclick="hideConfirm()">取消</button>
+      <button class="ok" id="confirmOkBtn" onclick="confirmAction()">确定</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="importFile" accept=".json" style="display:none">
+
+<script>
+const DATA = [{"w":"assume","pos":"v.","cn":"假设，假定","en":"to suppose that something is true","ex":"Thus, the study of economics assumes that factors of production are scarce, and people have unlimited desire for goods…","scope":"micro"},{"w":"calculate","pos":"v.","cn":"计算","en":"to find a number by using mathematics","ex":"If the question prompts you to “Calculate,” you must show how you arrived at your final answer.","scope":"micro"},{"w":"describe","pos":"v.","cn":"描述","en":"to say what someone or something is like","ex":"Which of the following describes a factor of production that is not fully scarce and that can be used simultaneou…","scope":"micro"},{"w":"determine","pos":"v.","cn":"确定，查明","en":"to find out exactly","ex":"…d economy, resources are publicly owned, and their uses are determined by a central planning agency.","scope":"micro"},{"w":"draw","pos":"v.","cn":"画（图）","en":"to make a picture with a pen or pencil","ex":"…0 20 40 60 80 100 120 Sundaes 210 200 180 150 110 60 0 (a) Draw a correctly labeled graph of the store’s production possibilities curve with milkshak…","scope":"micro"},{"w":"explain","pos":"v.","cn":"解释，说明理由","en":"to make something clear by giving reasons","ex":"Which of the following best explains the difference in resource allocation between a pure command economy and a pure m…","scope":"micro"},{"w":"identify","pos":"v.","cn":"识别，找出，确定","en":"to find and name something","ex":"Using the concept of marginal utility per dollar spent, identify the combination of apples and oranges the consumer will purchase.","scope":"micro"},{"w":"indicate","pos":"v.","cn":"指出，表明","en":"to point out or show","ex":"A linear production possibilities curve indicates which of the following?","scope":"micro"},{"w":"label","pos":"v./n.","cn":"标注；标签","en":"to mark with a name; a name on a graph","ex":"…Point W to point Z (E) Point V to point Y Include correctly labeled diagrams, if useful or required, in explaining your answers.","scope":"micro"},{"w":"show","pos":"v.","cn":"表明，展示","en":"to make something able to be seen or understood","ex":"…uction possibilities curve can shift out in a parallel way, showing economic growth.","scope":"micro"},{"w":"state","pos":"v.","cn":"陈述，说明","en":"to say or write something clearly","ex":"(A) As real incomes of United States citizens have decreased over the past year, the demand for housing has also decreas…","scope":"micro"},{"w":"suppose","pos":"v.","cn":"假设，假定","en":"to imagine or think that something is true","ex":"(e) Suppose the ice-cream store purchases a new machine that increases the output of milkshake…","scope":"micro"},{"w":"abandon","pos":"v.","cn":"放弃，抛弃","en":"to give up completely","ex":"The firm decided to abandon the project after big losses.","scope":"micro"},{"w":"abroad","pos":"adv.","cn":"在国外","en":"in or to a foreign country","ex":"…in the short run if investors in the United States and abroad increase their purchases of United States government bonds?","scope":"macro"},{"w":"access","pos":"n.","cn":"获取，使用权","en":"the right or ability to use something","ex":"Assume that many boats have free and open access to fishing in the waters of a country.","scope":"micro"},{"w":"achieve","pos":"v.","cn":"达到，实现","en":"to succeed in getting something","ex":"…dividuals and societies allocate their limited resources to achieve their unlimited wants.","scope":"micro"},{"w":"adjust","pos":"v.","cn":"调整","en":"to change something slightly","ex":"…following is most likely to occur when a competitive market adjusts from one equilibrium to another?","scope":"micro"},{"w":"advertise","pos":"v.","cn":"做广告，宣传","en":"to tell people about a product to increase sales","ex":"…run (C) earn positive economic profits in the long run (D) advertise to increase market share (E) face a downward-sloping demand curve 19.","scope":"micro"},{"w":"affect","pos":"v.","cn":"影响","en":"to have an effect on something","ex":"…t of producing wheat, as represented in Figures 1 and 2, be affected?","scope":"micro"},{"w":"agency","pos":"n.","cn":"机构，代理处","en":"an organization, often part of the government","ex":"…owned, and their uses are determined by a central planning agency.","scope":"micro"},{"w":"allocate","pos":"v.","cn":"分配（资源）","en":"to distribute resources for a purpose","ex":"…vices to be produced because (A) free markets do not always allocate resources efficiently (B) free markets only satisfy the demands of paying consume…","scope":"micro"},{"w":"allowance","pos":"n.","cn":"津贴，零花钱","en":"money given regularly, e.g. to a child","ex":"If Lilly is spending her fixed weekly allowance on candy bars and bags of chips, which of the following actions will maximi…","scope":"micro"},{"w":"alter","pos":"v.","cn":"改变","en":"to change something","ex":"…the National Transportation Board each year and cannot alter them during that year.","scope":"micro"},{"w":"amount","pos":"n.","cn":"数量，金额","en":"a quantity of something","ex":"(B) An economy can produce a limitless amount of all goods.","scope":"micro"},{"w":"anticipate","pos":"v.","cn":"预期，预料","en":"to expect something to happen","ex":"(E) Consumers can anticipate price increases.","scope":"micro"},{"w":"appreciate","pos":"v.","cn":"升值","en":"to increase in value (of a currency)","ex":"…a flexible exchange-rate system, the Indian rupee will appreciate against the Japanese yen when  ,  ,  ,  ,  The real interest rate in…","scope":"macro"},{"w":"assess","pos":"v.","cn":"评估，评价","en":"to judge the value or size of something","ex":"The government assesses the cost of the new policy.","scope":"micro"},{"w":"asset","pos":"n.","cn":"资产","en":"something valuable that a person or firm owns","ex":"Physical capital is an asset of the firm.","scope":"micro"},{"w":"assumption","pos":"n.","cn":"假设","en":"something assumed to be true","ex":"This pricing strategy is based on the assumption that (A) travelers are not aware of how airline prices change across time (B) t…","scope":"micro"},{"w":"austerity","pos":"n.","cn":"紧缩（政策）","en":"government policy of cutting spending","ex":"Austerity policies reduce government spending sharply.","scope":"macro"},{"w":"authority","pos":"n.","cn":"当局，主管部门","en":"the people or organization with the power to decide","ex":"…ne prices In a command economy, the government or a central authority decides what goods and services to produce, how to produce goods and services, a…","scope":"micro"},{"w":"bailout","pos":"n.","cn":"（政府）救助，纾困","en":"government money given to save a failing business","ex":"The government provided a bailout to save the banks.","scope":"macro"},{"w":"balance","pos":"n.","cn":"余额；差额","en":"the amount of money in an account; the difference","ex":"…s bank can undertake is  ,  ,  ,  ,  Based on the balance sheets above for three different banks, which of the following is true, if th…","scope":"macro"},{"w":"barrier","pos":"n.","cn":"壁垒，障碍","en":"something that blocks the way; barriers to entry 进入壁垒","ex":"…g marginal productivity of labor (B) Market power caused by barriers to entry (C) Increasing marginal cost of production (D) Increasing returns to sca…","scope":"micro"},{"w":"benchmark","pos":"n.","cn":"基准","en":"a standard used for comparison","ex":"The 10-year Treasury bond is a benchmark rate.","scope":"macro"},{"w":"benefit","pos":"n./v.","cn":"好处，利益；受益","en":"an advantage; to get an advantage","ex":"…wants are unlimited (E) resources must be allocated for the benefit of the entire society 7.","scope":"micro"},{"w":"boom","pos":"n.","cn":"繁荣","en":"a period of rapid economic growth","ex":"A housing boom was followed by a severe downturn.","scope":"macro"},{"w":"borrow","pos":"v.","cn":"借入","en":"to take money with an agreement to pay back","ex":"A firm may borrow money to buy new machinery.","scope":"micro"},{"w":"burden","pos":"n.","cn":"负担","en":"a heavy load; something hard to carry","ex":"(A) Consumers bear the entire burden of the tax, since producers can pass the tax along to consumers.","scope":"micro"},{"w":"business","pos":"n.","cn":"企业，生意","en":"an organization that sells goods or services","ex":"…ction, capital refers to the (A) money available to start a business (B) stocks and bonds issued by businesses to raise funds (C) financial investment…","scope":"micro"},{"w":"calculation","pos":"n.","cn":"计算","en":"the act of computing","ex":"the correct calculation of the producer surplus: (1/2) × $3 × 90 = $135.","scope":"micro"},{"w":"cap","pos":"n./v.","cn":"上限；设定上限","en":"an upper limit; to limit","ex":"As a factor of production, capital refers to the money available to start a business , stocks and bonds issued b…","scope":"macro"},{"w":"capacity","pos":"n.","cn":"生产能力，容量","en":"the ability to produce; the maximum amount","ex":"…ilities curve shifts out, showing an increase in productive capacity.","scope":"micro"},{"w":"cartel","pos":"n.","cn":"卡特尔，垄断联盟","en":"a group of firms that agree on prices","ex":"(B) The firm is a member of a cartel.","scope":"micro"},{"w":"cash","pos":"n.","cn":"现金","en":"money in coins or notes, not in bank accounts","ex":"…oeconomics u  ,  ,  ,  ,  Fred Jones withdraws in cash from his savings account.","scope":"macro"},{"w":"cause","pos":"v./n.","cn":"导致；原因","en":"to make something happen; the reason for something","ex":"The study of economics exists because people are confronted with the basic problem of (A) elasticity (B) negative external…","scope":"micro"},{"w":"ceiling","pos":"n.","cn":"上限","en":"the highest allowed level","ex":"…,  Assume that the government imposes a binding price ceiling on a market for an inferior good.","scope":"macro"},{"w":"circulation","pos":"n.","cn":"流通，流通量","en":"the movement of money from person to person","ex":"…y Assets Value (in millions) Monetary Base Currency in Circulation M1 Based on the data provided, what is the value of total reserves held b…","scope":"macro"},{"w":"collateral","pos":"n.","cn":"抵押品","en":"property promised as security for a loan","ex":"Banks require collateral before making a loan.","scope":"macro"},{"w":"combination","pos":"n.","cn":"组合，搭配","en":"a mix of two or more things","ex":"…ired (E) decrease the supply of labor In a mixed economy, a combination of free market outcomes and government policies, such as the imposition of a m…","scope":"micro"},{"w":"commodity","pos":"n.","cn":"商品（原材料）","en":"a raw material that is bought and sold","ex":"…come, purchasing quantities of each good such that for each commodity the marginal utility of the last unit purchased divided by the price of the comm…","scope":"micro"},{"w":"company","pos":"n.","cn":"公司","en":"a business that sells goods or services","ex":"…x that will lead to the greatest rate of growth for a given company.","scope":"micro"},{"w":"comparison","pos":"n.","cn":"比较","en":"the act of comparing","ex":"Based on a comparison of points X, Y, and Z, the opportunity cost of an additional consumer good is (…","scope":"micro"},{"w":"compensate","pos":"v.","cn":"补偿，赔偿","en":"to pay someone for a loss","ex":"The subsidy compensates producers for their losses.","scope":"micro"},{"w":"compensation","pos":"n.","cn":"补偿，报酬","en":"payment for loss or work","ex":"Workers receive compensation for their labor.","scope":"micro"},{"w":"complement","pos":"n./v.","cn":"互补品；补充","en":"a good used together with another","ex":"When goods are complements of each other, this means that the goods are often used together, and therefor…","scope":"micro"},{"w":"concept","pos":"n.","cn":"概念","en":"an idea","ex":"Using the concept of marginal utility per dollar spent, identify the combination of apples and orang…","scope":"micro"},{"w":"condition","pos":"n.","cn":"条件，状况","en":"a state or a requirement","ex":"(A) The testing of hypotheses under controlled conditions (B) The allocation of scarce resources, given unlimited wants (C) The fair and…","scope":"micro"},{"w":"consequence","pos":"n.","cn":"后果","en":"a result of an action","ex":"One consequence of the tax is a deadweight loss.","scope":"micro"},{"w":"constitute","pos":"v.","cn":"构成，组成","en":"to form or make up something","ex":"Explicit costs constitute only part of total cost.","scope":"micro"},{"w":"constrain","pos":"v.","cn":"约束，限制","en":"to limit something","ex":"The budget constrains the consumer's choices.","scope":"micro"},{"w":"constraint","pos":"n.","cn":"约束，限制条件","en":"a limit that prevents something","ex":"Assuming that he remains within his budget constraint, Ricardo should do which of the following to increase his utility?","scope":"micro"},{"w":"consume","pos":"v.","cn":"消费，消耗","en":"to use up goods or services","ex":"…ces regarding which goods and services will be produced and consumed because (A) unlimited wants can only be satisfied by allocating resources efficie…","scope":"micro"},{"w":"contract","pos":"v.","cn":"收缩","en":"to become smaller","ex":"…xed inputs in the long run, firms can more easily expand or contract their operations in the long run.","scope":"micro"},{"w":"contribute","pos":"v.","cn":"贡献，促成","en":"to help cause something; to give","ex":"Higher wages contribute to higher production costs.","scope":"micro"},{"w":"copyright","pos":"n.","cn":"版权","en":"the legal right to a created work","ex":"A copyright protects the creator of a book or song.","scope":"micro"},{"w":"corn","pos":"n.","cn":"玉米","en":"a yellow grain plant","ex":"…Country A can harvest 20 bushels of wheat or 10 bushels of corn in a day, while a farmer in Country B can harvest 8 bushels of wheat or 8 bushels of…","scope":"micro"},{"w":"corporation","pos":"n.","cn":"大公司，法人企业","en":"a large business legally allowed to act as one unit","ex":"Gigantic Pharmaceutical Corporation has a patent on a prescription drug, making it the only manufacturer of that p…","scope":"micro"},{"w":"coupon","pos":"n.","cn":"息票（债券利息）","en":"the fixed interest payment on a bond","ex":"The coupon rate is the fixed interest paid on a bond.","scope":"macro"},{"w":"credit","pos":"n.","cn":"信用，信贷","en":"the ability to borrow money; money lent","ex":"…28 i  ,  ,  ,  ,  If the government offers a tax credit to businesses, what will be the most likely effects of this action?","scope":"macro"},{"w":"criterion","pos":"n.","cn":"标准（复数为 criteria）","en":"a standard used for judging","ex":"0 1 The response accurately includes the criterion below States that the quantity demanded of Good C will increase and explains tha…","scope":"micro"},{"w":"customer","pos":"n.","cn":"顾客","en":"a person who buys something","ex":"(D) Dawson Farm would lose some but not all of its customers if it increases the price above per pound for zucchini.","scope":"micro"},{"w":"data","pos":"n.","cn":"数据","en":"facts and figures","ex":"The data provided below describe an ice-cream store’s daily production possibilities for milks…","scope":"micro"},{"w":"debt","pos":"n.","cn":"债务，欠款","en":"money that is owed","ex":"…ch of the following is true about a country’s national debt?","scope":"macro"},{"w":"decrease","pos":"v.","cn":"减少，下降","en":"to become or make less","ex":"…eadweight loss (D) increase the number of workers hired (E) decrease the supply of labor In a mixed economy, a combination of free market outcomes and…","scope":"micro"},{"w":"default","pos":"v./n.","cn":"违约；不履行","en":"to fail to pay a debt; failure to pay","ex":"A country may default on its debt if it cannot pay.","scope":"macro"},{"w":"delivery","pos":"n.","cn":"送货，投递","en":"the act of delivering goods","ex":"(A) A delivery truck (B) A warehouse (C) Office furniture (D) Machinery (E) Land Land is a diffe…","scope":"micro"},{"w":"demonstrate","pos":"v.","cn":"表明，证明；演示","en":"to show clearly or prove","ex":"A movement along the production possibilities curve demonstrates opportunity cost in production, which is the amount of one good that mus…","scope":"micro"},{"w":"denomination","pos":"n.","cn":"面额","en":"the value printed on a coin or note","ex":"Currency is printed in various denominations.","scope":"macro"},{"w":"deny","pos":"v.","cn":"否认，拒绝","en":"to say something is not true; to refuse","ex":"The government cannot deny citizens access to the service.","scope":"micro"},{"w":"deposit","pos":"v./n.","cn":"存入；存款","en":"to put money into an account; money put in","ex":"…al investment of businesses (D) currency in circulation and deposits in financial institutions (E) tools and machinery used to produce goods and servi…","scope":"micro"},{"w":"depreciate","pos":"v.","cn":"贬值","en":"to decrease in value (of a currency)","ex":"When a country’s currency depreciates on the foreign exchange market, which of the following will most likely h…","scope":"macro"},{"w":"deprive","pos":"v.","cn":"剥夺","en":"to take something away from someone","ex":"Unemployment can deprive families of income.","scope":"micro"},{"w":"device","pos":"n.","cn":"设备，装置","en":"a machine or tool","ex":"A smartphone is a common electronic device.","scope":"micro"},{"w":"diminish","pos":"v.","cn":"减少，变小","en":"to become smaller or less","ex":"…opportunity costs (C) Increasing opportunity costs (D) Diminishing marginal returns (E) Labor-intensive production A linear production possi…","scope":"micro"},{"w":"discouraged","pos":"adj.","cn":"沮丧的，灰心的","en":"having given up hope of finding a job","ex":"…fied as  ,  ,  ,  ,  If unemployed workers become discouraged and give up trying to find work, the number of workers employed and the u…","scope":"macro"},{"w":"dismissal","pos":"n.","cn":"解雇，免职","en":"the act of removing someone from a job","ex":"Unfair dismissal laws protect workers.","scope":"macro"},{"w":"distribute","pos":"v.","cn":"分配，分发","en":"to give or spread out among people","ex":"…e equitable distribution of goods (D) income is not equally distributed to ensure that everyone can participate in the market (E) a country cannot hav…","scope":"micro"},{"w":"dividend","pos":"n.","cn":"股息，红利","en":"a share of profit paid to shareholders","ex":"Shareholders receive dividend payments from a firm's profits.","scope":"macro"},{"w":"dominate","pos":"v.","cn":"支配，主导","en":"to control or be the most important","ex":"(C) The income effect dominates the substitution effect.","scope":"micro"},{"w":"downturn","pos":"n.","cn":"下滑，低迷","en":"a period of reduced economic activity","ex":"…occurs when there are too few jobs due to an economic downturn.","scope":"macro"},{"w":"earn","pos":"v.","cn":"赚取（利润/收入）","en":"to get money by working","ex":"…by .5 lawns equals two lawns and the pay that he would have earned.","scope":"micro"},{"w":"effect","pos":"n.","cn":"影响，效果","en":"a change caused by something; a result","ex":"Show the effect of the change on the store’s on your graph in part (a).","scope":"micro"},{"w":"eliminate","pos":"v.","cn":"消除，排除","en":"to remove completely","ex":"(D) Scarcity is eliminated by government provision of goods.","scope":"micro"},{"w":"embargo","pos":"n.","cn":"禁运，贸易禁令","en":"a government order banning trade","ex":"…countries , the other country should implement a trade embargo to protect Choice (C) is correct because consumption will rise in both countr…","scope":"macro"},{"w":"emphasize","pos":"v.","cn":"强调","en":"to stress the importance of something","ex":", you should emphasize the line of reasoning that generated your results; it is not enough to list the…","scope":"micro"},{"w":"employ","pos":"v.","cn":"雇佣","en":"to pay someone to work for you","ex":"With scarce resources that are fully employed, if more of one good is produced, less of another good must be produced.","scope":"micro"},{"w":"employee","pos":"n.","cn":"雇员，员工","en":"a person who works for pay","ex":"Each employee receives a salary for his or her work.","scope":"micro"},{"w":"employer","pos":"n.","cn":"雇主","en":"a person or firm that hires workers","ex":"…downward sloping, and it shows the number of workers firms (employers) are willing to hire at each possible wage rate.","scope":"micro"},{"w":"employment","pos":"n.","cn":"就业","en":"the state of having a paid job","ex":"…et deficits (B) limited resources and unlimited wants (C) unemployment and inflation (D) government and private industry (E) unions and monopoly firms…","scope":"micro"},{"w":"engage","pos":"v.","cn":"从事，参与","en":"to take part in an activity","ex":"If the two countries engage in trade, both would be better off under which of the following conditions?","scope":"micro"},{"w":"enhance","pos":"v.","cn":"增强，提高","en":"to improve something","ex":"…labor needed to produce all goods (C) Basic knowledge that enhances the organization of all manufacturing assembly lines (D) Land that is cultivated…","scope":"micro"},{"w":"enter","pos":"v.","cn":"进入（市场）","en":"to come into a market or industry","ex":"Carpenter devotes his working time to producing tables and chairs.","scope":"micro"},{"w":"enterprise","pos":"n.","cn":"企业，事业","en":"a business; a project","ex":"(E) There is more freedom of enterprise than in a market economy.","scope":"micro"},{"w":"entitlement","pos":"n.","cn":"福利资格，应得权利","en":"a program giving benefits to qualified people","ex":"Social Security is an entitlement program.","scope":"macro"},{"w":"equipment","pos":"n.","cn":"设备","en":"the tools needed for a task","ex":"…permits, restrict quantity, or require emissions reduction equipment MC increases, since the tax increases the cost per unit of output 1 point: outpu…","scope":"micro"},{"w":"euro","pos":"n.","cn":"欧元","en":"the currency of many European countries","ex":" ,  ,  ,  ,  The exchange rate is 1.2 euros per United States dollar.","scope":"macro"},{"w":"exceed","pos":"v.","cn":"超过","en":"to be greater than a number or amount","ex":"(C) Society’s wants exceed its available resources.","scope":"micro"},{"w":"exit","pos":"v./n.","cn":"退出（市场）；出口","en":"to leave a market or industry; a way out","ex":"…engage in product differentiation (B) are free to enter or exit an industry in the long run (C) earn positive economic profits in the long run (D) ad…","scope":"micro"},{"w":"expand","pos":"v.","cn":"扩大，扩张","en":"to become larger","ex":"…ding a new bridge $100 $140 Building a new tunnel $100 $115 Expanding an existing airport $100 $130 The table above shows the costs and benefits for n…","scope":"micro"},{"w":"expectation","pos":"n.","cn":"预期，期望","en":"what you expect to happen","ex":"Consumers' expectations about future prices affect demand.","scope":"micro"},{"w":"expenditure","pos":"n.","cn":"支出，开销","en":"money spent","ex":"Assume a consumer finds that his total expenditure on compact discs stays the same after the price of compact discs declines…","scope":"micro"},{"w":"facility","pos":"n.","cn":"设施，场所","en":"a building or place for a purpose","ex":"The factory is a large production facility.","scope":"micro"},{"w":"fall","pos":"v.","cn":"下降","en":"to go down","ex":"Grain production will fall from to , or by bushels of grain.","scope":"micro"},{"w":"federal","pos":"adj.","cn":"联邦的","en":"relating to the central national government","ex":"…Macroeconomics Page 3 of 10 u  ,  ,  ,  ,  Which Federal Reserve action can shift the aggregate demand curve to the left?","scope":"macro"},{"w":"fee","pos":"n.","cn":"费用，学费","en":"money paid for a service","ex":"If the annual tuition and fees are $4,600, the annual opportunity cost of attending the community college is (A…","scope":"micro"},{"w":"firm","pos":"n.","cn":"企业，公司","en":"a business company; the word used for companies in economics","ex":"…(D) government and private industry (E) unions and monopoly firms 8.","scope":"micro"},{"w":"fluctuate","pos":"v.","cn":"波动","en":"to change frequently up and down","ex":"Prices fluctuate with changes in supply and demand.","scope":"micro"},{"w":"fluctuation","pos":"n.","cn":"波动","en":"frequent changes up and down","ex":"Liquidity is often at odds with profits due to market fluctuations.","scope":"macro"},{"w":"forecast","pos":"n./v.","cn":"预测","en":"a statement about what will happen","ex":"Economists forecast slower growth next year.","scope":"macro"},{"w":"funds","pos":"n.","cn":"资金","en":"money available for a purpose","ex":"…,  ,  ,  The Federal Reserve decreases the federal funds rate by  ,  ,  ,  ,  Assume a country’s banking system has limited reserve…","scope":"macro"},{"w":"gain","pos":"v./n.","cn":"获得；收益","en":"to get something useful; an increase","ex":"…ompetitive product markets (B) Use of resources for private gain (C) Use of available resources to meet all the needs and wants of its citizens (D) En…","scope":"micro"},{"w":"generate","pos":"v.","cn":"产生（收益等）","en":"to produce something","ex":"…ocial benefit associated with the production of a good that generates an externality.","scope":"micro"},{"w":"goods","pos":"n.","cn":"商品，货物","en":"things that are produced and sold","ex":"…ing and bedsheets (B) Unskilled labor needed to produce all goods (C) Basic knowledge that enhances the organization of all manufacturing assembly lin…","scope":"micro"},{"w":"government","pos":"n.","cn":"政府","en":"the group that runs a country or area","ex":"…rces and unlimited wants (C) unemployment and inflation (D) government and private industry (E) unions and monopoly firms 8.","scope":"micro"},{"w":"guarantee","pos":"v./n.","cn":"保证","en":"to promise that something will happen","ex":"A price floor is intended to guarantee farmers a minimum income.","scope":"micro"},{"w":"hire","pos":"v.","cn":"雇佣","en":"to employ someone","ex":"…liminate deadweight loss (D) increase the number of workers hired (E) decrease the supply of labor In a mixed economy, a combination of free market ou…","scope":"micro"},{"w":"household","pos":"n.","cn":"家庭，住户","en":"a family living together","ex":"…ven unlimited wants (C) The fair and equal treatment of all households (D) The provision of conclusive answers to public policy issues (E) The develop…","scope":"micro"},{"w":"imply","pos":"v.","cn":"暗示，意味着","en":"to suggest something without saying it","ex":"…price elasticity between good X and good Y is negative implying that X and Y are complementary goods.","scope":"micro"},{"w":"impose","pos":"v.","cn":"征收（税），施加","en":"to force a tax or rule on someone","ex":"If the government imposes a tax on the production of cars, which of the following will occur in the market f…","scope":"micro"},{"w":"incentive","pos":"n.","cn":"激励，动力","en":"a reason to do something","ex":"…mand economic systems (A) have a legal system that provides incentives to produce, whereas market economic systems do not (B) ensure efficiency, where…","scope":"micro"},{"w":"incur","pos":"v.","cn":"招致，承担（成本）","en":"to experience or have to pay a cost","ex":"…onal hours of study, and the marginal cost the student will incur from additional hours of study.","scope":"micro"},{"w":"indicator","pos":"n.","cn":"指标","en":"a sign or measure of economic conditions","ex":"…,  The official unemployment rate is not an accurate indicator of actual unemployment in the economy because  ,  ,  ,  ,  When an eco…","scope":"macro"},{"w":"individual","pos":"n./adj.","cn":"个人；单独的","en":"a single person; single","ex":"Individuals in any society must make choices regarding the types of goods and services to…","scope":"micro"},{"w":"induce","pos":"v.","cn":"诱使，导致","en":"to cause or persuade something to happen","ex":"An increase in the price of the good induces consumers to purchase substitute products.","scope":"micro"},{"w":"installment","pos":"n.","cn":"分期付款","en":"one of the regular payments for a purchase","ex":"Sam pays monthly installments on a five-year fixed interest rate auto loan.","scope":"macro"},{"w":"institution","pos":"n.","cn":"机构，制度","en":"an organization, such as a bank or school","ex":"…esses (D) currency in circulation and deposits in financial institutions (E) tools and machinery used to produce goods and services 2.","scope":"micro"},{"w":"insurance","pos":"n.","cn":"保险","en":"protection against loss, paid for in advance","ex":"…a medium of exchange , not insured by federal deposit insurance , available from financial institutions other than banks , a store of purch…","scope":"macro"},{"w":"intersect","pos":"v.","cn":"相交，交叉","en":"to cross at a point","ex":"…r market price, therefore their marginal revenue curve will intersect the marginal cost curve at a lower quantity.","scope":"micro"},{"w":"intersection","pos":"n.","cn":"交点","en":"the point where lines cross","ex":"…nomic surplus is The efficient market outcome occurs at the intersection of the supply and demand curves and and where the sum of consumer surplus ( )…","scope":"micro"},{"w":"intervene","pos":"v.","cn":"干预，介入","en":"to get involved to change a situation","ex":"…tity of textiles, and the government would not need to intervene in the market to influence the production decisions of firms.","scope":"micro"},{"w":"inventory","pos":"n.","cn":"存货，库存","en":"the goods a shop has in stock","ex":"…he annual cost of labor, advertising, and acquiring the art inventory is .","scope":"micro"},{"w":"involve","pos":"v.","cn":"涉及，包含","en":"to include something as a part","ex":"…tween the opportunity costs for the two people (or nations) involved.","scope":"micro"},{"w":"lag","pos":"n./v.","cn":"滞后；延迟","en":"a delay between action and effect","ex":"…,  Choice (A) is the best answer because recognition lag is the delay in which an event or shock is felt or noticed by society.","scope":"macro"},{"w":"layoff","pos":"n.","cn":"裁员，解雇","en":"the act of dismissing workers","ex":"A worker is laid off because of a downturn.","scope":"macro"},{"w":"lead","pos":"v.","cn":"导致，通向（lead to）","en":"to cause something to happen","ex":"…on possibilities curve above, producing at which point will lead to the most economic growth in the future?","scope":"micro"},{"w":"legislation","pos":"n.","cn":"立法，法规","en":"laws made by the government","ex":"Antitrust legislation is designed to make it illegal for a firm to monopolize an industry.","scope":"micro"},{"w":"lend","pos":"v.","cn":"借出","en":"to give money that must be paid back","ex":"Banks lend money to firms that need capital.","scope":"micro"},{"w":"levy","pos":"v.","cn":"征收（税）","en":"to impose or collect a tax","ex":"…othing, since no harm is done by positive externalities (B) levy a tax on the output of the good or service (C) pay a subsidy equal to the marginal ex…","scope":"micro"},{"w":"liability","pos":"n.","cn":"责任；负债","en":"legal responsibility; money owed","ex":"The firm's liability is limited in a corporation.","scope":"micro"},{"w":"liquidity","pos":"n.","cn":"流动性","en":"how easily an asset can be turned into cash","ex":"Liquidity refers to the degree to which an asset is bought or sold in the market with…","scope":"macro"},{"w":"lower","pos":"v.","cn":"降低，减少","en":"to make something less","ex":"(D) Prices of available resources are lower than consumers’ willingness to pay.","scope":"micro"},{"w":"machinery","pos":"n.","cn":"机器（总称）","en":"machines in general","ex":"…) A delivery truck (B) A warehouse (C) Office furniture (D) Machinery (E) Land Land is a different factor of production from capital.","scope":"micro"},{"w":"maintain","pos":"v.","cn":"维持，保持","en":"to keep something at the same level","ex":"…Pat should (A) purchase more apples and more candy bars (B) maintain the current purchase of 4 apples and 4 candy bars (C) purchase more apples and fe…","scope":"micro"},{"w":"mandate","pos":"v./n.","cn":"要求，命令；授权","en":"to officially require; an official order","ex":"The law mandates a minimum wage.","scope":"micro"},{"w":"maturity","pos":"n.","cn":"到期日","en":"the date when a bond or loan must be paid","ex":"A bond's maturity is the date when the principal is repaid.","scope":"macro"},{"w":"measure","pos":"v.","cn":"衡量，测量","en":"to find the size or amount of something","ex":"…venues from the sale of Good The price elasticity of demand measures the percentage change in quantity demanded resulting from a given change in the p…","scope":"micro"},{"w":"mechanism","pos":"n.","cn":"机制，机理","en":"a system or process that makes something work","ex":"The price mechanism allocates resources.","scope":"micro"},{"w":"medium","pos":"n.","cn":"媒介，手段","en":"a means of exchange, e.g. money","ex":"In the medium run, the aggregate supply curve is  ,  ,  ,  ,  Choice (B) is correct.","scope":"macro"},{"w":"merger","pos":"n.","cn":"合并（企业）","en":"the joining of two companies","ex":"The merger of the two firms created a monopoly.","scope":"micro"},{"w":"mortgage","pos":"n.","cn":"抵押贷款","en":"a loan to buy a house, with the house as security","ex":"Jones took out a 15-year mortgage loan from a local bank at a fixed interest rate of 7 percent.","scope":"macro"},{"w":"municipal","pos":"adj.","cn":"市政的，地方的","en":"relating to a city or town government","ex":"Municipal bonds are issued by local governments.","scope":"macro"},{"w":"obligation","pos":"n.","cn":"义务，责任","en":"a duty to do something","ex":"The firm has an obligation to pay its debts.","scope":"micro"},{"w":"obtain","pos":"v.","cn":"获得","en":"to get something","ex":"(A) Consumer give up nothing to obtain more of the good.","scope":"micro"},{"w":"occupation","pos":"n.","cn":"职业","en":"a person's job or profession","ex":"A person's occupation affects their income.","scope":"macro"},{"w":"occur","pos":"v.","cn":"发生","en":"to happen","ex":"…tax on the production of cars, which of the following will occur in the market for cars?","scope":"micro"},{"w":"offset","pos":"v.","cn":"抵消","en":"to balance the effect of something","ex":"…) and the lost producer surplus (area ) that were not offset by the government because of the decrease in the equilibrium quantity from to…","scope":"micro"},{"w":"order","pos":"n.","cn":"订单；次序","en":"a request for goods; the way things are arranged","ex":"…C) It is the amount of one product that must be given up in order to produce an additional unit of another product.","scope":"micro"},{"w":"organization","pos":"n.","cn":"组织，机构","en":"a group of people working together","ex":"…to produce all goods (C) Basic knowledge that enhances the organization of all manufacturing assembly lines (D) Land that is cultivated for two crops…","scope":"micro"},{"w":"outcome","pos":"n.","cn":"结果","en":"a result","ex":"…y of labor In a mixed economy, a combination of free market outcomes and government policies, such as the imposition of a minimum wage, are used to ma…","scope":"micro"},{"w":"overestimate","pos":"v.","cn":"高估","en":"to think something is more than it is","ex":"Do not overestimate the demand for the new product.","scope":"micro"},{"w":"overseas","pos":"adj./adv.","cn":"海外的","en":"in or to a foreign country, across the sea","ex":"Closing an overseas military base affects the economy.","scope":"macro"},{"w":"patent","pos":"n.","cn":"专利","en":"an official right to make an invention","ex":"(D) Production of the product is protected by a patent.","scope":"micro"},{"w":"payment","pos":"n.","cn":"支付，付款","en":"money paid for something","ex":"…,  Which of the following best explains why transfer payments are not included in the calculation of gross domestic product?","scope":"macro"},{"w":"payoff","pos":"n.","cn":"收益，回报（博弈）","en":"the result or profit of a choice","ex":"The relevant payoff matrix appears below, with the first entry in each cell indicating Airtouch’s daily…","scope":"micro"},{"w":"penalty","pos":"n.","cn":"罚款，惩罚","en":"a punishment for breaking a rule","ex":"Breaking the law may result in a penalty.","scope":"micro"},{"w":"pension","pos":"n.","cn":"养老金","en":"regular money paid after retirement","ex":"Consumers who receive pension income will have a higher MPC.","scope":"macro"},{"w":"percentage","pos":"n.","cn":"百分比","en":"a part of 100","ex":"…hip between price and quantity demanded and is equal to the percentage change in quantity demanded divided by the percentage change in price.","scope":"micro"},{"w":"persist","pos":"v.","cn":"持续存在","en":"to continue to exist","ex":"For a monopoly to persist, there needs to be a barrier to entry.","scope":"micro"},{"w":"peso","pos":"n.","cn":"比索（货币）","en":"the currency of Mexico and some other countries","ex":"…explains the change in the international value of the peso caused by a shift of the demand curve from to in the dollar-peso foreign exchang…","scope":"macro"},{"w":"policy","pos":"n.","cn":"政策","en":"a plan of action of the government","ex":"…ouseholds (D) The provision of conclusive answers to public policy issues (E) The development of the dynamics of group behavior 5.","scope":"micro"},{"w":"population","pos":"n.","cn":"人口","en":"the number of people in a place","ex":"…parts used in the production of watches (E) an increase in population 14.","scope":"micro"},{"w":"portion","pos":"n.","cn":"部分","en":"a part of something","ex":"If an unusually cold summer destroyed a large portion of the bee population, the equilibrium price and quantity of honey produced by bee…","scope":"micro"},{"w":"pound","pos":"n.","cn":"英镑","en":"the currency of the United Kingdom","ex":"…ces and sells zucchini at the equilibrium price of per pound.","scope":"macro"},{"w":"poverty","pos":"n.","cn":"贫困","en":"the state of being poor","ex":"…among workers in similar occupations (E) The change in the poverty rate within a country over time The Lorenz curve approach typically divides the po…","scope":"micro"},{"w":"power","pos":"n.","cn":"权力，力量","en":"the ability to control; market power 市场支配力","ex":"…me effect refers to the decrease in a consumer’s purchasing power caused by an increase in the price of a normal good.","scope":"micro"},{"w":"predict","pos":"v.","cn":"预测","en":"to say what will happen in the future","ex":"Using a correctly labeled supply and demand graph, predict the impact that closing these plants will have on each of the following.","scope":"micro"},{"w":"premise","pos":"n.","cn":"前提，假设","en":"an idea that is assumed before reasoning","ex":"The study of economics is based on the premise that (A) goods and services are scarce but capital is unlimited (B) the growt…","scope":"micro"},{"w":"premium","pos":"n.","cn":"溢价，保费","en":"an extra amount paid; insurance payment","ex":"Consumers pay a premium for the brand name.","scope":"micro"},{"w":"prescription","pos":"n.","cn":"处方","en":"a doctor's written order for medicine","ex":"Gigantic Pharmaceutical Corporation has a patent on a prescription drug, making it the only manufacturer of that prescription drug.","scope":"micro"},{"w":"principal","pos":"n.","cn":"本金","en":"the original amount of a loan or investment","ex":"The borrower must repay the principal plus interest.","scope":"macro"},{"w":"process","pos":"n.","cn":"过程","en":"a series of steps","ex":"(E) It is the cost of labor used in the production process.","scope":"micro"},{"w":"prohibit","pos":"v.","cn":"禁止","en":"to officially forbid something","ex":"If cities had passed laws prohibiting price increases for flashlights, during power outages such laws would mos…","scope":"micro"},{"w":"proportion","pos":"n.","cn":"比例","en":"a part of a whole; a ratio","ex":"…reasing returns to scale When all inputs change by the same proportion and output changes by that same proportion, there are constant returns to scale…","scope":"micro"},{"w":"provide","pos":"v.","cn":"提供","en":"to give something that is needed","ex":"…resources to satisfy limited wants (E) limited resources to provide public goods 11.","scope":"micro"},{"w":"purchase","pos":"v./n.","cn":"购买","en":"to buy something; the act of buying","ex":"(B) Consumer can purchase as much of the good as they want at its current market price.","scope":"micro"},{"w":"quit","pos":"v.","cn":"辞职，退出","en":"to leave a job voluntarily","ex":"…rmation we may conclude that  ,  ,  ,  ,  Melanie quits her job to look for a better one that has opportunity for advancement.","scope":"macro"},{"w":"raise","pos":"v.","cn":"提高，增加","en":"to make something higher or more","ex":"…art a business (B) stocks and bonds issued by businesses to raise funds (C) financial investment of businesses (D) currency in circulation and deposit…","scope":"micro"},{"w":"range","pos":"n.","cn":"范围","en":"the area between limits","ex":"Orange juice (in liters) Canvases Stefan 40 30 Donna 20 10 Stefan and Donna produce orange…","scope":"micro"},{"w":"ratio","pos":"n.","cn":"比率","en":"a relationship between two numbers","ex":"…a fixed budget will purchase quantites of goods so that the ratios of the marginal utility of each good to its (A) total utility are the greatest (B)…","scope":"micro"},{"w":"reasoning","pos":"n.","cn":"推理，论证","en":"the process of thinking logically","ex":"Explain your reasoning.","scope":"micro"},{"w":"receive","pos":"v.","cn":"收到，获得","en":"to get something","ex":"…ed for two crops by more than one farmer (E) Labor that has received enhanced training in assembly-line work With this basic knowledge there is nonriv…","scope":"micro"},{"w":"recovery","pos":"n.","cn":"复苏","en":"a return to growth after a downturn","ex":"…iness cycle: expansion, peak, contraction, trough, and recovery.","scope":"macro"},{"w":"redemption","pos":"n.","cn":"赎回，偿还","en":"the paying back or cashing of a bond","ex":"Bonds may be redeemed at their face value at maturity.","scope":"macro"},{"w":"reduce","pos":"v.","cn":"减少，降低","en":"to make something less","ex":"…wants of people (C) allocating scarce resources efficiently reduces the equitable distribution of goods (D) income is not equally distributed to ensur…","scope":"micro"},{"w":"regulate","pos":"v.","cn":"监管，管制","en":"to control by rules","ex":"…onsumer surplus, whereas market economic systems do not (E) regulate production but not distribution, whereas market economic systems regulate both pr…","scope":"micro"},{"w":"regulation","pos":"n.","cn":"监管，规章","en":"rules made by the government to control activity","ex":"…ill be the short-run effect of a reduction in business regulations on real output and the price level?","scope":"macro"},{"w":"relationship","pos":"n.","cn":"关系，关联","en":"the way things are connected","ex":"The law of demand describes the negative relationship between the price and quantity demanded.","scope":"micro"},{"w":"remain","pos":"v.","cn":"保持，仍然是","en":"to stay the same","ex":"With specialization and trade a country remains on its production possibilities curve but produces more of the good for which it h…","scope":"micro"},{"w":"repay","pos":"v.","cn":"偿还","en":"to pay back money","ex":"The firm must repay the loan with interest.","scope":"micro"},{"w":"represent","pos":"v.","cn":"代表，表示","en":"to stand for something","ex":"…illed worker (E) A tractor used in farming Physical capital represents tangible inputs, such as a factory, machinery, and infrastructure that are used…","scope":"micro"},{"w":"require","pos":"v.","cn":"需要，要求","en":"to need something","ex":"…to point Y Include correctly labeled diagrams, if useful or required, in explaining your answers.","scope":"micro"},{"w":"restrict","pos":"v.","cn":"限制","en":"to limit something","ex":"With monopoly, the firm restricts output and raises price.","scope":"micro"},{"w":"retain","pos":"v.","cn":"保留，保持","en":"to keep something","ex":"The firm retains its market share.","scope":"micro"},{"w":"retire","pos":"v.","cn":"退休","en":"to stop working at an older age","ex":"Retirees living on fixed monthly pensions.","scope":"macro"},{"w":"retirement","pos":"n.","cn":"退休","en":"the period after stopping work","ex":"Workers continue to work after reaching the retirement age.","scope":"macro"},{"w":"revenue","pos":"n.","cn":"收入，收益","en":"money a business receives","ex":"…ereas a pure market economy allocates resources to maximize revenues.","scope":"micro"},{"w":"rise","pos":"v.","cn":"上升","en":"to go up","ex":"This situation illustrates the economic trade-offs that arise from the lack of sufficient resources.","scope":"micro"},{"w":"salary","pos":"n.","cn":"薪水（固定工资）","en":"regular pay for work","ex":"(A) Maria’s opportunity cost includes the salary she could have earned if she had gone to work.","scope":"micro"},{"w":"sanctions","pos":"n.","cn":"制裁","en":"official penalties against a country","ex":"Trade sanctions reduce a country's exports.","scope":"macro"},{"w":"satisfy","pos":"v.","cn":"满足（需求）","en":"to meet a need or desire","ex":"…always allocate resources efficiently (B) free markets only satisfy the demands of paying consumers (C) opportunity costs increase as more of a good o…","scope":"micro"},{"w":"schedule","pos":"n.","cn":"日程表，时间表","en":"a plan or timetable","ex":"The table shows the market supply schedule for a good.","scope":"micro"},{"w":"service","pos":"n.","cn":"服务","en":"work done for others, not a physical good","ex":"…society must make choices regarding the types of goods and services to be produced because (A) free markets do not always allocate resources efficien…","scope":"micro"},{"w":"shift","pos":"v.","cn":"移动（曲线）","en":"to move from one position to another","ex":"Which of the following would cause a parallel shift to the right of the production possibilities curve ?","scope":"micro"},{"w":"shipment","pos":"n.","cn":"运输的货物","en":"goods sent together","ex":"The shipment of goods arrives at the warehouse every week.","scope":"micro"},{"w":"shock","pos":"n.","cn":"冲击","en":"a sudden change that affects the economy","ex":"…egate Demand  ,  ,  ,  ,  A contractionary supply shock would most likely result in  ,  ,  ,  ,  An unanticipated decrease in aggr…","scope":"macro"},{"w":"situation","pos":"n.","cn":"情况，处境","en":"a set of circumstances","ex":"In which of the following situations is a good NOT scarce?","scope":"micro"},{"w":"slowdown","pos":"n.","cn":"放缓","en":"a reduction in the speed of growth","ex":"A slowdown in growth reduces tax revenue.","scope":"macro"},{"w":"slump","pos":"n.","cn":"萧条，猛跌","en":"a severe fall in economic activity","ex":"A severe slump followed the housing crisis.","scope":"macro"},{"w":"sovereign","pos":"adj.","cn":"主权的，国家的","en":"relating to a country's independent power","ex":"Sovereign debt is the debt of a national government.","scope":"macro"},{"w":"specialize","pos":"v.","cn":"专门生产，专业化","en":"to focus on producing one thing","ex":"(C) To gain from trade, countries specialize in producing goods and services in which they have an absolute advantage.","scope":"micro"},{"w":"stabilize","pos":"v.","cn":"使稳定","en":"to make something steady and not changing","ex":"…brium level of income will  ,  ,  ,  ,  Automatic stabilizers can do which of the following?","scope":"macro"},{"w":"statement","pos":"n.","cn":"陈述，声明","en":"a sentence that states something","ex":"Scarcity is correctly described by which of the following statements?","scope":"micro"},{"w":"sticky","pos":"adj.","cn":"粘性的，难变的","en":"slow to change, e.g. sticky wages","ex":"…All of the following explain why prices and wages are sticky EXCEPT  ,  ,  ,  ,  An economy is at full-employment equilibrium.","scope":"macro"},{"w":"stimulus","pos":"n.","cn":"刺激（措施）","en":"government action to boost the economy","ex":"…g the money supply and deficit spending will provide a stimulus effect, while reducing government debt has the reverse effect.","scope":"macro"},{"w":"strategy","pos":"n.","cn":"策略","en":"a plan of action","ex":"This pricing strategy is based on the assumption that (A) travelers are not aware of how airline prices…","scope":"micro"},{"w":"strike","pos":"n.","cn":"罢工","en":"workers stopping work to demand changes","ex":"…berries , An increase in the price of strawberries , A strike by all farmworkers , An increase in household incomes , An announcement of a s…","scope":"macro"},{"w":"subsidize","pos":"v.","cn":"补贴","en":"to give money to support something","ex":"…ludes avoiding dairy products, and the government begins to subsidize ice cream production.","scope":"micro"},{"w":"substitute","pos":"n./v.","cn":"替代品；替代","en":"a thing used instead of another","ex":"…ce of a complementary good (C) A decrease in the price of a substitute good (D) A decrease in the price of the good (E) A decrease in the number of co…","scope":"micro"},{"w":"tax","pos":"n./v.","cn":"税；征税","en":"money paid to the government","ex":"…c economic problem of all countries is the existence of (A) tax increases and budget deficits (B) limited resources and unlimited wants (C) unemployme…","scope":"micro"},{"w":"theory","pos":"n.","cn":"理论","en":"an explanation supported by evidence","ex":"The use of game theory to explain strategic behavior among firms is most associated with which of the foll…","scope":"micro"},{"w":"threshold","pos":"n.","cn":"门槛，临界点","en":"the level at which something starts","ex":"Income above a threshold is taxed at a higher rate.","scope":"macro"},{"w":"transaction","pos":"n.","cn":"交易","en":"a deal between buyer and seller","ex":"…nomic surplus is maximized and all mutually beneficial transactions are exhausted.","scope":"micro"},{"w":"treasury","pos":"n.","cn":"财政部；国库券","en":"the government department that manages money","ex":"Treasury and then dispersed through economic operations.","scope":"macro"},{"w":"underestimate","pos":"v.","cn":"低估","en":"to think something is less than it is","ex":"…lth over time and the negative impact of sugar on health is underestimated by consumers.","scope":"micro"},{"w":"utilize","pos":"v.","cn":"利用","en":"to use something effectively","ex":"(B) Society’s resources are underutilized.","scope":"micro"},{"w":"vary","pos":"v.","cn":"变化，不同","en":"to be different at different times","ex":"…nputs and the output it produces when the firm (A) does not vary any of its inputs (B) has at least one fixed input (C) varies all of its inputs (D) h…","scope":"micro"},{"w":"velocity","pos":"n.","cn":"（货币）流通速度","en":"how fast money changes hands in the economy","ex":"The velocity of money is constant.","scope":"macro"},{"w":"verify","pos":"v.","cn":"核实，验证","en":"to check that something is true","ex":"Calculate the values to verify your answer.","scope":"micro"},{"w":"volatility","pos":"n.","cn":"波动性","en":"how much and how often prices change","ex":"Inflation raises the volatility of prices.","scope":"macro"},{"w":"warehouse","pos":"n.","cn":"仓库","en":"a building for storing goods","ex":"(A) A delivery truck (B) A warehouse (C) Office furniture (D) Machinery (E) Land Land is a different factor of produc…","scope":"micro"},{"w":"wealth","pos":"n.","cn":"财富","en":"the total value of things a person or country owns","ex":"…side economics, where policies give tax breaks to the wealthy so they can take that money and invest, therefore creating an increase in pro…","scope":"macro"},{"w":"welfare","pos":"n.","cn":"福利","en":"the health and happiness of people","ex":"The government provides welfare programs for the poor.","scope":"micro"},{"w":"wheat","pos":"n.","cn":"小麦","en":"a grain used for making flour and bread","ex":"…alternative production possibility frontiers for apples and wheat are shown in the figures below.","scope":"micro"},{"w":"willingness","pos":"n.","cn":"意愿","en":"the state of being willing","ex":"(D) Prices of available resources are lower than consumers’ willingness to pay.","scope":"micro"},{"w":"withdraw","pos":"v.","cn":"取出（钱），撤出","en":"to take money out of an account","ex":"Consumers may withdraw their savings from the bank.","scope":"micro"},{"w":"withdrawal","pos":"n.","cn":"取款，提取","en":"taking money out of an account","ex":"How does this withdrawal potentially impact money in circulation?","scope":"macro"},{"w":"wool","pos":"n.","cn":"羊毛","en":"the soft hair of sheep, used to make cloth","ex":"…ovided depicts New Zealand’s domestic supply and demand for wool.","scope":"micro"},{"w":"workforce","pos":"n.","cn":"劳动力（总称）","en":"all the people available for work","ex":"…million, there are 250 million employed people in the workforce, and 20 million people are not looking for work, the number of unemployed w…","scope":"macro"},{"w":"yen","pos":"n.","cn":"日元","en":"the currency of Japan","ex":"…market for United States dollars in terms of Japanese yen.","scope":"macro"},{"w":"yield","pos":"n.","cn":"收益率","en":"the income return on an investment, e.g. a bond","ex":"…ns , banks charge their best customers , equalizes the yield on government bonds and corporate bonds , is equal to the inflation rate One wa…","scope":"macro"},{"w":"accelerate","pos":"v.","cn":"加速","en":"to make something faster","ex":"Falling prices can accelerate a downturn.","scope":"macro"},{"w":"accordingly","pos":"adv.","cn":"因此，相应地","en":"as a result; in a suitable way","ex":"The market is competitive; accordingly, firms are price takers.","scope":"micro"},{"w":"account for","pos":"phr.","cn":"解释；占（比例）","en":"to explain; to be the reason for","ex":"Thus, accounting profit does not account for implicit costs.","scope":"micro"},{"w":"across the board","pos":"phr.","cn":"全面地","en":"affecting everyone or everything","ex":"Prices increased across the board.","scope":"macro"},{"w":"additional","pos":"adj.","cn":"额外的，附加的","en":"extra; more","ex":"(C) The marginal social cost of producing an additional output is zero.","scope":"micro"},{"w":"adverse","pos":"adj.","cn":"不利的，有害的","en":"harmful; unfavorable","ex":"The tax has an adverse effect on production.","scope":"micro"},{"w":"alternative","pos":"adj./n.","cn":"替代的；替代选择","en":"another choice","ex":"Scarcity exists if decisions must be made about alternative uses for resources.","scope":"micro"},{"w":"ambiguous","pos":"adj.","cn":"模糊的，不明确的","en":"unclear; having more than one meaning","ex":"The question is ambiguous; it has two interpretations.","scope":"micro"},{"w":"ample","pos":"adj.","cn":"充足的","en":"more than enough","ex":"Which of the following is NOT an example of physical capital?","scope":"micro"},{"w":"annual","pos":"adj.","cn":"每年的","en":"once every year","ex":"If the annual tuition and fees are $4,600, the annual opportunity cost of attending the community…","scope":"micro"},{"w":"anticipated","pos":"adj.","cn":"预期的","en":"expected","ex":"…of the following groups of people would benefit from unanticipated inflation?","scope":"macro"},{"w":"approximately","pos":"adv.","cn":"大约","en":"about; not exactly","ex":"The firm produces approximately 500 units per day.","scope":"micro"},{"w":"as a result of","pos":"phr.","cn":"由于…的结果","en":"because of","ex":"What will happen to the price and quantity of footballs as a result of an increase in the price of leather used to make footballs?","scope":"micro"},{"w":"as long as","pos":"phr.","cn":"只要","en":"if; provided that","ex":"…the student should spend more hours studying in the library as long as the marginal benefit of the next hour exceeds the marginal cost.","scope":"micro"},{"w":"as well as","pos":"phr.","cn":"以及，也","en":"and also","ex":"…the demand schedules for Jill and for all other consumers, as well as the market supply schedule for the same good.","scope":"micro"},{"w":"at the expense of","pos":"phr.","cn":"以…为代价","en":"by sacrificing something","ex":"The firm maximized profit at the expense of worker safety.","scope":"micro"},{"w":"autonomous","pos":"adj.","cn":"自主的，自发的","en":"independent of income, e.g. autonomous consumption","ex":"…conomy with lump-sum taxes and no international trade, autonomous investment spending increases by $2 million.","scope":"macro"},{"w":"be subject to","pos":"phr.","cn":"受…约束，须经过","en":"to be affected by / must follow","ex":"All firms are subject to the same market price.","scope":"micro"},{"w":"by means of","pos":"phr.","cn":"通过（某种方式）","en":"using something","ex":"Resources are allocated by means of the price system.","scope":"micro"},{"w":"comparable","pos":"adj.","cn":"可比较的，类似的","en":"similar enough to be compared","ex":"The two goods are comparable in price.","scope":"micro"},{"w":"completely","pos":"adv.","cn":"完全地","en":"fully","ex":"…led (iv) The area representing the consumer surplus, shaded completely (b) Suppose the demand for the prescription drug increases, and Gigantic hires…","scope":"micro"},{"w":"consecutive","pos":"adj.","cn":"连续的","en":"following one after another","ex":"The firm earned profits for three consecutive years.","scope":"micro"},{"w":"consequently","pos":"adv.","cn":"因此，结果","en":"as a result","ex":"The tax raised costs; consequently, supply decreased.","scope":"micro"},{"w":"considerable","pos":"adj.","cn":"相当大的","en":"large in amount or size","ex":"The firm made a considerable profit.","scope":"micro"},{"w":"consist of","pos":"phr.","cn":"由…组成","en":"to be made up of","ex":"Total cost consists of fixed cost and variable cost.","scope":"micro"},{"w":"constantly","pos":"adv.","cn":"持续不断地","en":"all the time","ex":"Prices in the market are constantly changing.","scope":"micro"},{"w":"conversely","pos":"adv.","cn":"相反地","en":"in the opposite way","ex":"Conversely, when the industry contracts, long-run average total cost shifts upward, a…","scope":"micro"},{"w":"cost of living","pos":"phr.","cn":"生活成本","en":"the cost of basic goods and services","ex":"…ticism of the consumer price index as a measure of the cost of living is that it understates the rate of inflation because the base year is…","scope":"macro"},{"w":"cumulative","pos":"adj.","cn":"累积的","en":"growing by adding together","ex":"…re of each 20 percent of the population each year on a cumulative basis.","scope":"micro"},{"w":"current","pos":"adj.","cn":"当前的","en":"present; happening now","ex":"…nsumer can purchase as much of the good as they want at its current market price.","scope":"micro"},{"w":"decline","pos":"v./n.","cn":"下降；衰退","en":"to become less; a decrease","ex":"… If the interest rate on short-term government bonds declined as a result of policy actions by a central bank, the central bank must have…","scope":"macro"},{"w":"definitely","pos":"adv.","cn":"确定地，一定","en":"certainly; without doubt","ex":"Which of the following will definitely occur in the corn market?","scope":"macro"},{"w":"depend on","pos":"phr.","cn":"取决于，依赖","en":"to be decided by","ex":"…ncrease, but it will be less than double (D) not change (E) depend on the slope of the demand curve 14.","scope":"micro"},{"w":"despite","pos":"prep.","cn":"尽管","en":"in spite of","ex":"…Firms will provide the socially optimal quantity of Good X despite the fact that marginal social cost is greater than the marginal private cost at th…","scope":"micro"},{"w":"disposable","pos":"adj.","cn":"可支配的（收入）","en":"available to spend after taxes","ex":"Disposable income is equal to which of the following?","scope":"macro"},{"w":"domestic","pos":"adj.","cn":"国内的","en":"of one's own country","ex":"…imported wine have led to an increase in the consumption of domestic wine.","scope":"micro"},{"w":"durable","pos":"adj.","cn":"耐用的","en":"lasting a long time, e.g. durable goods","ex":"…point C is the most preferable, because butter is a nondurable good.","scope":"macro"},{"w":"effective","pos":"adj.","cn":"有效的","en":"working well","ex":"…t provides incentives to producers and consumers to respond effectively to economic signals.","scope":"micro"},{"w":"efficient","pos":"adj.","cn":"高效的","en":"working well without waste","ex":"…d because (A) free markets do not always allocate resources efficiently (B) free markets only satisfy the demands of paying consumers (C) opportunity…","scope":"micro"},{"w":"entirely","pos":"adv.","cn":"完全地，彻底地","en":"totally","ex":"The cost is not entirely paid by consumers.","scope":"micro"},{"w":"even if","pos":"phr.","cn":"即使","en":"although it is true that","ex":"…the marginal utility of the last unit consumed is positive even if that last unit provides less additional utility than previous units of the good co…","scope":"micro"},{"w":"eventually","pos":"adv.","cn":"最终，终于","en":"in the end","ex":"…more of a variable input is added to a fixed input, output eventually increases at a decreasing rate.","scope":"micro"},{"w":"excessive","pos":"adj.","cn":"过度的，过多的","en":"too much","ex":"Excessive government regulation can reduce efficiency.","scope":"micro"},{"w":"existing","pos":"adj.","cn":"现存的","en":"present now","ex":"…tal Costs(in millions) Total Benefits(in millions) Widening existing highways $100 $80 Building new highways $100 $90 Building a new bridge $100 $140…","scope":"micro"},{"w":"feasible","pos":"adj.","cn":"可行的","en":"possible to do","ex":"Of the feasible and efficient points on the production possibilities curve above, producing…","scope":"micro"},{"w":"finance","pos":"v./n.","cn":"为…融资；资金","en":"to provide money for something","ex":"…likely  ,  ,  ,  ,  An expansionary fiscal policy financed by government borrowing will most likely lead to which of the following chan…","scope":"macro"},{"w":"fiscal","pos":"adj.","cn":"财政的","en":"related to government money and taxes","ex":"Fiscal policy uses government spending and taxes.","scope":"micro"},{"w":"furthermore","pos":"adv.","cn":"此外","en":"in addition","ex":"…onsumer to buy more of the good and less of its substitute; furthermore, as the price of a good decreases, consumers’ real income increases, incentivi…","scope":"micro"},{"w":"gap","pos":"n.","cn":"差距，缺口","en":"the difference between two things","ex":"The gap between rich and poor must widen with long-run economic growth.","scope":"macro"},{"w":"give up","pos":"phr.","cn":"放弃","en":"to stop doing or having something","ex":"(A) Consumer give up nothing to obtain more of the good.","scope":"micro"},{"w":"gradual","pos":"adj.","cn":"逐渐的","en":"happening slowly","ex":"The market adjusts through a gradual process.","scope":"micro"},{"w":"hence","pos":"adv.","cn":"因此，由此","en":"as a result","ex":"Demand increased, hence prices rose.","scope":"micro"},{"w":"identical","pos":"adj.","cn":"完全相同的","en":"exactly the same","ex":"Assume that goods X and Y have identical upward-sloping elastic supply curves.","scope":"micro"},{"w":"in accordance with","pos":"phr.","cn":"依照，根据","en":"according to","ex":"The firm acts in accordance with the law.","scope":"micro"},{"w":"in addition to","pos":"phr.","cn":"除…之外（还）","en":"besides; as well as","ex":"In addition to the wage, workers receive benefits.","scope":"micro"},{"w":"in comparison with","pos":"phr.","cn":"与…相比","en":"compared with","ex":"In comparison with last year, prices are higher.","scope":"micro"},{"w":"in exchange for","pos":"phr.","cn":"以…交换","en":"in return for","ex":"…er point A, society is choosing (A) more future consumption in exchange for less current consumption (B) more current capital goods in exchange for le…","scope":"micro"},{"w":"in order to","pos":"phr.","cn":"为了","en":"for the purpose of","ex":"(C) It is the amount of one product that must be given up in order to produce an additional unit of another product.","scope":"micro"},{"w":"in real terms","pos":"phr.","cn":"按实际价值（扣除通胀）","en":"adjusted for inflation","ex":"The value of money falls in real terms during inflation.","scope":"macro"},{"w":"in response to","pos":"phr.","cn":"作为对…的回应","en":"as a reply to","ex":"…he supply curve for automobiles will shift to the left in response to (A) an increase in the efficiency of robot technology (B) an increse i…","scope":"micro"},{"w":"in terms of","pos":"phr.","cn":"在…方面，就…来说","en":"with regard to","ex":"…ilities curve is linear, the opportunity cost of each good, in terms of the other good, is constant.","scope":"micro"},{"w":"in the absence of","pos":"phr.","cn":"在没有…的情况下","en":"when something is not present","ex":"In the absence of market failures, a perfectly competitive market equilibrium is effi…","scope":"micro"},{"w":"in the long run","pos":"phr.","cn":"长期来看","en":"eventually; over a long period","ex":"…rve to shift to the right (E) new firms to enter the market in the long run 14.","scope":"micro"},{"w":"in the short run","pos":"phr.","cn":"短期内","en":"over a short period","ex":"…l cause a change in the supply of personal computers (PC’s) in the short run?","scope":"micro"},{"w":"in the wake of","pos":"phr.","cn":"在…之后","en":"following, as a result of","ex":"Prices rose in the wake of the oil shock.","scope":"macro"},{"w":"indeterminate","pos":"adj.","cn":"不确定的","en":"impossible to determine exactly","ex":"The change in the interest rate will be indeterminate.","scope":"macro"},{"w":"inherent","pos":"adj.","cn":"固有的，内在的","en":"existing as a natural part of something","ex":"Risk is inherent in business decisions.","scope":"micro"},{"w":"initial","pos":"adj.","cn":"最初的","en":"first","ex":"…E) Continue buying the same quantities of both goods At the initial consumption level, the marginal utility per dollar from consuming apples is , whic…","scope":"micro"},{"w":"initially","pos":"adv.","cn":"最初","en":"at first","ex":"…hort-run production function, the marginal product of labor initially rises, then begins to fall.","scope":"micro"},{"w":"insufficient","pos":"adj.","cn":"不足的","en":"not enough","ex":"…sfied by allocating resources efficiently (B) resources are insufficient to satisfy the unlimited wants of people (C) allocating scarce resources effi…","scope":"micro"},{"w":"intense","pos":"adj.","cn":"激烈的，强烈的","en":"very strong","ex":"Perfect competition brings intense price rivalry.","scope":"micro"},{"w":"international","pos":"adj.","cn":"国际的","en":"between countries","ex":"…y owners (B) the government (C) consumers and producers (D) international trade (E) the wealthy In a command economy, the government sets policy, owns…","scope":"micro"},{"w":"lead to","pos":"phr.","cn":"导致","en":"to cause","ex":"…on possibilities curve above, producing at which point will lead to the most economic growth in the future?","scope":"micro"},{"w":"legitimate","pos":"adj.","cn":"合法的，正当的","en":"legal; reasonable","ex":"The firm has a legitimate claim to the property.","scope":"micro"},{"w":"likely","pos":"adj.","cn":"可能的","en":"probable","ex":"…ly of hamburgers decreases, the demand for onions will most likely (A) remain unchanged because hamburgers and onions are different goods (B) increase…","scope":"micro"},{"w":"likewise","pos":"adv.","cn":"同样地","en":"in the same way","ex":"One firm raises its price; likewise, the other follows.","scope":"micro"},{"w":"moreover","pos":"adv.","cn":"此外，而且","en":"in addition","ex":"The price is high; moreover, quality is poor.","scope":"micro"},{"w":"mutual","pos":"adj.","cn":"相互的","en":"shared by both sides","ex":"Which of the following terms of trade would be mutually beneficial to Stefan and Donna?","scope":"micro"},{"w":"necessarily","pos":"adv.","cn":"必然地，必定","en":"as a necessary result","ex":"…hanges in the demand for and the supply of a good will necessarily result in an increase in both the equilibrium price and quantity of the g…","scope":"macro"},{"w":"negative","pos":"adj.","cn":"负的，消极的","en":"less than zero; bad","ex":"…are confronted with the basic problem of (A) elasticity (B) negative externality (C) scarcity (D) overabundance (E) monopoly 4.","scope":"micro"},{"w":"negligible","pos":"adj.","cn":"可忽略的，微不足道的","en":"too small to matter","ex":"The change in price had a negligible effect on demand.","scope":"micro"},{"w":"no longer","pos":"phr.","cn":"不再","en":"not any more","ex":"(D) Firms no longer produce at the minimum of long-run average total cost in long-run equilibrium.","scope":"micro"},{"w":"nominal","pos":"adj.","cn":"名义上的","en":"in name only, not real value","ex":"The nominal price does not adjust for inflation.","scope":"micro"},{"w":"nonetheless","pos":"adv.","cn":"尽管如此","en":"in spite of that; however","ex":"The market is competitive; nonetheless, one firm leads.","scope":"micro"},{"w":"notwithstanding","pos":"prep./adv.","cn":"尽管","en":"despite; in spite of","ex":"Notwithstanding the tax, the firm continues to produce.","scope":"micro"},{"w":"on the other hand","pos":"phr.","cn":"另一方面","en":"from another point of view","ex":"Large firms have scale economies; on the other hand, they may be inefficient.","scope":"micro"},{"w":"on the verge of","pos":"phr.","cn":"濒临，即将","en":"very close to something","ex":"The economy is on the verge of a recession.","scope":"macro"},{"w":"optimal","pos":"adj.","cn":"最优的","en":"best possible","ex":"(E) The economy is producing the socially optimal combination of goods.","scope":"micro"},{"w":"overall","pos":"adj.","cn":"总体的","en":"considering everything","ex":"The overall effect on total surplus is negative.","scope":"micro"},{"w":"particular","pos":"adj.","cn":"特定的，具体的","en":"specific; special","ex":"The graph above shows the supply and demand curves for a particular brand of computers.","scope":"micro"},{"w":"physical","pos":"adj.","cn":"实物的，物质的","en":"real and touchable; of the body","ex":"Which of the following is NOT an example of physical capital?","scope":"micro"},{"w":"positive","pos":"adj.","cn":"正的，积极的","en":"greater than zero; good","ex":"(D) There is a surplus of the good at some positive price.","scope":"micro"},{"w":"potential","pos":"adj./n.","cn":"潜在的；潜力","en":"possible; the ability to be more","ex":"The economy is not producing at its potential, since it is not producing at point D.","scope":"macro"},{"w":"prevailing","pos":"adj.","cn":"现行的，普遍的","en":"existing at the present time","ex":"The prevailing wage is set by the market.","scope":"macro"},{"w":"prior","pos":"adj.","cn":"在…之前的（prior to）","en":"before; earlier","ex":"Prior to the change, the market was in equilibrium.","scope":"micro"},{"w":"prior to","pos":"phr.","cn":"在…之前","en":"before","ex":"Prior to trade, the domestic price was higher.","scope":"micro"},{"w":"promote","pos":"v.","cn":"促进，推动","en":"to help something grow or develop","ex":"…terest rate, and investment spending is most likely to promote economic growth?","scope":"macro"},{"w":"prospective","pos":"adj.","cn":"潜在的，未来的","en":"likely to become","ex":"Prospective buyers compare prices before purchasing.","scope":"micro"},{"w":"purchasing power","pos":"phr.","cn":"购买力","en":"the real value of money in buying goods","ex":"…increase in the price of the goods reduces consumers' purchasing power.","scope":"macro"},{"w":"pursue","pos":"v.","cn":"追求，实施","en":"to try to achieve a goal","ex":"…e in the price of natural resources and the government pursues no policy to address the supply shock, then which of the following will occur…","scope":"macro"},{"w":"rapid","pos":"adj.","cn":"迅速的","en":"fast","ex":"…ut, its total revenue will (A) remain constant (B) increase rapidly at first, then decline (C) increase at a decreasing rate (D) increasing at an incr…","scope":"micro"},{"w":"rather than","pos":"phr.","cn":"而不是","en":"instead of","ex":"…l in a two-year program at the local community college rather than to accept a job that offered a salary of $12,000 per year.","scope":"micro"},{"w":"recover","pos":"v.","cn":"复苏，恢复","en":"to return to a better state","ex":"…iness cycle: expansion, peak, contraction, trough, and recovery.","scope":"macro"},{"w":"regardless","pos":"adv.","cn":"不管，不顾（regardless of）","en":"without considering","ex":"…e’s payoff is always higher when it lowers the price ( and) regardless of whether ScanzAll chooses to advertise or not advertise; or explains that whe…","scope":"micro"},{"w":"regardless of","pos":"phr.","cn":"不管，不论","en":"without considering","ex":"…e’s payoff is always higher when it lowers the price ( and) regardless of whether ScanzAll chooses to advertise or not advertise; or explains that whe…","scope":"micro"},{"w":"relatively","pos":"adv.","cn":"相对地，比较地","en":"in comparison with others","ex":"Assume that demand for bottled water is relatively price elastic.","scope":"micro"},{"w":"relevant","pos":"adj.","cn":"相关的","en":"connected to the topic","ex":"…D) has a downward-sloping average total cost curve over the relevant range of output (E) sets price equal to marginal cost in order to maximize profit…","scope":"micro"},{"w":"respectively","pos":"adv.","cn":"分别地，各自地","en":"in the order just mentioned","ex":"…required to produce a unit of sugar in Portugal and Spain, respectively.","scope":"micro"},{"w":"result in","pos":"phr.","cn":"导致，造成","en":"to cause","ex":"Improvements in technology for producing all goods must result in (A) an inward shift in the production possibilities curve (B) an outward shift i…","scope":"micro"},{"w":"seasonal","pos":"adj.","cn":"季节性的","en":"happening at a particular season","ex":"…as involuntarily unemployed , cyclically unemployed , seasonally unemployed , frictionally unemployed , not in the labor force Which of the…","scope":"macro"},{"w":"shut down","pos":"phr.","cn":"停业，关闭","en":"to stop operating","ex":"…ts selling price (C) decrease output but keep producing (D) shut down (E) level both price and output unchanged 26.","scope":"micro"},{"w":"significantly","pos":"adv.","cn":"显著地，大幅度地","en":"by a large amount","ex":"…d power outage, the price of flashlights normally increases significantly.","scope":"micro"},{"w":"similar","pos":"adj.","cn":"相似的","en":"almost the same","ex":"(A) New firms which produce similar products enter the industry.","scope":"micro"},{"w":"simultaneously","pos":"adv.","cn":"同时地","en":"at the same time","ex":"…of production that is not fully scarce and that can be used simultaneously in the production of more than one good?","scope":"micro"},{"w":"skilled","pos":"adj.","cn":"熟练的，有技能的","en":"having training or skill","ex":"…Machines that can produce both clothing and bedsheets (B) Unskilled labor needed to produce all goods (C) Basic knowledge that enhances the organizati…","scope":"micro"},{"w":"specific","pos":"adj.","cn":"具体的，明确的","en":"exact; clearly stated","ex":"Explain using specific values.","scope":"micro"},{"w":"standard of living","pos":"phr.","cn":"生活水平","en":"the level of wealth and comfort of people","ex":"…ollowing is most likely to cause an improvement in the standard of living over time?","scope":"macro"},{"w":"stimulate","pos":"v.","cn":"刺激，促进","en":"to encourage activity to grow","ex":"AP Macroeconomics Page 13 of 16 u  ,  ,  ,  ,  To stimulate investment in new plant and equipment without increasing the level of real…","scope":"macro"},{"w":"subsequent","pos":"adj.","cn":"随后的","en":"coming after","ex":"Subsequent price increases reduced demand.","scope":"micro"},{"w":"substantial","pos":"adj.","cn":"大量的，可观的","en":"large in amount","ex":"A well-known fast-food franchise substantially increases the price of its hamburgers, and loses only some of its custo…","scope":"micro"},{"w":"sufficient","pos":"adj.","cn":"充足的","en":"enough","ex":"…ied by allocating resources efficiently (B) resources are insufficient to satisfy the unlimited wants of people (C) allocating scarce resources effici…","scope":"micro"},{"w":"sustain","pos":"v.","cn":"维持，保持","en":"to keep something going","ex":"…s l  ,  ,  ,  ,  Inflation occurs when there is a sustained increase in which of the following?","scope":"macro"},{"w":"take into account","pos":"phr.","cn":"考虑到","en":"to consider","ex":"Consumers take into account the price when buying.","scope":"micro"},{"w":"tend to","pos":"phr.","cn":"倾向于，往往会","en":"to usually do something","ex":"Which of the following will tend to make the demand for a product more elastic?","scope":"micro"},{"w":"therefore","pos":"adv.","cn":"因此","en":"for that reason","ex":"Therefore, the opportunity cost is constant.","scope":"micro"},{"w":"thus","pos":"adv.","cn":"因此，从而","en":"as a result","ex":"Thus, the study of economics assumes that factors of production are scarce, and people hav…","scope":"micro"},{"w":"trend","pos":"n.","cn":"趋势","en":"a general direction of change","ex":"Which of the fol- lowing best explains these trends?","scope":"macro"},{"w":"typical","pos":"adj.","cn":"典型的","en":"usual; of a common type","ex":"This is the typical -shaped short-run marginal cost curve.","scope":"micro"},{"w":"unanticipated","pos":"adj.","cn":"未预期的","en":"not expected","ex":"…h of the following groups of people would benefit from unanticipated inflation?","scope":"macro"},{"w":"unless","pos":"conj.","cn":"除非","en":"except if","ex":"…socially optimal amount of good X (D) a surplus of good X, unless subsidized (E) a shortage of good X, unless taxed 20.","scope":"micro"},{"w":"unregulated","pos":"adj.","cn":"不受监管的","en":"not controlled by rules","ex":"For an unregulated monopolist, the profit- maximizing quantity will always be (A) in the elastic…","scope":"micro"},{"w":"unskilled","pos":"adj.","cn":"非熟练的","en":"without special training","ex":"…) Machines that can produce both clothing and bedsheets (B) Unskilled labor needed to produce all goods (C) Basic knowledge that enhances the organiza…","scope":"micro"},{"w":"viable","pos":"adj.","cn":"可行的，能存活的","en":"able to work or succeed","ex":"The project is economically viable.","scope":"micro"},{"w":"volatile","pos":"adj.","cn":"波动的，不稳定的","en":"changing quickly and unpredictably","ex":"Commodity prices are volatile.","scope":"macro"},{"w":"whereas","pos":"conj.","cn":"然而，而（对比）","en":"while on the other hand","ex":"…A) have a legal system that provides incentives to produce, whereas market economic systems do not (B) ensure efficiency, whereas market economic syst…","scope":"micro"},{"w":"whether","pos":"conj.","cn":"是否","en":"if it is true or not","ex":"Prices and costs help producers decide whether they are producing too little or too much of a good.","scope":"micro"},{"w":"with respect to","pos":"phr.","cn":"关于，就…而言","en":"regarding; concerning","ex":"(A) An increase in the productivity of labor with respect to producing good X (B) An increase in the amount of labor available for prod…","scope":"micro"},{"w":"with the exception of","pos":"phr.","cn":"除…之外","en":"except for","ex":"With the exception of one firm, all firms exited.","scope":"micro"},{"w":"year over year","pos":"phr.","cn":"同比（逐年比较）","en":"compared with the same time last year","ex":"GDP grew by 3 percent year over year.","scope":"macro"}];
+const TIME_PER_Q = 20;
+const LS_KEY = 'wb_apecon_vocab_history';
+const OLD_LS_KEY = 'wb_apmicro_vocab_history';
+const MAX_HIST = 200;
+
+let quiz = null;
+let timer = null;
+let pendingConfirm = null;
+
+/* ===== 迁移旧版记录（旧 key 曾用于 AP Micro 版） ===== */
+(function migrateOld(){
+  try {
+    const old = JSON.parse(localStorage.getItem(OLD_LS_KEY));
+    if (old && old.length) {
+      const cur = getHistory();
+      const curIds = new Set(cur.map(r => r.id));
+      const add = old.filter(r => !curIds.has(r.id));
+      if (add.length) { cur.unshift(...add); setHistory(cur); }
+      localStorage.removeItem(OLD_LS_KEY);
+    }
+  } catch(e) {}
+})();
+
+/* ===== 分类统计 ===== */
+(function initMeta(){
+  const micro = DATA.filter(d => d.scope === 'micro').length;
+  const macro = DATA.filter(d => d.scope === 'macro').length;
+  document.getElementById('cntAll').textContent = '共 ' + DATA.length + ' 词';
+  document.getElementById('cntMicro').textContent = '共 ' + micro + ' 词';
+  document.getElementById('cntMacro').textContent = '共 ' + macro + ' 词';
+  updateCountHint();
+})();
+
+function rangeOf(sel){
+  if (sel === 'all') return DATA;
+  return DATA.filter(d => d.scope === sel);
+}
+function updateCountHint(){
+  const sel = document.querySelector('input[name=range]:checked').value;
+  const n = rangeOf(sel).length;
+  const c = document.querySelector('input[name=count]:checked');
+  const want = c ? c.value : 'all';
+  const will = want === 'all' ? n : Math.min(parseInt(want), n);
+  document.getElementById('countHint').textContent =
+    '当前范围共 ' + n + ' 词' + (want === 'all' ? '，将测试全部 ' + n + ' 词' : '，将随机抽 ' + will + ' 词');
+}
+document.querySelectorAll('input[name=range]').forEach(r => r.addEventListener('change', updateCountHint));
+document.querySelectorAll('input[name=count]').forEach(r => r.addEventListener('change', updateCountHint));
+
+/* ===== 测试流程 ===== */
+function startQuiz() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) { alert('请先输入你的名字 😊'); return; }
+  const rangeSel = document.querySelector('input[name=range]:checked').value;
+  const poolAll = rangeOf(rangeSel);
+  if (!poolAll.length) { alert('当前范围没有词汇'); return; }
+  const nSel = document.querySelector('input[name=count]:checked').value;
+  // 数量不能超过范围总数（底层强制）
+  const count = nSel === 'all' ? poolAll.length : Math.min(parseInt(nSel), poolAll.length);
+  const pool = shuffle(poolAll).slice(0, count);
+  const questions = pool.map(item => makeQuestion(item, poolAll));
+  quiz = {
+    user: name, questions, idx: 0, correct: 0, wrong: 0, startTime: Date.now(),
+    rangeSel, count, total: questions.length
+  };
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('resultScreen').style.display = 'none';
+  document.getElementById('quizScreen').style.display = 'block';
+  document.getElementById('userLabel').textContent = '🙋 ' + name;
+  renderQuestion();
+}
+
+function makeQuestion(item, poolAll) {
+  const wrongs = [];
+  const seen = new Set([item.cn]);
+  const pool = shuffle(poolAll).filter(d => d.cn !== item.cn && !seen.has(d.cn));
+  for (const d of pool) { if (wrongs.length >= 3) break; wrongs.push(d.cn); seen.add(d.cn); }
+  const allCns = shuffle(DATA.map(d => d.cn));
+  for (const c of allCns) { if (wrongs.length >= 3) break; if (!seen.has(c)) { wrongs.push(c); seen.add(c); } }
+  const options = shuffle([item.cn, ...wrongs.slice(0,3)]);
+  return { item, options, correctIdx: options.indexOf(item.cn) };
+}
+
+function renderQuestion() {
+  const q = quiz.questions[quiz.idx];
+  document.getElementById('wordText').textContent = q.item.w;
+  document.getElementById('posText').textContent = q.item.pos;
+  document.getElementById('exampleText').textContent = q.item.ex || '（无例句）';
+  document.getElementById('progressLabel').textContent = '第 ' + (quiz.idx+1) + ' / ' + quiz.questions.length + ' 题';
+  document.getElementById('scoreLabel').textContent = '得分 ' + quiz.correct + ' / ' + quiz.idx;
+  document.getElementById('progressBar').style.width = (quiz.idx / quiz.questions.length * 100) + '%';
+
+  const box = document.getElementById('optionsBox');
+  box.innerHTML = '';
+  const tags = ['A','B','C','D'];
+  q.options.forEach((opt, i) => {
+    const el = document.createElement('div');
+    el.className = 'opt';
+    el.innerHTML = '<span class="tag">' + tags[i] + '</span><span>' + opt + '</span>';
+    el.onclick = () => answer(i, el);
+    box.appendChild(el);
+  });
+
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('btnNext').className = 'btn-next';
+  startTimer();
+}
+
+function startTimer() {
+  let left = TIME_PER_Q;
+  const t = document.getElementById('timerLabel');
+  t.textContent = left;
+  t.classList.remove('warn');
+  clearInterval(timer);
+  timer = setInterval(() => {
+    left--;
+    t.textContent = left;
+    if (left <= 5) t.classList.add('warn');
+    if (left <= 0) { clearInterval(timer); timeout(); }
+  }, 1000);
+}
+
+function answer(i, el) {
+  clearInterval(timer);
+  const q = quiz.questions[quiz.idx];
+  q.userAnswer = i;
+  const opts = document.querySelectorAll('.opt');
+  opts.forEach(o => o.classList.add('disabled'));
+  const fb = document.getElementById('feedback');
+
+  if (i === q.correctIdx) {
+    quiz.correct++;
+    el.classList.add('correct');
+    fb.className = 'feedback show right';
+    fb.innerHTML = '✅ 答对了！<br><span class="cn">' + q.item.cn + '</span> &nbsp;—&nbsp; ' + q.item.en;
+  } else {
+    quiz.wrong++;
+    el.classList.add('wrong');
+    opts[q.correctIdx].classList.add('correct');
+    opts.forEach((o, j) => { if (j !== i && j !== q.correctIdx) o.classList.add('dim'); });
+    fb.className = 'feedback show wrong';
+    fb.innerHTML = '❌ 选错了，正确答案是：<br><span class="cn">' + q.item.cn + '</span> &nbsp;—&nbsp; ' + q.item.en;
+  }
+  document.getElementById('btnNext').className = 'btn-next show';
+  document.getElementById('scoreLabel').textContent = '得分 ' + quiz.correct + ' / ' + (quiz.idx+1);
+}
+
+function timeout() {
+  const q = quiz.questions[quiz.idx];
+  q.userAnswer = -1;
+  quiz.wrong++;
+  const opts = document.querySelectorAll('.opt');
+  opts.forEach(o => o.classList.add('disabled'));
+  opts[q.correctIdx].classList.add('correct');
+  opts.forEach((o, j) => { if (j !== q.correctIdx) o.classList.add('dim'); });
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback show wrong';
+  fb.innerHTML = '⏰ 时间到！正确答案是：<br><span class="cn">' + q.item.cn + '</span> &nbsp;—&nbsp; ' + q.item.en;
+  document.getElementById('btnNext').className = 'btn-next show';
+  document.getElementById('scoreLabel').textContent = '得分 ' + quiz.correct + ' / ' + (quiz.idx+1);
+}
+
+function nextQuestion() {
+  quiz.idx++;
+  if (quiz.idx >= quiz.questions.length) { showResult(); return; }
+  renderQuestion();
+}
+
+function showResult() {
+  clearInterval(timer);
+  document.getElementById('quizScreen').style.display = 'none';
+  document.getElementById('resultScreen').style.display = 'block';
+  const total = quiz.questions.length;
+  const pct = Math.round(quiz.correct / total * 100);
+  const secs = Math.round((Date.now() - quiz.startTime) / 1000);
+  document.getElementById('resultUser').textContent = quiz.user + ' 的成绩单';
+  document.getElementById('resultScore').textContent = quiz.correct + ' / ' + total;
+  document.getElementById('resultPct').textContent = pct + ' 分' + (pct >= 80 ? ' 🏆' : pct >= 60 ? ' 👍' : pct >= 40 ? ' 💪' : ' 📖');
+  document.getElementById('statCorrect').textContent = quiz.correct;
+  document.getElementById('statWrong').textContent = quiz.wrong;
+  document.getElementById('statTime').textContent = secs + 's';
+  document.getElementById('statAcc').textContent = pct + '%';
+
+  const wrongItems = quiz.questions.filter(q => q.userAnswer !== q.correctIdx);
+  renderReview(wrongItems);
+
+  saveRecord(quiz, pct, secs, wrongItems);
+}
+
+function renderReview(items) {
+  const box = document.getElementById('reviewBox');
+  const list = document.getElementById('reviewList');
+  if (!items.length) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  list.innerHTML = items.map(q =>
+    '<div class="review-item"><span class="w">' + q.item.w + '</span><span><span class="a">' + q.item.cn + '</span></span></div>'
+  ).join('');
+}
+
+/* ===== 历史记录 ===== */
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; }
+  catch(e) { return []; }
+}
+function setHistory(h) { localStorage.setItem(LS_KEY, JSON.stringify(h.slice(0, MAX_HIST))); }
+
+function saveRecord(quiz, pct, secs, wrongItems) {
+  const rangeNames = {all:'全部词汇', micro:'微观', macro:'宏观'};
+  const rec = {
+    id: Date.now(),
+    time: new Date().toLocaleString('zh-CN', {hour12:false}),
+    ts: Date.now(),
+    user: quiz.user,
+    range: quiz.rangeSel,
+    rangeName: rangeNames[quiz.rangeSel] || '全部词汇',
+    count: quiz.total,
+    correct: quiz.correct,
+    wrong: quiz.wrong,
+    pct: pct,
+    secs: secs,
+    wrongList: wrongItems.map(q => ({w: q.item.w, cn: q.item.cn}))
+  };
+  const h = getHistory();
+  h.unshift(rec);
+  setHistory(h);
+  document.getElementById('saveNote').textContent = '✅ 本次测试已自动保存到历史记录';
+}
+
+function openHistory() {
+  const list = document.getElementById('histList');
+  const h = getHistory();
+  if (!h.length) {
+    list.innerHTML = '<div class="hist-empty">还没有测试记录，快去测一次吧 📖</div>';
+  } else {
+    list.innerHTML = h.map(renderHistItem).join('');
+  }
+  document.getElementById('histMask').classList.add('show');
+}
+function closeHistory() { document.getElementById('histMask').classList.remove('show'); }
+
+function renderHistItem(r, i) {
+  const cls = r.pct >= 80 ? 'good' : (r.pct >= 60 ? '' : 'bad');
+  const timeStr = (r.time || new Date(r.ts).toLocaleString('zh-CN', {hour12:false})).slice(0,16);
+  const wrongInfo = r.wrongList && r.wrongList.length
+    ? r.wrongList.map(w => w.w + ' → ' + w.cn).join('；')
+    : '无';
+  return '<div class="hist-item">' +
+    '<div class="row1">' +
+      '<span class="who">' + esc(r.user) + '</span>' +
+      '<span class="meta">' + timeStr + '</span>' +
+    '</div>' +
+    '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">' +
+      '<span class="badge range">' + esc(r.rangeName) + '</span>' +
+      '<span class="badge cnt">' + r.count + ' 词</span>' +
+      '<span class="score ' + cls + '">' + r.correct + '/' + r.count + ' · ' + r.pct + '%</span>' +
+      '<span class="meta" style="margin-left:auto">' + r.secs + 's</span>' +
+    '</div>' +
+    '<div style="margin-top:4px;display:flex;gap:4px">' +
+      '<button class="btn-toggle" onclick="toggleHistDetail(' + i + ')">查看错题</button>' +
+      '<button class="btn-del" onclick="confirmDeleteHist(' + i + ')">删除</button>' +
+    '</div>' +
+    '<div class="detail" id="histDetail' + i + '">错题：' + esc(wrongInfo) + '</div>' +
+  '</div>';
+}
+
+function toggleHistDetail(i) {
+  const d = document.getElementById('histDetail' + i);
+  d.classList.toggle('show');
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showConfirm(text, okLabel, action) {
+  document.getElementById('confirmText').textContent = text;
+  const okBtn = document.getElementById('confirmOkBtn');
+  okBtn.textContent = okLabel || '确定';
+  okBtn.className = okLabel === '清空' ? 'ok' : 'ok2';
+  pendingConfirm = action;
+  document.getElementById('confirmMask').classList.add('show');
+}
+function hideConfirm() { document.getElementById('confirmMask').classList.remove('show'); pendingConfirm = null; }
+function confirmAction() { if (pendingConfirm) pendingConfirm(); hideConfirm(); }
+
+function confirmDeleteHist(i) {
+  showConfirm('确定删除这条测试记录吗？', '删除', () => {
+    const h = getHistory();
+    h.splice(i, 1);
+    setHistory(h);
+    openHistory();
+  });
+}
+function confirmClearAll() {
+  showConfirm('确定清空全部历史记录吗？此操作不可恢复！', '清空', () => {
+    setHistory([]);
+    openHistory();
+  });
+}
+
+/* ===== 备份与导入 ===== */
+function exportBackup() {
+  const h = getHistory();
+  const payload = { app: 'AP Economics 词汇卡片测试', version: 2, exportedAt: new Date().toISOString(), records: h };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'AP-Economics-词汇测试记录备份-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+}
+function importBackup() {
+  document.getElementById('importFile').click();
+}
+document.getElementById('importFile').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const obj = JSON.parse(ev.target.result);
+      const records = Array.isArray(obj) ? obj : (obj.records || []);
+      if (!records.length) { alert('备份文件中没有记录'); return; }
+      const h = getHistory();
+      const merged = records.concat(h);
+      const seen = new Set();
+      const dedup = merged.filter(r => { const k = r.id || (r.ts + r.user); if (seen.has(k)) return false; seen.add(k); return true; });
+      setHistory(dedup);
+      alert('✅ 成功导入 ' + records.length + ' 条记录');
+      if (document.getElementById('histMask').classList.contains('show')) openHistory();
+    } catch(err) { alert('导入失败：文件格式不正确'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+</script>
+</body>
+</html>
