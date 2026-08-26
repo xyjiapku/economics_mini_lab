@@ -50,6 +50,7 @@ The index page provides search, category filters and one-click access to every t
 | [Cournot Duopoly Simulation](Nash-Eq%20Quantity%20Game.html) | 进阶 Advanced | 古诺数量竞争模拟 / Cournot quantity competition simulation |
 | [Lorenz Curve & Gini](Lorenz%20Curve%20%26%20Gini%20Coefficient.html) | 微观 Micro | 洛伦茨曲线与基尼系数(收入分配)/ Lorenz curve & Gini coefficient for income distribution |
 | [Solow Growth Model](Solow%20Growth%20Model.html) | 宏观 Macro | 索洛增长模型:资本积累、稳态与黄金律 / Solow growth model: capital accumulation, steady state & golden rule |
+| [AP Vocabulary Test](AP%20Vocabulary%20Test.html) | 基础 Fundamentals | 面向中文母语者的英汉经济学词汇测试 / English-Chinese economics vocabulary quiz for Chinese native speakers |
 
 ## 🚀 使用方式 / How to Use
 
