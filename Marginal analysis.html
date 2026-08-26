@@ -11,9 +11,9 @@
             padding: 15px; 
             color: #1a202c; 
             box-sizing: border-box;
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
-            overflow: hidden; /* Prevent body scroll to keep it a dashboard */
+            overflow: auto; /* allow scrolling as fallback on small windows */
         }
         
         .main-container { 
@@ -22,9 +22,25 @@
             margin: auto; 
             display: grid;
             grid-template-columns: 1fr 1fr; 
-            gap: 25px;
-            height: 96vh;
+            gap: clamp(12px, 1.6vw, 25px);
+            min-height: 92vh;
+            align-content: center;
         }
+        
+        @media (max-width: 860px) {
+            .main-container { grid-template-columns: 1fr; }
+        }
+        
+        /* Back-to-index floating button */
+        .home-btn {
+            position: fixed; top: 14px; left: 14px; z-index: 1000;
+            background: #2b6cb0; color: #fff; text-decoration: none;
+            padding: 9px 18px; border-radius: 24px;
+            font-size: clamp(13px, 1.2vw, 16px); font-weight: 700;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.22); transition: .2s;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .home-btn:hover { background: #2c5282; }
         
         /* Left Panel - Interactive Definitions */
         .left-panel {
@@ -36,31 +52,31 @@
         
         details.def-box { 
             background: #ffffff; 
-            padding: 25px 35px; 
-            border-left: 15px solid #2b6cb0; 
-            border-radius: 12px; 
+            padding: clamp(9px, 1.2vw, 16px) clamp(13px, 1.6vw, 22px); 
+            border-left: 6px solid #2b6cb0; 
+            border-radius: 10px; 
             box-shadow: 0 4px 20px rgba(0,0,0,0.06);
         }
         
         details.def-box summary { 
-            font-size: 50px; 
+            font-size: clamp(15px, 2vw, 34px); 
             color: #2b6cb0; 
             font-weight: bold;
             cursor: pointer;
             list-style: none;
             position: relative;
-            padding-right: 50px;
+            padding-right: 38px;
         }
         
         details.def-box summary::-webkit-details-marker { display: none; }
 
         details.def-box p { 
-            font-size: 40px; 
-            margin: 15px 0 0 0; 
-            line-height: 1.3;
+            font-size: clamp(12px, 1.5vw, 26px); 
+            margin: 9px 0 0 0; 
+            line-height: 1.35;
             color: #4a5568;
             border-top: 2px dashed #e2e8f0;
-            padding-top: 15px;
+            padding-top: 9px;
         }
 
         details.def-box summary::after {
@@ -70,7 +86,7 @@
             top: 50%;
             transform: translateY(-50%);
             color: #cbd5e0;
-            font-size: 60px;
+            font-size: clamp(18px, 2.4vw, 40px);
         }
         details.def-box[open] summary::after { content: '-'; color: #2b6cb0; }
 
@@ -78,14 +94,14 @@
         .right-panel {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 0; /* no gap between the two chart boxes in dual mode */
             height: 100%;
         }
         
         .chart-container {
             background: #ffffff;
-            border-radius: 12px;
-            padding: 15px;
+            border-radius: 10px;
+            padding: 8px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.06);
             flex: 1;
             display: flex;
@@ -103,23 +119,24 @@
         
         /* Controls Section */
         .controls { 
-            padding: 20px 30px; 
+            padding: 10px 18px; 
             background: #ffffff; 
-            border-radius: 12px; 
+            border-radius: 10px; 
             box-shadow: 0 4px 20px rgba(0,0,0,0.06);
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 8px;
         }
         
-        .slider-row { text-align: center; }
-        .slider-row label { font-size: 40px; font-weight: bold; }
-        .q-display { font-size: 50px; font-weight: bold; color: #dd6b20; }
+        .slider-row { display: flex; align-items: center; gap: 10px; }
+        .slider-row label { font-size: clamp(14px, 1.7vw, 30px); font-weight: bold; white-space: nowrap; display: flex; align-items: baseline; gap: 6px; }
+        .q-display { font-size: clamp(14px, 1.8vw, 28px); font-weight: bold; color: #dd6b20; }
         
         input[type=range] { 
-            width: 98%; 
-            margin-top: 10px;
-            height: 15px;
+            flex: 1;
+            min-width: 0;
+            margin-top: 0;
+            height: clamp(7px, 0.8vw, 12px);
             cursor: pointer;
         }
 
@@ -127,21 +144,23 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
             border-top: 2px solid #f1f5f9;
-            padding-top: 15px;
+            padding-top: 8px;
         }
         
-        .toggle-group { font-size: 30px; display: flex; align-items: center; gap: 10px; cursor: pointer;}
-        .toggle-group input[type=checkbox] { width: 30px; height: 30px; }
+        .toggle-group { font-size: clamp(12px, 1.5vw, 22px); display: flex; align-items: center; gap: 7px; cursor: pointer;}
+        .toggle-group input[type=checkbox] { width: clamp(13px, 1.4vw, 20px); height: clamp(13px, 1.4vw, 20px); }
 
-        .radio-group { display: flex; gap: 15px; }
+        .radio-group { display: flex; gap: clamp(5px, 0.8vw, 12px); flex-wrap: wrap; }
         .radio-label {
-            font-size: 28px;
+            font-size: clamp(11px, 1.3vw, 20px);
             background: #edf2f7;
-            padding: 8px 18px;
+            padding: clamp(4px, 0.5vw, 7px) clamp(8px, 1vw, 14px);
             border-radius: 8px;
             cursor: pointer;
-            border: 3px solid transparent;
+            border: 2px solid transparent;
             transition: 0.2s;
         }
         .radio-label input { display: none; }
@@ -149,6 +168,8 @@
     </style>
 </head>
 <body>
+
+<a href="./index.html" class="home-btn" title="Back to index">🏠 Home</a>
 
 <div class="main-container">
     <div class="left-panel">
@@ -180,7 +201,7 @@
         
         <div class="controls">
             <div class="slider-row">
-                <label>Quantity (Q): <span class="q-display" id="q-val">3.8</span></label><br>
+                <label>Q: <span class="q-display" id="q-val">3.8</span></label>
                 <input type="range" id="q-slider" min="0.1" max="9.9" step="0.1" value="3.8">
             </div>
             
@@ -259,7 +280,7 @@
 
         // X and Y Axis Labels
         ctx.fillStyle = '#1a202c';
-        ctx.font = 'bold 45px sans-serif';
+        ctx.font = 'bold 36px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('Quantity (Q)', canvasWidth / 2, canvasH - 30);
         
@@ -270,11 +291,11 @@
         ctx.restore();
 
         // Title
-        ctx.font = 'bold 55px sans-serif';
+        ctx.font = 'bold 42px sans-serif';
         ctx.fillText(title, canvasWidth / 2, 70);
 
         // Tick Numbers
-        ctx.font = '28px sans-serif';
+        ctx.font = '24px sans-serif';
         for(let i=0; i<=10; i++) {
             let x = mapX(i);
             ctx.beginPath(); ctx.moveTo(x, canvasH-padY); ctx.lineTo(x, canvasH-padY+15); ctx.stroke();
@@ -295,7 +316,7 @@
         ctx.stroke();
         
         ctx.fillStyle = color;
-        ctx.font = 'bold 45px sans-serif';
+        ctx.font = 'bold 36px sans-serif';
         ctx.textAlign = 'left';
         ctx.fillText(label, mapX(9.7) + offX, mapY(func(9.7), yMax, canvasH) + offY);
     }
@@ -332,14 +353,12 @@
         if(mode === 'base') {
             botContainer.style.display = 'none';
             topContainer.style.flex = '10'; // Dominate the view
-            // Vertical Golden Ratio: Height = Width * 1.618
-            // However, to keep it within common screen bounds, we use a slightly compressed 1.25 ratio
-            // But let's follow the user's intent: Height is 1.618 of Width for the "Portrait" feel.
-            hTop = canvasWidth * 1; 
+            hTop = Math.round(canvasWidth * 0.62); // ~992px logical, scales down via CSS
         } else {
             botContainer.style.display = 'flex';
             topContainer.style.flex = '1';
-            hTop = 900; // Landscape for dual view
+            hTop = Math.round(canvasWidth * 0.45); // 720px landscape for dual view
+            cBot.height = 720;
         }
         cTop.height = hTop;
 
