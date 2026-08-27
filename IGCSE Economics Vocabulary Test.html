@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IGCSE Economics 词汇卡片小测试</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: "PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+  background: linear-gradient(135deg,#eef3fb 0%,#f7f9fc 100%);
+  min-height:100vh; color:#2b3a55;
+}
+.wrap { max-width:760px; margin:0 auto; padding:24px 16px calc(60px + env(safe-area-inset-bottom)); }
+
+/* ===== 卡片通用 ===== */
+.card {
+  background:#fff; border-radius:18px; box-shadow:0 8px 30px rgba(31,78,121,.12);
+  padding:36px 32px; margin-top:28px;
+}
+.card h1 { font-size:26px; color:#1f4e79; text-align:center; margin-bottom:6px; }
+.card .sub { text-align:center; color:#8a97ad; font-size:13px; margin-bottom:26px; }
+.field { margin-bottom:22px; }
+.field label { display:block; font-size:14px; font-weight:600; color:#1f4e79; margin-bottom:8px; }
+.field input[type=text], .field input[type=number] {
+  width:100%; padding:12px 14px; border:2px solid #d8e2f0; border-radius:10px;
+  font-size:16px; outline:none; transition:.2s;
+}
+.field input:focus { border-color:#2e74b5; }
+.chip-options { display:flex; gap:12px; flex-wrap:wrap; }
+.chip-options label {
+  flex:1; min-width:130px; text-align:center; padding:14px 10px; cursor:pointer;
+  border:2px solid #d8e2f0; border-radius:12px; font-size:15px; font-weight:600;
+  color:#4a5a76; transition:.18s; user-select:none; background:#fafcff;
+}
+.chip-options label:hover { border-color:#2e74b5; }
+.chip-options input { display:none; }
+.chip-options label:has(input:checked) { background:#1f4e79; border-color:#1f4e79; color:#fff; }
+.chip-options .cnt { display:block; font-size:11px; font-weight:400; opacity:.75; margin-top:2px; }
+.chip-options label:has(input:checked) .cnt { opacity:.85; }
+.btn-start {
+  width:100%; padding:14px; border:none; border-radius:12px; font-size:17px; font-weight:700;
+  background:linear-gradient(135deg,#1f4e79,#2e74b5); color:#fff; cursor:pointer; transition:.2s;
+  letter-spacing:2px;
+}
+.btn-start:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(31,78,121,.35); }
+.btn-start:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+.hint { text-align:center; color:#b0bccd; font-size:12px; margin-top:12px; }
+.toolbar { display:flex; gap:10px; margin-top:16px; }
+.tool-btn {
+  flex:1; padding:11px 8px; border:2px solid #d8e2f0; border-radius:10px; font-size:14px;
+  font-weight:600; color:#4a5a76; background:#fafcff; cursor:pointer; transition:.15s;
+}
+.tool-btn:hover { border-color:#2e74b5; color:#1f4e79; background:#f0f6fd; }
+
+/* ===== 测试界面 ===== */
+.topbar { display:flex; justify-content:space-between; align-items:center; margin:14px 0 10px; gap:8px; flex-wrap:wrap; }
+.topbar .user { font-weight:700; color:#1f4e79; }
+.topbar .stat { font-size:13px; color:#4a5a76; background:#fff; padding:6px 12px; border-radius:20px; box-shadow:0 2px 8px rgba(31,78,121,.08); }
+.topbar .timer { font-weight:700; color:#c0392b; }
+.topbar .timer.warn { animation: blink .6s infinite; }
+@keyframes blink { 50% { opacity:.35; } }
+.progress { height:8px; background:#e3eaf5; border-radius:6px; overflow:hidden; margin-bottom:16px; }
+.progress .bar { height:100%; background:linear-gradient(90deg,#2e74b5,#1f4e79); border-radius:6px; transition:width .3s; }
+
+.quiz-card {
+  background:#fff; border-radius:18px; box-shadow:0 8px 30px rgba(31,78,121,.12);
+  padding:28px 26px; min-height:330px; display:flex; flex-direction:column;
+}
+.word-row { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+.word { font-size:34px; font-weight:800; color:#1f4e79; letter-spacing:.5px; }
+.pos { font-size:14px; color:#0070c0; background:#eaf3fc; padding:3px 10px; border-radius:8px; }
+.ex-label { font-size:12px; color:#8a97ad; margin-top:14px; margin-bottom:4px; }
+.example { font-size:14.5px; color:#5a6a85; line-height:1.7; background:#f7f9fc; border-left:4px solid #b9d4f0; padding:12px 14px; border-radius:0 8px 8px 0; font-style:italic; }
+
+.options { margin-top:22px; display:flex; flex-direction:column; gap:10px; }
+.opt {
+  display:flex; align-items:center; gap:12px; padding:13px 16px; border:2px solid #d8e2f0;
+  border-radius:12px; cursor:pointer; transition:.15s; font-size:15.5px; background:#fafcff;
+}
+.opt:hover { border-color:#2e74b5; background:#f0f6fd; }
+.opt .tag { width:28px; height:28px; border-radius:50%; background:#e3eaf5; color:#4a5a76; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+.opt.correct { border-color:#1e8e5a; background:#e8f8f0; }
+.opt.correct .tag { background:#1e8e5a; color:#fff; }
+.opt.wrong { border-color:#c0392b; background:#fdecec; }
+.opt.wrong .tag { background:#c0392b; color:#fff; }
+.opt.dim { opacity:.55; }
+.opt.disabled { pointer-events:none; }
+
+.feedback { margin-top:16px; padding:13px 16px; border-radius:12px; font-size:14.5px; line-height:1.6; display:none; }
+.feedback.show { display:block; }
+.feedback.right { background:#e8f8f0; color:#15593a; border:1px solid #b5e6cd; }
+.feedback.wrong { background:#fdecec; color:#8f2d20; border:1px solid #f3c4bd; }
+.feedback .cn { font-weight:700; font-size:16px; }
+
+.btn-next {
+  margin-top:18px; padding:12px; border:none; border-radius:10px; font-size:15px; font-weight:700;
+  background:#1f4e79; color:#fff; cursor:pointer; transition:.2s; display:none;
+}
+.btn-next.show { display:block; }
+.btn-next:hover { background:#2e74b5; }
+
+/* ===== 结果界面 ===== */
+.result-head { text-align:center; margin-bottom:20px; }
+.result-head .big-score { font-size:64px; font-weight:800; color:#1f4e79; line-height:1.1; }
+.result-head .pct { font-size:18px; color:#8a97ad; }
+.stats { display:flex; gap:14px; justify-content:center; margin:18px 0; flex-wrap:wrap; }
+.stats .item { background:#f0f6fd; border-radius:12px; padding:12px 22px; text-align:center; }
+.stats .item .v { font-size:22px; font-weight:800; color:#1f4e79; }
+.stats .item .k { font-size:12px; color:#8a97ad; margin-top:2px; }
+.review { margin-top:18px; }
+.review h3 { font-size:15px; color:#1f4e79; margin-bottom:10px; }
+.review-item { display:flex; justify-content:space-between; gap:10px; padding:10px 14px; border-radius:10px; background:#fafcff; border:1px solid #e8eef7; margin-bottom:6px; font-size:14px; }
+.review-item .w { font-weight:700; color:#1f4e79; white-space:nowrap; }
+.review-item .a { color:#1e8e5a; font-weight:600; }
+.review-item .u { color:#c0392b; text-decoration:line-through; margin-right:8px; }
+.btn-again { margin-top:22px; padding:13px; border:none; border-radius:12px; font-size:16px; font-weight:700; background:linear-gradient(135deg,#1f4e79,#2e74b5); color:#fff; cursor:pointer; width:100%; }
+.btn-again:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(31,78,121,.3); }
+.save-note { text-align:center; font-size:12px; color:#8a97ad; margin-top:12px; }
+
+/* ===== 历史记录弹层 ===== */
+.mask { position:fixed; inset:0; background:rgba(31,50,80,.45); display:none; align-items:flex-end; justify-content:center; z-index:100; }
+.mask.show { display:flex; }
+.sheet {
+  background:#fff; width:100%; max-width:760px; max-height:82vh; border-radius:20px 20px 0 0;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.sheet-head { padding:18px 22px 14px; border-bottom:1px solid #e8eef7; display:flex; justify-content:space-between; align-items:center; }
+.sheet-head h3 { font-size:17px; color:#1f4e79; }
+.sheet-close { width:44px; height:44px; border:none; background:#eef3fb; color:#4a5a76; border-radius:12px; font-size:18px; cursor:pointer; }
+.sheet-body { padding:14px 22px 20px; overflow-y:auto; }
+.hist-item { border:1px solid #e8eef7; border-radius:12px; padding:12px 14px; margin-bottom:10px; background:#fafcff; }
+.hist-item .row1 { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+.hist-item .who { font-weight:700; color:#1f4e79; font-size:15px; }
+.hist-item .meta { font-size:12px; color:#8a97ad; }
+.hist-item .score { font-size:16px; font-weight:800; }
+.hist-item .score.good { color:#1e8e5a; }
+.hist-item .score.bad { color:#c0392b; }
+.hist-item .badge { font-size:11px; background:#eaf3fc; color:#0070c0; padding:2px 8px; border-radius:8px; }
+.hist-item .badge.range { background:#fdf3e7; color:#b97a1e; }
+.hist-item .badge.cnt { background:#eef6ee; color:#1e7a4a; }
+.hist-item .detail { margin-top:8px; font-size:12.5px; color:#5a6a85; line-height:1.6; display:none; }
+.hist-item .detail.show { display:block; }
+.hist-item .btn-toggle { font-size:12.5px; color:#2e74b5; background:none; border:none; cursor:pointer; padding:6px 0; text-decoration:underline; }
+.hist-item .btn-del { font-size:12.5px; color:#c0392b; background:none; border:none; cursor:pointer; padding:6px 0 6px 12px; text-decoration:underline; }
+.hist-empty { text-align:center; color:#b0bccd; padding:40px 0; font-size:14px; }
+.sheet-actions { display:flex; gap:10px; margin-top:14px; }
+.sheet-actions button {
+  flex:1; padding:12px 8px; border:2px solid #d8e2f0; border-radius:10px; font-size:14px;
+  font-weight:600; color:#4a5a76; background:#fafcff; cursor:pointer;
+}
+.sheet-actions button.danger { color:#c0392b; border-color:#f3c4bd; background:#fdf3f3; }
+.sheet-actions button:hover { border-color:#2e74b5; }
+.footer { text-align:center; color:#b0bccd; font-size:12px; margin-top:26px; }
+.confirm-mask { position:fixed; inset:0; background:rgba(31,50,80,.5); display:none; align-items:center; justify-content:center; z-index:200; padding:24px; }
+.confirm-mask.show { display:flex; }
+.confirm-box { background:#fff; border-radius:16px; padding:26px 24px; max-width:340px; width:100%; text-align:center; }
+.confirm-box p { font-size:15px; color:#2b3a55; line-height:1.6; margin-bottom:18px; }
+.confirm-box .btns { display:flex; gap:12px; }
+.confirm-box button { flex:1; padding:12px; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; border:2px solid #d8e2f0; background:#fafcff; color:#4a5a76; }
+.confirm-box button.ok { background:#c0392b; color:#fff; border-color:#c0392b; }
+.confirm-box button.ok2 { background:#1f4e79; color:#fff; border-color:#1f4e79; }
+/* ===== 返回首页按钮 ===== */
+.home-btn {
+  position:fixed; top:14px; left:14px; z-index:1000;
+  background:#1f4e79; color:#fff; text-decoration:none;
+  padding:9px 18px; border-radius:24px; font-size:14px; font-weight:700;
+  box-shadow:0 4px 14px rgba(31,78,121,.25); transition:.2s;
+}
+.home-btn:hover { background:#2e74b5; }
+</style>
+</head>
+<body>
+<a href="./index.html" class="home-btn" title="返回首页">🏠 首页</a>
+<div class="wrap">
+
+  <!-- 开始界面 -->
+  <div id="startScreen">
+    <div class="card">
+      <h1>📇 IGCSE Economics 词汇卡片小测试</h1>
+      <div class="sub">0455 非术语词汇（270 词）· 显示词汇与例句，选出正确释义</div>
+      <div class="field">
+        <label>你的名字</label>
+        <input type="text" id="nameInput" placeholder="请输入名字后开始" maxlength="20" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>本次测试词汇数量</label>
+        <div class="chip-options" id="countBox">
+          <label><input type="radio" name="count" value="10"><span>10 词</span></label>
+          <label><input type="radio" name="count" value="20" checked><span>20 词</span></label>
+          <label><input type="radio" name="count" value="50"><span>50 词</span></label>
+          <label><input type="radio" name="count" value="100"><span>100 词</span></label>
+          <label><input type="radio" name="count" value="all"><span>全部</span></label>
+        </div>
+        <div class="hint" id="countHint"></div>
+      </div>
+      <button class="btn-start" id="btnStart" onclick="startQuiz()">开 始 测 试</button>
+      <div class="toolbar">
+        <button class="tool-btn" onclick="openHistory()">📋 历史记录</button>
+        <button class="tool-btn" onclick="exportBackup()">💾 导出备份</button>
+        <button class="tool-btn" onclick="importBackup()">📥 导入恢复</button>
+      </div>
+      <div class="hint">每题限时 20 秒 · 选错会揭晓正确答案 · 测试结果自动保存</div>
+    </div>
+  </div>
+
+  <!-- 测试界面 -->
+  <div id="quizScreen" style="display:none">
+    <div class="topbar">
+      <span class="user" id="userLabel"></span>
+      <span class="stat" id="progressLabel"></span>
+      <span class="stat" id="scoreLabel"></span>
+      <span class="stat timer" id="timerLabel">20</span>
+    </div>
+    <div class="progress"><div class="bar" id="progressBar"></div></div>
+    <div class="quiz-card">
+      <div class="word-row">
+        <span class="word" id="wordText"></span>
+        <span class="pos" id="posText"></span>
+      </div>
+      <div class="ex-label">例句：</div>
+      <div class="example" id="exampleText"></div>
+      <div class="options" id="optionsBox"></div>
+      <div class="feedback" id="feedback"></div>
+      <button class="btn-next" id="btnNext" onclick="nextQuestion()">下一题 →</button>
+    </div>
+  </div>
+
+  <!-- 结果界面 -->
+  <div id="resultScreen" style="display:none">
+    <div class="card">
+      <div class="result-head">
+        <div style="font-size:20px;color:#4a5a76;margin-bottom:4px" id="resultUser"></div>
+        <div class="big-score" id="resultScore"></div>
+        <div class="pct" id="resultPct"></div>
+      </div>
+      <div class="stats">
+        <div class="item"><div class="v" id="statCorrect"></div><div class="k">答对</div></div>
+        <div class="item"><div class="v" id="statWrong"></div><div class="k">答错/超时</div></div>
+        <div class="item"><div class="v" id="statTime"></div><div class="k">用时</div></div>
+        <div class="item"><div class="v" id="statAcc"></div><div class="k">正确率</div></div>
+      </div>
+      <div class="review" id="reviewBox" style="display:none">
+        <h3>📝 错题回顾</h3>
+        <div id="reviewList"></div>
+      </div>
+      <button class="btn-again" onclick="location.reload()">再测一次</button>
+      <div class="save-note" id="saveNote"></div>
+    </div>
+  </div>
+
+  <div class="footer">IGCSE Economics 0455 · 词汇卡片测试 · 非术语词汇</div>
+</div>
+
+<!-- 历史记录弹层 -->
+<div class="mask" id="histMask" onclick="if(event.target===this)closeHistory()">
+  <div class="sheet">
+    <div class="sheet-head">
+      <h3>📋 历史测试记录</h3>
+      <button class="sheet-close" onclick="closeHistory()">✕</button>
+    </div>
+    <div class="sheet-body" id="histList"></div>
+    <div style="padding:0 22px 16px">
+      <div class="sheet-actions">
+        <button onclick="exportBackup()">💾 导出备份</button>
+        <button onclick="importBackup()">📥 导入恢复</button>
+        <button class="danger" onclick="confirmClearAll()">🗑 清空记录</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 确认弹窗 -->
+<div class="confirm-mask" id="confirmMask">
+  <div class="confirm-box">
+    <p id="confirmText">确定要执行此操作吗？</p>
+    <div class="btns">
+      <button onclick="hideConfirm()">取消</button>
+      <button class="ok" id="confirmOkBtn" onclick="confirmAction()">确定</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="importFile" accept=".json" style="display:none">
+
+<script>
+const DATA = [{"w":"analyse","pos":"v.","cn":"分析","en":"to examine something in detail and explain how it works","ex":"Analyse the influences on the mobility of two factors of production.","cat":1},{"w":"assess","pos":"v.","cn":"评估","en":"to judge the value, size or importance of something","ex":"Assess the effectiveness of fiscal policy in reducing unemployment.","cat":1},{"w":"calculate","pos":"v.","cn":"计算","en":"to find a number by using mathematics","ex":"How would Dimitry calculate the total revenue of the firm?","cat":1},{"w":"compare","pos":"v.","cn":"比较","en":"to look at how things are similar or different","ex":"Compare the standard of living in two countries.","cat":1},{"w":"define","pos":"v.","cn":"下定义，解释含义","en":"to say exactly what a word or idea means","ex":"Define finite resource.","cat":1},{"w":"describe","pos":"v.","cn":"描述","en":"to say what someone or something is like","ex":"Which term would describe the acquisition if it had been successful?","cat":1},{"w":"determine","pos":"v.","cn":"决定，确定","en":"to decide or control what will happen","ex":"Central planners determine what, how and for whom to produce.","cat":1},{"w":"discuss","pos":"v.","cn":"讨论，论述","en":"to write about a topic giving arguments for and against","ex":"Discuss whether or not demand for cars will become more price-elastic in the future.","cat":1},{"w":"distinguish","pos":"v.","cn":"区分，辨别","en":"to see or show the difference between things","ex":"Distinguish between a public good and a private good.","cat":1},{"w":"draw","pos":"v.","cn":"画（图）","en":"to make a picture or diagram","ex":"Draw a correctly labelled demand and supply diagram.","cat":1},{"w":"evaluate","pos":"v.","cn":"评价，评估","en":"to judge the value or importance of something","ex":"Evaluate whether a rise in interest rates would always reduce inflation.","cat":1},{"w":"explain","pos":"v.","cn":"解释，说明理由","en":"to make something clear by giving reasons","ex":"What might explain the change from year 1 to year 2?","cat":1},{"w":"identify","pos":"v.","cn":"识别，找出","en":"to find and name something","ex":"Economics textbooks identify the existence of scarcity as the basic economic problem.","cat":1},{"w":"indicate","pos":"v.","cn":"表明，指出","en":"to show or point out something","ex":"What does this indicate?","cat":1},{"w":"interpret","pos":"v.","cn":"解读，解释","en":"to explain the meaning of data or information","ex":"Interpret the data in the table below.","cat":1},{"w":"justify","pos":"v.","cn":"证明合理，给出理由","en":"to give reasons why a decision is right","ex":"Justify your answer with reference to the data.","cat":1},{"w":"outline","pos":"v./n.","cn":"概述，列出要点","en":"to give the main points of something without details","ex":"Outline two reasons why a government may subsidise public transport.","cat":1},{"w":"show","pos":"v.","cn":"表明，展示","en":"to make something able to be seen or understood","ex":"The diagrams show the demand curves for the only two buyers in a market.","cat":1},{"w":"state","pos":"v.","cn":"陈述，说明","en":"to say something clearly in words","ex":"A government decides to move towards a market economy by selling state-owned enterprises.","cat":1},{"w":"suggest","pos":"v.","cn":"暗示，表明；建议","en":"to say what information seems to show","ex":"What is this information most likely to suggest about the country?","cat":1},{"w":"ability","pos":"n.","cn":"能力","en":"the power or skill to do something","ex":"They can be based on people’s ability to pay.","cat":2},{"w":"access","pos":"n.","cn":"获取途径，使用权","en":"the right or ability to use something","ex":"It results in access to a greater variety of goods for consumers.","cat":2},{"w":"account","pos":"n.","cn":"账户；账目","en":"an arrangement with a bank; a record of money","ex":"In choosing their occupation, people often take into account aspects of the job other than pay.","cat":2},{"w":"afford","pos":"v.","cn":"负担得起","en":"to have enough money to buy something","ex":"They cannot afford to buy products from other countries.","cat":2},{"w":"allocate","pos":"v.","cn":"分配（资源）","en":"to give resources to different uses","ex":"The price mechanism sends signals to consumers and producers to allocate resources.","cat":2},{"w":"amount","pos":"n.","cn":"数量，金额","en":"a quantity of something","ex":"Capital is the amount of money borrowed from a bank.","cat":2},{"w":"analysis","pos":"n.","cn":"分析","en":"the detailed examination of something","ex":"The analysis of the data shows a clear trend.","cat":2},{"w":"anticipate","pos":"v.","cn":"预期，预料","en":"to expect that something will happen","ex":"Consumers can anticipate future price levels.","cat":2},{"w":"assume","pos":"v.","cn":"假设，假定","en":"to suppose that something is true without proof","ex":"Assuming other factors do not change, what is the likely effect?","cat":2},{"w":"attain","pos":"v.","cn":"达到，获得","en":"to succeed in achieving something","ex":"A country may attain a higher standard of living through economic growth.","cat":2},{"w":"attract","pos":"v.","cn":"吸引","en":"to make someone want to come or do something","ex":"The government offers tax cuts to attract foreign investment.","cat":2},{"w":"avoid","pos":"v.","cn":"避免","en":"to prevent something bad from happening","ex":"Workers may avoid taking jobs that require long hours of travel.","cat":2},{"w":"barrier","pos":"n.","cn":"壁垒，障碍","en":"something that blocks the way","ex":"Firms face an administrative and technical barrier to entering the market.","cat":2},{"w":"barter","pos":"n./v.","cn":"物物交换","en":"trading goods without using money","ex":"Countries have to barter manufactured goods for raw materials.","cat":2},{"w":"benefit","pos":"n./v.","cn":"好处；使受益","en":"an advantage; to get an advantage from something","ex":"What is a benefit of the free market system?","cat":2},{"w":"borrow","pos":"v.","cn":"借入","en":"to take money with an agreement to pay it back","ex":"Nazmin would find it easier than Meer to borrow money.","cat":2},{"w":"burden","pos":"n.","cn":"负担","en":"something heavy or difficult to deal with","ex":"A high tax burden may discourage workers from working longer hours.","cat":2},{"w":"capacity","pos":"n.","cn":"产能，容量","en":"the maximum amount that can be produced or held","ex":"Machines are used closer to their full capacity.","cat":2},{"w":"cause","pos":"n./v.","cn":"原因；导致","en":"the reason something happens; to make something happen","ex":"What is the cause of the economic problem facing all countries?","cat":2},{"w":"charge","pos":"v./n.","cn":"收费；价格","en":"to ask for payment; the price of something","ex":"Suppliers have decided to produce 10000 units and charge a price of $6.","cat":2},{"w":"choose","pos":"v.","cn":"选择","en":"to decide which one to have","ex":"Consumers choose the goods that give them the most satisfaction.","cat":2},{"w":"combine","pos":"v.","cn":"结合，合并","en":"to join together to form one thing","ex":"Firms may combine to form a larger company.","cat":2},{"w":"compensate","pos":"v.","cn":"补偿，赔偿","en":"to pay someone for a loss","ex":"The government may compensate farmers for the loss of crops.","cat":2},{"w":"compete","pos":"v.","cn":"竞争","en":"to try to be better or more successful than others","ex":"Firms compete with each other to win customers.","cat":2},{"w":"component","pos":"n.","cn":"部件，组成部分","en":"one of the parts that make up something","ex":"A tractor factory runs out of important components and has to stop production.","cat":2},{"w":"confidence","pos":"n.","cn":"信心","en":"the belief that something will be good or successful","ex":"Consumer confidence in the economy fell.","cat":2},{"w":"consequence","pos":"n.","cn":"后果","en":"a result of an action or event","ex":"What is a possible consequence of market failure?","cat":2},{"w":"consist","pos":"v.","cn":"由…组成","en":"to be made up of something","ex":"A consumer price index consists of four items.","cat":2},{"w":"consume","pos":"v.","cn":"消费","en":"to use goods or services","ex":"Those on average income consume five times more calories per day.","cat":2},{"w":"contribute","pos":"v.","cn":"贡献，促成","en":"to help to make something happen","ex":"Which policy would contribute directly to such a change?","cat":2},{"w":"control","pos":"v./n.","cn":"控制","en":"to make something do what you want; power to decide","ex":"Interest rates are sometimes raised to control inflation.","cat":2},{"w":"convert","pos":"v.","cn":"转换","en":"to change something into a different form","ex":"A currency may be converted into another currency at the exchange rate.","cat":2},{"w":"cover","pos":"v.","cn":"覆盖，包括","en":"to include or deal with something","ex":"The table gives the retail price of a paperback book as printed on its back cover.","cat":2},{"w":"create","pos":"v.","cn":"创造","en":"to make something new","ex":"Producers include any external costs they create in the price of the good.","cat":2},{"w":"cut","pos":"v./n.","cn":"削减，减少","en":"to reduce something","ex":"A cut in interest rates may increase borrowing.","cat":2},{"w":"decline","pos":"v./n.","cn":"下降，减少","en":"to become smaller or less","ex":"Which situation is most likely to cause the level of supply in a market to decline?","cat":2},{"w":"decrease","pos":"v./n.","cn":"减少，下降","en":"to become smaller in amount or number","ex":"It will decrease continuously from point X to point Z.","cat":2},{"w":"deficit","pos":"n.","cn":"赤字，逆差","en":"the amount by which spending is more than income","ex":"An international trade deficit has caused the country to be in debt.","cat":2},{"w":"depend","pos":"v.","cn":"依赖，取决于","en":"to need something; to be decided by something","ex":"On which factor of production does innovation directly depend?","cat":2},{"w":"derive","pos":"v.","cn":"获得，来源于","en":"to get something from a source","ex":"Countries derive income from the export of raw materials.","cat":2},{"w":"dominate","pos":"v.","cn":"主导，占支配地位","en":"to be the largest or most powerful part of something","ex":"The world's mining of mineral ores is dominated by a few multinational companies.","cat":2},{"w":"earn","pos":"v.","cn":"赚得，挣得","en":"to get money for work done","ex":"A monopoly will earn a higher rate of profit.","cat":2},{"w":"efficiency","pos":"n.","cn":"效率","en":"the quality of using resources well","ex":"A movement from X to Y shows a decrease in efficiency in the economy.","cat":2},{"w":"employ","pos":"v.","cn":"雇佣","en":"to pay someone to work for you","ex":"Firms employ workers to produce goods and services.","cat":2},{"w":"enable","pos":"v.","cn":"使能够","en":"to make it possible for someone to do something","ex":"Which method of trade protection would enable domestic firms to lower their prices?","cat":2},{"w":"encourage","pos":"v.","cn":"鼓励，促进","en":"to make someone more likely to do something","ex":"Subsidies can be used to encourage exports.","cat":2},{"w":"ensure","pos":"v.","cn":"确保","en":"to make certain that something happens","ex":"Market forces often fail to ensure maximum benefits for society.","cat":2},{"w":"estimate","pos":"v./n.","cn":"估计","en":"to judge the size or value of something roughly","ex":"The following estimates are made for a ten-year period.","cat":2},{"w":"exceed","pos":"v.","cn":"超过","en":"to be greater than a number or amount","ex":"Direct taxation should exceed indirect taxation.","cat":2},{"w":"expand","pos":"v.","cn":"扩大，扩张","en":"to become larger","ex":"Which firm is likely to find it most difficult to expand the use of its main factor of production?","cat":2},{"w":"expect","pos":"v.","cn":"预期，预计","en":"to think that something will happen","ex":"Future expected price levels will affect current demand.","cat":2},{"w":"expenditure","pos":"n.","cn":"支出，开销","en":"the amount of money spent","ex":"More employed workers may reduce government expenditure on benefit payments.","cat":2},{"w":"exploit","pos":"v.","cn":"开发，利用；剥削","en":"to use something fully; to treat someone unfairly for profit","ex":"Which statement explains why firms in perfect competition are not able to exploit consumers?","cat":2},{"w":"finance","pos":"v./n.","cn":"为…融资；资金","en":"to provide money for something; money for a project","ex":"The money used to finance a project is called capital.","cat":2},{"w":"fluctuate","pos":"v.","cn":"波动","en":"to change frequently up and down","ex":"Prices fluctuate with changes in demand and supply.","cat":2},{"w":"gain","pos":"v./n.","cn":"获得；收益","en":"to get something; an increase in something","ex":"Which workers are most likely to gain the highest increase in wages from a pay rise of 2%?","cat":2},{"w":"generate","pos":"v.","cn":"产生，创造","en":"to produce something such as income or jobs","ex":"Economic growth can generate more employment opportunities.","cat":2},{"w":"handle","pos":"v.","cn":"处理，应对","en":"to deal with something","ex":"Small firms may find it difficult to handle large orders.","cat":2},{"w":"hinder","pos":"v.","cn":"阻碍","en":"to make it difficult for something to happen","ex":"High taxes may hinder the growth of small firms.","cat":2},{"w":"hold","pos":"v.","cn":"持有，保持","en":"to have or keep something","ex":"The central bank holds reserves of foreign currency.","cat":2},{"w":"impose","pos":"v.","cn":"征收（税）；施加","en":"to force a tax or rule on someone","ex":"Discuss whether a country should impose more trade restrictions.","cat":2},{"w":"improve","pos":"v.","cn":"改善，提高","en":"to make something better","ex":"An economy with few resources is encouraged to improve the quality of its human resources.","cat":2},{"w":"incentive","pos":"n.","cn":"激励，动力","en":"something that makes people want to do something","ex":"There is no incentive to work.","cat":2},{"w":"include","pos":"v.","cn":"包括","en":"to contain something as a part","ex":"Producers include any external costs they create in the price of the good.","cat":2},{"w":"increase","pos":"v./n.","cn":"增加","en":"to become larger in amount or number","ex":"A government wishes to increase agricultural output.","cat":2},{"w":"infrastructure","pos":"n.","cn":"基础设施","en":"basic systems such as roads and power that a country needs","ex":"The possibility of improving domestic infrastructure, therefore, was not taken.","cat":2},{"w":"innovation","pos":"n.","cn":"创新","en":"a new idea or method","ex":"On which factor of production does innovation directly depend?","cat":2},{"w":"intend","pos":"v.","cn":"打算，意图","en":"to plan or mean to do something","ex":"A government intends to improve skills by offering free training.","cat":2},{"w":"invest","pos":"v.","cn":"投资","en":"to put money into something to make a profit","ex":"Producers will be more willing to invest when interest rates are high.","cat":2},{"w":"investment","pos":"n.","cn":"投资","en":"money put into something to make a profit","ex":"There is an increase in investment.","cat":2},{"w":"involve","pos":"v.","cn":"涉及，包含","en":"to include something as a necessary part","ex":"What does this involve?","cat":2},{"w":"issue","pos":"v./n.","cn":"发行；发布；问题","en":"to officially produce something; a topic people discuss","ex":"A central bank issues currency.","cat":2},{"w":"lack","pos":"n./v.","cn":"缺乏","en":"not having enough of something","ex":"Consumers may lack information about which good to buy.","cat":2},{"w":"lead","pos":"v.","cn":"导致，通向","en":"to cause something to happen","ex":"Which policy will lead to such an improvement?","cat":2},{"w":"leisure","pos":"n.","cn":"闲暇，休闲","en":"free time not spent working","ex":"The diagram shows the choices for an individual between leisure and earnings.","cat":2},{"w":"lend","pos":"v.","cn":"借出","en":"to give money to someone who will pay it back","ex":"Commercial banks lend money to firms and households.","cat":2},{"w":"limit","pos":"v./n.","cn":"限制；限度","en":"to keep something within a maximum amount","ex":"The government may limit the amount of a good that can be imported.","cat":2},{"w":"lose","pos":"v.","cn":"失去，亏损","en":"to no longer have something; to make less money","ex":"Goods manufactured for export lose their competitiveness.","cat":2},{"w":"maintain","pos":"v.","cn":"维持，保持","en":"to keep something at the same level","ex":"Which policy aims to maintain low inflation over a period of time?","cat":2},{"w":"manage","pos":"v.","cn":"管理，经营","en":"to run a business or deal with a situation","ex":"In recent years, governments have had to manage the effects of a world recession.","cat":2},{"w":"measure","pos":"v./n.","cn":"衡量；措施","en":"to find the size or amount of something; an action to achieve a goal","ex":"What would be the effect of this measure?","cat":2},{"w":"meet","pos":"v.","cn":"满足，达到","en":"to satisfy a need or demand","ex":"Wants still exceeded the resources available to meet those wants.","cat":2},{"w":"mobility","pos":"n.","cn":"流动性，流动性","en":"the ability to move easily","ex":"What is most likely to increase the occupational mobility of labour?","cat":2},{"w":"necessity","pos":"n.","cn":"必需品","en":"something that is needed, not a luxury","ex":"Food is a necessity, while jewellery is a luxury.","cat":2},{"w":"obtain","pos":"v.","cn":"获得","en":"to get something","ex":"Firms obtain discounts when buying in bulk.","cat":2},{"w":"occur","pos":"v.","cn":"发生","en":"to happen","ex":"If both of these events occur, how will costs and benefits be affected?","cat":2},{"w":"offer","pos":"v.","cn":"提供，出价","en":"to say you will give something to someone","ex":"A monopoly will offer a wider choice to the consumer.","cat":2},{"w":"operate","pos":"v.","cn":"运营，运作","en":"to work or run (a business or system)","ex":"Why are many hairdressers able to operate as small businesses?","cat":2},{"w":"oppose","pos":"v.","cn":"反对","en":"to disagree with a plan and try to stop it","ex":"Objectors oppose the exploration of new oil sites because of environmental damage.","cat":2},{"w":"output","pos":"n.","cn":"产量，产出","en":"the amount a firm or economy produces","ex":"A government wishes to increase agricultural output.","cat":2},{"w":"pay","pos":"v./n.","cn":"支付；工资","en":"to give money for goods or work; wages","ex":"It ensures that all consumers are willing to pay the same price.","cat":2},{"w":"poverty","pos":"n.","cn":"贫困","en":"the state of being poor","ex":"A government wants to reduce both its budget deficit and the amount of poverty in its country.","cat":2},{"w":"prefer","pos":"v.","cn":"更喜欢","en":"to like one thing more than another","ex":"Sam wrote a list of how he would prefer to spend his Saturday afternoon.","cat":2},{"w":"prevent","pos":"v.","cn":"阻止，防止","en":"to stop something from happening","ex":"The government provides goods to prevent the development of monopolies.","cat":2},{"w":"produce","pos":"v./n.","cn":"生产；农产品","en":"to make or grow something","ex":"Manufacturers produce a large variety of foods.","cat":2},{"w":"productivity","pos":"n.","cn":"生产率","en":"the amount of output per unit of input","ex":"What is most likely to lead to an improvement in labour productivity in an industry?","cat":2},{"w":"promote","pos":"v.","cn":"促进，推动","en":"to help something to grow or develop","ex":"Discuss whether or not supply-side policy measures always promote economic growth.","cat":2},{"w":"proportion","pos":"n.","cn":"比例","en":"the relationship between two amounts","ex":"Nazmin spends a smaller proportion of her income than Meer.","cat":2},{"w":"provide","pos":"v.","cn":"提供","en":"to give someone something they need","ex":"Why does a government provide certain goods and services in a mixed economic system?","cat":2},{"w":"purchase","pos":"v./n.","cn":"购买","en":"to buy something","ex":"What is an example of the purchase of a capital good?","cat":2},{"w":"pursue","pos":"v.","cn":"推行，追求","en":"to try to achieve something","ex":"A government wishes to pursue an expansionary monetary policy.","cat":2},{"w":"quality","pos":"n.","cn":"质量","en":"how good something is","ex":"An economy with few resources is encouraged to improve the quality of its human resources.","cat":2},{"w":"quantity","pos":"n.","cn":"数量","en":"an amount or number of something","ex":"Which government action will not add directly to the quantity or quality of human resources?","cat":2},{"w":"raise","pos":"v.","cn":"提高，筹集","en":"to increase something; to collect money for a purpose","ex":"It will raise any deficit on the current account.","cat":2},{"w":"reduce","pos":"v.","cn":"减少，降低","en":"to make something smaller or less","ex":"To help reduce the price of oil, new supplies are needed.","cat":2},{"w":"reduction","pos":"n.","cn":"减少","en":"the act of making something smaller","ex":"Specialisation can lead to a reduction in average costs of production.","cat":2},{"w":"refer","pos":"v.","cn":"提到，指","en":"to mention or to mean something","ex":"Economists refer to factors of production.","cat":2},{"w":"reflect","pos":"v.","cn":"反映","en":"to show or express something","ex":"The market price reflects both the private and external costs of production.","cat":2},{"w":"regulate","pos":"v.","cn":"监管，管制","en":"to control something by rules","ex":"It must equal tax revenue and can regulate the amount of the money supply.","cat":2},{"w":"rely","pos":"v.","cn":"依赖","en":"to need something or someone for support","ex":"Many low-income countries rely on exports of raw materials such as coffee.","cat":2},{"w":"remain","pos":"v.","cn":"保持，仍然是","en":"to stay in the same state","ex":"It will remain unchanged.","cat":2},{"w":"remove","pos":"v.","cn":"移除，取消","en":"to take something away","ex":"Drinks producers in India are resisting plans to remove tariffs on imported drinks.","cat":2},{"w":"require","pos":"v.","cn":"需要","en":"to need something","ex":"They require wages to fall.","cat":2},{"w":"restrict","pos":"v.","cn":"限制","en":"to limit something","ex":"The firms can restrict output.","cat":2},{"w":"revenue","pos":"n.","cn":"收入，税收","en":"money a business or government receives","ex":"What is the total tax revenue gained by the government?","cat":2},{"w":"rise","pos":"v./n.","cn":"上升，上涨","en":"to go up","ex":"There was a rise in the price of goods and services in many economies.","cat":2},{"w":"satisfy","pos":"v.","cn":"满足","en":"to give someone what they need or want","ex":"It is impossible to satisfy unlimited wants.","cat":2},{"w":"save","pos":"v.","cn":"储蓄，节省","en":"to keep money for the future; to use less","ex":"In which group does the average person save the most?","cat":2},{"w":"sell","pos":"v.","cn":"出售","en":"to give something in exchange for money","ex":"A business person employs two people to make sandwiches to sell in a cafe.","cat":2},{"w":"shift","pos":"v./n.","cn":"移动，转移","en":"to move from one position to another","ex":"Which position is most likely to lead to the greatest outward shift of the PPC?","cat":2},{"w":"spend","pos":"v.","cn":"花费","en":"to use money to buy things","ex":"The Norwegian government chose to spend the profits from oil on stocks, bonds and property.","cat":2},{"w":"stability","pos":"n.","cn":"稳定","en":"the state of not changing much","ex":"Price stability means that the price of all goods and services must remain unchanged.","cat":2},{"w":"stimulate","pos":"v.","cn":"刺激，促进","en":"to encourage something to develop","ex":"Which supply-side policy could have been used to stimulate economic growth?","cat":2},{"w":"subsidise","pos":"v.","cn":"补贴","en":"to help pay part of the cost of something","ex":"Why might a government decide to subsidise a high-cost steel industry?","cat":2},{"w":"supply","pos":"v./n.","cn":"供给，供应","en":"to provide goods; the amount available","ex":"The exploration involves demand and supply.","cat":2},{"w":"support","pos":"v./n.","cn":"支持；补贴","en":"to help something continue; financial help","ex":"Which aspect of remaining labour-intensive would support this choice?","cat":2},{"w":"sustain","pos":"v.","cn":"维持，持续","en":"to keep something going over time","ex":"The economy experiences sustained economic growth over time.","cat":2},{"w":"tackle","pos":"v.","cn":"应对，解决","en":"to deal with a problem","ex":"The government may tackle unemployment by reducing taxes.","cat":2},{"w":"technology","pos":"n.","cn":"技术","en":"the use of science in industry and production","ex":"What movement would represent an improvement of technology in manufacturing?","cat":2},{"w":"terminology","pos":"n.","cn":"术语","en":"the special words used in a subject","ex":"Students should use correct economic terminology in their answers.","cat":2},{"w":"training","pos":"n.","cn":"培训","en":"teaching people the skills for a job","ex":"Further training in hospitals must follow graduation.","cat":2},{"w":"transfer","pos":"v./n.","cn":"转移，转账","en":"to move something from one place or person to another","ex":"It reduces government transfer payments.","cat":2},{"w":"transport","pos":"n./v.","cn":"运输","en":"the moving of goods or people","ex":"Decreased transport costs led to a surplus of supply.","cat":2},{"w":"undertake","pos":"v.","cn":"从事，承担","en":"to agree to do a task or job","ex":"Workers may be given the opportunity to undertake training.","cat":2},{"w":"vary","pos":"v.","cn":"变化，不同","en":"to be different at different times or places","ex":"Identify two reasons why death rates may vary between countries.","cat":2},{"w":"welfare","pos":"n.","cn":"福利","en":"health and happiness of people; help from the government","ex":"The real value of government welfare benefits had fallen.","cat":2},{"w":"yield","pos":"v./n.","cn":"产生（收益）；产量","en":"to produce income or crops","ex":"If the land is used only for farming it would yield income after tax of $10 billion.","cat":2},{"w":"accordingly","pos":"adv.","cn":"因此，相应地","en":"in a way that is suitable; as a result","ex":"The government raised taxes and spending was cut accordingly.","cat":3},{"w":"account for","pos":"phr.","cn":"解释，说明","en":"to explain the reason for something","ex":"It does not account for inflation.","cat":3},{"w":"accurate","pos":"adj.","cn":"准确的","en":"correct and exact","ex":"Accurate diagrams are important in economic answers.","cat":3},{"w":"adequate","pos":"adj.","cn":"足够的","en":"enough for a purpose","ex":"The supply of housing may be inadequate for a growing population.","cat":3},{"w":"although","pos":"conj.","cn":"虽然","en":"in spite of the fact that","ex":"Fares may rise, although lower emissions may result from the change.","cat":3},{"w":"appropriate","pos":"adj.","cn":"适当的，合适的","en":"suitable for the situation","ex":"The answer should use appropriate economic terminology.","cat":3},{"w":"as a result","pos":"phr.","cn":"因此","en":"because of that","ex":"What will be the new equilibrium as a result of the above situation?","cat":3},{"w":"at least","pos":"phr.","cn":"至少","en":"not less than","ex":"A firm must sell at least enough output to cover its costs.","cat":3},{"w":"at most","pos":"phr.","cn":"至多","en":"not more than","ex":"The subsidy covers at most half of the cost.","cat":3},{"w":"bring about","pos":"phr.","cn":"引起，导致","en":"to cause something to happen","ex":"Monetary policy can bring about a fall in inflation.","cat":3},{"w":"coherent","pos":"adj.","cn":"连贯的，有条理的","en":"clear and well organised","ex":"A coherent answer links each point with clear reasoning.","cat":3},{"w":"consequently","pos":"adv.","cn":"因此，结果","en":"as a result of something","ex":"Demand fell and consequently prices decreased.","cat":3},{"w":"considerable","pos":"adj.","cn":"相当大的","en":"large in amount or size","ex":"The country faces considerable skill shortages in its service sector.","cat":3},{"w":"consist of","pos":"phr.","cn":"由…组成","en":"to be made up of","ex":"The labour force consists of all people of working age.","cat":3},{"w":"constant","pos":"adj.","cn":"恒定的，不变的","en":"staying the same","ex":"What is not held constant when constructing the supply curve of a firm?","cat":3},{"w":"cost of living","pos":"phr.","cn":"生活成本","en":"the money needed to buy the basics of life","ex":"The cost of living fell between 2014 and 2015.","cat":3},{"w":"current","pos":"adj.","cn":"当前的","en":"happening now","ex":"The current market price for the good is $10.","cat":3},{"w":"depend on","pos":"phr.","cn":"取决于","en":"to be decided by something","ex":"Specialisation can reduce a country’s need to depend on other economies.","cat":3},{"w":"despite","pos":"prep.","cn":"尽管","en":"in spite of","ex":"Despite higher prices, demand for the product continued to rise.","cat":3},{"w":"domestic","pos":"adj.","cn":"国内的","en":"of one's own country","ex":"Gross domestic product was unevenly distributed in the country.","cat":3},{"w":"due to","pos":"phr.","cn":"由于","en":"because of","ex":"Which factor of production has increased in the US due to this discovery?","cat":3},{"w":"effective","pos":"adj.","cn":"有效的","en":"producing the result that is wanted","ex":"Why might this policy be effective?","cat":3},{"w":"efficient","pos":"adj.","cn":"高效的","en":"using resources well without waste","ex":"The workers in the production of goods have become less efficient.","cat":3},{"w":"entire","pos":"adj.","cn":"整个的","en":"whole; complete","ex":"A rise in price shifts the entire demand curve.","cat":3},{"w":"essential","pos":"adj.","cn":"必不可少的","en":"completely necessary","ex":"Which factors of production are essential to this activity?","cat":3},{"w":"excess","pos":"adj./n.","cn":"过量的；过剩","en":"more than is needed","ex":"There is an excess stock of land in China.","cat":3},{"w":"exchange rate","pos":"phr.","cn":"汇率","en":"the price of one currency in terms of another","ex":"It will raise the foreign exchange rate.","cat":3},{"w":"external","pos":"adj.","cn":"外部的","en":"outside something","ex":"There are external costs involved in production.","cat":3},{"w":"favourable","pos":"adj.","cn":"有利的","en":"helpful or good for something","ex":"A favourable exchange rate makes exports cheaper.","cat":3},{"w":"flexible","pos":"adj.","cn":"灵活的","en":"able to change easily","ex":"Production is less flexible.","cat":3},{"w":"for example","pos":"phr.","cn":"例如","en":"used to give an example","ex":"For example, an increase in income raises demand for normal goods.","cat":3},{"w":"for instance","pos":"phr.","cn":"例如","en":"used to give an example","ex":"For instance, a rise in wages may reduce the demand for labour.","cat":3},{"w":"furthermore","pos":"adv.","cn":"此外","en":"in addition to what has been said","ex":"The tax raises revenue; furthermore, it reduces consumption.","cat":3},{"w":"give rise to","pos":"phr.","cn":"引起，导致","en":"to cause something to happen","ex":"Shortages may give rise to black markets.","cat":3},{"w":"gradual","pos":"adj.","cn":"逐渐的","en":"happening slowly over time","ex":"Overall the standard of living is gradually falling.","cat":3},{"w":"greater","pos":"adj.","cn":"更大的，更多的","en":"larger in amount or degree","ex":"The supply of the resource is greater than demand.","cat":3},{"w":"hence","pos":"adv.","cn":"因此","en":"for this reason","ex":"The price rises, hence quantity demanded falls.","cat":3},{"w":"higher","pos":"adj.","cn":"较高的","en":"greater in amount or level","ex":"The social costs of healthcare are higher.","cat":3},{"w":"however","pos":"adv.","cn":"然而","en":"in spite of that","ex":"However, objectors opposed attempts to explore new sites.","cat":3},{"w":"identical","pos":"adj.","cn":"完全相同的","en":"exactly the same","ex":"In perfect competition, firms sell identical products.","cat":3},{"w":"immediate","pos":"adj.","cn":"立即的","en":"happening at once","ex":"There is an immediate fall in gross domestic product.","cat":3},{"w":"in addition","pos":"phr.","cn":"此外","en":"besides; also","ex":"In addition to income tax, consumers pay indirect taxes.","cat":3},{"w":"in contrast","pos":"phr.","cn":"相比之下","en":"when compared with something different","ex":"In contrast, a free market relies on the price mechanism.","cat":3},{"w":"in exchange for","pos":"phr.","cn":"以…交换","en":"in return for something","ex":"Workers sell their labour in exchange for wages.","cat":3},{"w":"in order to","pos":"phr.","cn":"为了","en":"with the purpose of","ex":"What can a central bank increase in order to reduce consumer borrowing?","cat":3},{"w":"in spite of","pos":"phr.","cn":"尽管","en":"despite","ex":"In spite of the recession, exports increased.","cat":3},{"w":"in terms of","pos":"phr.","cn":"就…而言","en":"with regard to","ex":"Which name is given to the external value of a currency in terms of another currency?","cat":3},{"w":"in the long run","pos":"phr.","cn":"长期来看","en":"over a long period of time","ex":"Living standards rise in the long run.","cat":3},{"w":"in the short run","pos":"phr.","cn":"短期来看","en":"over a short period of time","ex":"Living standards rise in the short run.","cat":3},{"w":"inadequate","pos":"adj.","cn":"不足的","en":"not enough","ex":"Inadequate training reduces the quality of the labour force.","cat":3},{"w":"inevitable","pos":"adj.","cn":"不可避免的","en":"certain to happen","ex":"Some unemployment is inevitable in a changing economy.","cat":3},{"w":"inferior","pos":"adj.","cn":"较差的；（商品）低档的","en":"lower in quality; bought less as income rises","ex":"Used cars are inferior goods and new cars are normal goods.","cat":3},{"w":"inflation rate","pos":"phr.","cn":"通货膨胀率","en":"the rate at which prices rise","ex":"It will raise the inflation rate.","cat":3},{"w":"initial","pos":"adj.","cn":"最初的","en":"happening at the beginning","ex":"X was the initial equilibrium in the market for food in supermarkets.","cat":3},{"w":"interest rate","pos":"phr.","cn":"利率","en":"the percentage charged on borrowed money","ex":"Banks provide loans at a lower interest rate to bigger firms.","cat":3},{"w":"internal","pos":"adj.","cn":"内部的","en":"inside something","ex":"What could cause internal diseconomies of scale for a firm?","cat":3},{"w":"larger","pos":"adj.","cn":"更大的","en":"bigger in size or amount","ex":"A monopoly will operate on a larger scale of production.","cat":3},{"w":"lead to","pos":"phr.","cn":"导致","en":"to cause something to happen","ex":"Which policy will lead to such an improvement?","cat":3},{"w":"limited","pos":"adj.","cn":"有限的","en":"not enough; restricted","ex":"There are limited wants.","cat":3},{"w":"logical","pos":"adj.","cn":"合乎逻辑的","en":"reasonable and based on clear thinking","ex":"A logical explanation follows a clear order of causes and effects.","cat":3},{"w":"lower","pos":"adj.","cn":"较低的","en":"less high; less in amount","ex":"The financial cost of building new roads is lower.","cat":3},{"w":"marginal","pos":"adj.","cn":"边际的","en":"additional; relating to the next unit","ex":"Marginal cost is the extra cost of producing one more unit.","cat":3},{"w":"maximum","pos":"adj./n.","cn":"最大的；最大值","en":"the greatest possible amount","ex":"The table shows the maximum production possibilities for goods and services for a country.","cat":3},{"w":"meanwhile","pos":"adv.","cn":"与此同时","en":"at the same time","ex":"Meanwhile, the supply of labour increased.","cat":3},{"w":"minimum","pos":"adj./n.","cn":"最小的；最小值","en":"the smallest possible amount","ex":"What is the effect of paying the minimum wage (Wt)?","cat":3},{"w":"moreover","pos":"adv.","cn":"此外，而且","en":"in addition","ex":"The price is high; moreover, supply is limited.","cat":3},{"w":"nominal","pos":"adj.","cn":"名义的","en":"not adjusted for inflation","ex":"In a country, inflation is 10% and nominal interest rates are 7%.","cat":3},{"w":"nonetheless","pos":"adv.","cn":"尽管如此","en":"in spite of what has just been said","ex":"The policy is costly; nonetheless it reduces pollution.","cat":3},{"w":"on the other hand","pos":"phr.","cn":"另一方面","en":"used to introduce a different point of view","ex":"Fiscal policy affects demand; on the other hand, supply-side policy affects costs.","cat":3},{"w":"opportunity cost","pos":"phr.","cn":"机会成本","en":"the next best alternative given up","ex":"There is no opportunity cost of using sunlight.","cat":3},{"w":"overall","pos":"adj.","cn":"总体的","en":"considering everything together","ex":"Overall the standard of living is gradually falling.","cat":3},{"w":"owing to","pos":"phr.","cn":"由于","en":"because of","ex":"Monopoly costs are always lower owing to economies of scale.","cat":3},{"w":"permanent","pos":"adj.","cn":"永久的","en":"lasting forever","ex":"Some job losses are permanent when factories close.","cat":3},{"w":"persistent","pos":"adj.","cn":"持续的","en":"continuing for a long time","ex":"Persistent inflation reduces the value of money.","cat":3},{"w":"potential","pos":"adj./n.","cn":"潜在的；潜力","en":"possible in the future; ability that can be developed","ex":"A production possibility curve is an economic model of potential output.","cat":3},{"w":"precise","pos":"adj.","cn":"精确的","en":"exact and accurate","ex":"Use precise economic terms to gain full marks.","cat":3},{"w":"previous","pos":"adj.","cn":"之前的","en":"happening before the present time","ex":"Producers are producing sugar at previous levels.","cat":3},{"w":"primary","pos":"adj.","cn":"初级的；主要的","en":"first; most important; (sector) producing raw materials","ex":"It relates to the production of raw materials in the primary sector.","cat":3},{"w":"private","pos":"adj.","cn":"私人的，私营的","en":"owned by individuals, not the government","ex":"The market price reflects both the private and external costs of production.","cat":3},{"w":"rapid","pos":"adj.","cn":"迅速的","en":"fast","ex":"Modern medicine and sanitation will lead to a rapid decline in death rates.","cat":3},{"w":"refer to","pos":"phr.","cn":"指的是","en":"to mean or mention something","ex":"Economists refer to factors of production.","cat":3},{"w":"regardless of","pos":"phr.","cn":"不管，不顾","en":"without considering something","ex":"Taxes must be paid regardless of income level.","cat":3},{"w":"relative","pos":"adj.","cn":"相对的","en":"compared with something else","ex":"Supplies of natural resources in China are limited relative to demand.","cat":3},{"w":"relevant","pos":"adj.","cn":"相关的","en":"connected to the topic","ex":"Only relevant points should be included in the answer.","cat":3},{"w":"rely on","pos":"phr.","cn":"依赖","en":"to need something for support","ex":"Countries rely on trade to obtain goods they cannot produce.","cat":3},{"w":"renewable","pos":"adj.","cn":"可再生的","en":"able to be replaced naturally","ex":"Sunlight is a renewable resource.","cat":3},{"w":"result in","pos":"phr.","cn":"导致","en":"to cause something as a result","ex":"PED means a change in demand will result in a greater percentage change in price.","cat":3},{"w":"scarce","pos":"adj.","cn":"稀缺的","en":"not enough to satisfy wants","ex":"There is evidence of scarce resources.","cat":3},{"w":"secondary","pos":"adj.","cn":"第二的；（产业）制造业的","en":"second; producing manufactured goods","ex":"Secondary sector workers received the highest percentage increase.","cat":3},{"w":"significant","pos":"adj.","cn":"显著的，重要的","en":"large or important","ex":"Exploiting the resource caused significant environmental damage.","cat":3},{"w":"similar","pos":"adj.","cn":"相似的","en":"almost the same","ex":"Firms face increasing demand when the price of something similar falls.","cat":3},{"w":"smaller","pos":"adj.","cn":"更小的","en":"less big in size or amount","ex":"Nazmin spends a smaller proportion of her income than Meer.","cat":3},{"w":"sole","pos":"adj.","cn":"唯一的","en":"only","ex":"It is the sole issuer of notes and coins.","cat":3},{"w":"stable","pos":"adj.","cn":"稳定的","en":"not changing much","ex":"A stable equilibrium price will be achieved.","cat":3},{"w":"standard of living","pos":"phr.","cn":"生活水平","en":"the level of comfort of people's lives","ex":"It has the world’s highest standard of living.","cat":3},{"w":"substantial","pos":"adj.","cn":"大量的，可观的","en":"large in amount","ex":"International companies have made substantial investments in computer production in India.","cat":3},{"w":"such as","pos":"phr.","cn":"例如，比如","en":"used to give examples","ex":"Governments use monetary policy such as increasing the rate of interest.","cat":3},{"w":"sufficient","pos":"adj.","cn":"充足的","en":"enough","ex":"Some goods may not be provided at all or not in sufficient quantity.","cat":3},{"w":"supply and demand","pos":"phr.","cn":"供求","en":"the relationship between what is offered and what is wanted","ex":"The diagram shows the supply and demand for a product.","cat":3},{"w":"take into account","pos":"phr.","cn":"考虑到","en":"to consider something when making a decision","ex":"In choosing their occupation, people often take into account aspects of the job other than pay.","cat":3},{"w":"temporary","pos":"adj.","cn":"暂时的","en":"lasting for a short time","ex":"Unemployment may be temporary during a recession.","cat":3},{"w":"therefore","pos":"adv.","cn":"因此","en":"for that reason","ex":"The possibility of improving domestic infrastructure, therefore, was not taken.","cat":3},{"w":"thus","pos":"adv.","cn":"因此，从而","en":"as a result","ex":"The supply is limited, thus the price increases.","cat":3},{"w":"total","pos":"adj./n.","cn":"总计的；总数","en":"the whole amount","ex":"Total output increases.","cat":3},{"w":"typical","pos":"adj.","cn":"典型的","en":"usual; of a common type","ex":"Which feature is not a typical characteristic of a developed country?","cat":3},{"w":"unfavourable","pos":"adj.","cn":"不利的","en":"not helpful for something","ex":"An unfavourable balance of trade means imports exceed exports.","cat":3},{"w":"unless","pos":"conj.","cn":"除非","en":"except if","ex":"Certain goods and services would not be available unless the government provides them.","cat":3},{"w":"unlimited","pos":"adj.","cn":"无限的","en":"without any limit","ex":"There are unlimited supplies of natural resources in developing countries.","cat":3},{"w":"vital","pos":"adj.","cn":"至关重要的","en":"extremely important","ex":"International trade is vital for many small countries.","cat":3},{"w":"voluntary","pos":"adj.","cn":"自愿的","en":"done by choice, not forced","ex":"Voluntary unemployment is caused by a reduction in wage rates.","cat":3},{"w":"whereas","pos":"conj.","cn":"然而，而","en":"in contrast with","ex":"The public sector provides goods, whereas the private sector is run by firms.","cat":3},{"w":"widespread","pos":"adj.","cn":"广泛的","en":"existing in many places","ex":"There was widespread poverty in the region.","cat":3},{"w":"with respect to","pos":"phr.","cn":"关于，就…而言","en":"concerning; about","ex":"The data is analysed with respect to changes in price.","cat":3}];
+const TIME_PER_Q = 20;
+const LS_KEY = 'wb_igcse_vocab_history';
+const MAX_HIST = 200;
+
+let quiz = null;
+let timer = null;
+let pendingConfirm = null;
+
+/* ===== 题库统计 ===== */
+(function initMeta(){
+  document.getElementById('countHint').textContent = '题库共 ' + DATA.length + ' 词';
+  updateCountHint();
+})();
+
+function updateCountHint(){
+  const n = DATA.length;
+  const c = document.querySelector('input[name=count]:checked');
+  const want = c ? c.value : 'all';
+  const will = want === 'all' ? n : Math.min(parseInt(want), n);
+  document.getElementById('countHint').textContent =
+    '题库共 ' + n + ' 词' + (want === 'all' ? '，将测试全部 ' + n + ' 词' : '，将随机抽 ' + will + ' 词');
+}
+document.querySelectorAll('input[name=count]').forEach(r => r.addEventListener('change', updateCountHint));
+
+/* ===== 测试流程 ===== */
+function startQuiz() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) { alert('请先输入你的名字 😊'); return; }
+  const poolAll = DATA;
+  const nSel = document.querySelector('input[name=count]:checked').value;
+  const count = nSel === 'all' ? poolAll.length : Math.min(parseInt(nSel), poolAll.length);
+  const pool = shuffle(poolAll).slice(0, count);
+  const questions = pool.map(item => makeQuestion(item, poolAll));
+  quiz = {
+    user: name, questions, idx: 0, correct: 0, wrong: 0, startTime: Date.now(),
+    rangeSel: 'all', count, total: questions.length
+  };
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('resultScreen').style.display = 'none';
+  document.getElementById('quizScreen').style.display = 'block';
+  document.getElementById('userLabel').textContent = '🙋 ' + name;
+  renderQuestion();
+}
+
+function makeQuestion(item, poolAll) {
+  const wrongs = [];
+  const seen = new Set([item.cn]);
+  const pool = shuffle(poolAll).filter(d => d.cn !== item.cn && !seen.has(d.cn));
+  for (const d of pool) { if (wrongs.length >= 3) break; wrongs.push(d.cn); seen.add(d.cn); }
+  const allCns = shuffle(DATA.map(d => d.cn));
+  for (const c of allCns) { if (wrongs.length >= 3) break; if (!seen.has(c)) { wrongs.push(c); seen.add(c); } }
+  const options = shuffle([item.cn, ...wrongs.slice(0,3)]);
+  return { item, options, correctIdx: options.indexOf(item.cn) };
+}
+
+function renderQuestion() {
+  const q = quiz.questions[quiz.idx];
+  document.getElementById('wordText').textContent = q.item.w;
+  document.getElementById('posText').textContent = q.item.pos;
+  document.getElementById('exampleText').textContent = q.item.ex || '（无例句）';
+  document.getElementById('progressLabel').textContent = '第 ' + (quiz.idx+1) + ' / ' + quiz.questions.length + ' 题';
+  document.getElementById('scoreLabel').textContent = '得分 ' + quiz.correct + ' / ' + quiz.idx;
+  document.getElementById('progressBar').style.width = (quiz.idx / quiz.questions.length * 100) + '%';
+
+  const box = document.getElementById('optionsBox');
+  box.innerHTML = '';
+  const tags = ['A','B','C','D'];
+  q.options.forEach((opt, i) => {
+    const el = document.createElement('div');
+    el.className = 'opt';
+    el.innerHTML = '<span class="tag">' + tags[i] + '</span><span>' + opt + '</span>';
+    el.onclick = () => answer(i, el);
+    box.appendChild(el);
+  });
+
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('btnNext').className = 'btn-next';
+  startTimer();
+}
+
+function startTimer() {
+  let left = TIME_PER_Q;
+  const t = document.getElementById('timerLabel');
+  t.textContent = left;
+  t.classList.remove('warn');
+  clearInterval(timer);
+  timer = setInterval(() => {
+    left--;
+    t.textContent = left;
+    if (left <= 5) t.classList.add('warn');
+    if (left <= 0) { clearInterval(timer); timeout(); }
+  }, 1000);
+}
+
+function answer(i, el) {
+  clearInterval(timer);
+  const q = quiz.questions[quiz.idx];
+  q.userAnswer = i;
+  const opts = document.querySelectorAll('.opt');
+  opts.forEach(o => o.classList.add('disabled'));
+  const fb = document.getElementById('feedback');
+
+  if (i === q.correctIdx) {
+    quiz.correct++;
+    el.classList.add('correct');
+    fb.className = 'feedback show right';
+    fb.innerHTML = '✅ 答对了！<br><span class="cn">' + q.item.cn + '</span> &nbsp;—&nbsp; ' + q.item.en;
+  } else {
+    quiz.wrong++;
+    el.classList.add('wrong');
+    opts[q.correctIdx].classList.add('correct');
+    opts.forEach((o, j) => { if (j !== i && j !== q.correctIdx) o.classList.add('dim'); });
+    fb.className = 'feedback show wrong';
+    fb.innerHTML = '❌ 选错了，正确答案是：<br><span class="cn">' + q.item.cn + '</span> &nbsp;—&nbsp; ' + q.item.en;
+  }
+  document.getElementById('btnNext').className = 'btn-next show';
+  document.getElementById('scoreLabel').textContent = '得分 ' + quiz.correct + ' / ' + (quiz.idx+1);
+}
+
+function timeout() {
+  const q = quiz.questions[quiz.idx];
+  q.userAnswer = -1;
+  quiz.wrong++;
+  const opts = document.querySelectorAll('.opt');
+  opts.forEach(o => o.classList.add('disabled'));
+  opts[q.correctIdx].classList.add('correct');
+  opts.forEach((o, j) => { if (j !== q.correctIdx) o.classList.add('dim'); });
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback show wrong';
+  fb.innerHTML = '⏰ 时间到！正确答案是：<br><span class="cn">' + q.item.cn + '</span> &nbsp;—&nbsp; ' + q.item.en;
+  document.getElementById('btnNext').className = 'btn-next show';
+  document.getElementById('scoreLabel').textContent = '得分 ' + quiz.correct + ' / ' + (quiz.idx+1);
+}
+
+function nextQuestion() {
+  quiz.idx++;
+  if (quiz.idx >= quiz.questions.length) { showResult(); return; }
+  renderQuestion();
+}
+
+function showResult() {
+  clearInterval(timer);
+  document.getElementById('quizScreen').style.display = 'none';
+  document.getElementById('resultScreen').style.display = 'block';
+  const total = quiz.questions.length;
+  const pct = Math.round(quiz.correct / total * 100);
+  const secs = Math.round((Date.now() - quiz.startTime) / 1000);
+  document.getElementById('resultUser').textContent = quiz.user + ' 的成绩单';
+  document.getElementById('resultScore').textContent = quiz.correct + ' / ' + total;
+  document.getElementById('resultPct').textContent = pct + ' 分' + (pct >= 80 ? ' 🏆' : pct >= 60 ? ' 👍' : pct >= 40 ? ' 💪' : ' 📖');
+  document.getElementById('statCorrect').textContent = quiz.correct;
+  document.getElementById('statWrong').textContent = quiz.wrong;
+  document.getElementById('statTime').textContent = secs + 's';
+  document.getElementById('statAcc').textContent = pct + '%';
+
+  const wrongItems = quiz.questions.filter(q => q.userAnswer !== q.correctIdx);
+  renderReview(wrongItems);
+
+  saveRecord(quiz, pct, secs, wrongItems);
+}
+
+function renderReview(items) {
+  const box = document.getElementById('reviewBox');
+  const list = document.getElementById('reviewList');
+  if (!items.length) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  list.innerHTML = items.map(q =>
+    '<div class="review-item"><span class="w">' + q.item.w + '</span><span><span class="a">' + q.item.cn + '</span></span></div>'
+  ).join('');
+}
+
+/* ===== 历史记录 ===== */
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; }
+  catch(e) { return []; }
+}
+function setHistory(h) { localStorage.setItem(LS_KEY, JSON.stringify(h.slice(0, MAX_HIST))); }
+
+function saveRecord(quiz, pct, secs, wrongItems) {
+  const rangeNames = {all:'全部词汇', 1:'考试指令词', 2:'常见情境', 3:'修饰与连接'};
+  const rec = {
+    id: Date.now(),
+    time: new Date().toLocaleString('zh-CN', {hour12:false}),
+    ts: Date.now(),
+    user: quiz.user,
+    range: quiz.rangeSel,
+    rangeName: rangeNames[quiz.rangeSel] || '全部词汇',
+    count: quiz.total,
+    correct: quiz.correct,
+    wrong: quiz.wrong,
+    pct: pct,
+    secs: secs,
+    wrongList: wrongItems.map(q => ({w: q.item.w, cn: q.item.cn}))
+  };
+  const h = getHistory();
+  h.unshift(rec);
+  setHistory(h);
+  document.getElementById('saveNote').textContent = '✅ 本次测试已自动保存到历史记录';
+}
+
+function openHistory() {
+  const list = document.getElementById('histList');
+  const h = getHistory();
+  if (!h.length) {
+    list.innerHTML = '<div class="hist-empty">还没有测试记录，快去测一次吧 📖</div>';
+  } else {
+    list.innerHTML = h.map(renderHistItem).join('');
+  }
+  document.getElementById('histMask').classList.add('show');
+}
+function closeHistory() { document.getElementById('histMask').classList.remove('show'); }
+
+function renderHistItem(r, i) {
+  const cls = r.pct >= 80 ? 'good' : (r.pct >= 60 ? '' : 'bad');
+  const timeStr = (r.time || new Date(r.ts).toLocaleString('zh-CN', {hour12:false})).slice(0,16);
+  const wrongInfo = r.wrongList && r.wrongList.length
+    ? r.wrongList.map(w => w.w + ' → ' + w.cn).join('；')
+    : '无';
+  return '<div class="hist-item">' +
+    '<div class="row1">' +
+      '<span class="who">' + esc(r.user) + '</span>' +
+      '<span class="meta">' + timeStr + '</span>' +
+    '</div>' +
+    '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">' +
+      '<span class="badge range">' + esc(r.rangeName) + '</span>' +
+      '<span class="badge cnt">' + r.count + ' 词</span>' +
+      '<span class="score ' + cls + '">' + r.correct + '/' + r.count + ' · ' + r.pct + '%</span>' +
+      '<span class="meta" style="margin-left:auto">' + r.secs + 's</span>' +
+    '</div>' +
+    '<div style="margin-top:4px;display:flex;gap:4px">' +
+      '<button class="btn-toggle" onclick="toggleHistDetail(' + i + ')">查看错题</button>' +
+      '<button class="btn-del" onclick="confirmDeleteHist(' + i + ')">删除</button>' +
+    '</div>' +
+    '<div class="detail" id="histDetail' + i + '">错题：' + esc(wrongInfo) + '</div>' +
+  '</div>';
+}
+
+function toggleHistDetail(i) {
+  const d = document.getElementById('histDetail' + i);
+  d.classList.toggle('show');
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showConfirm(text, okLabel, action) {
+  document.getElementById('confirmText').textContent = text;
+  const okBtn = document.getElementById('confirmOkBtn');
+  okBtn.textContent = okLabel || '确定';
+  okBtn.className = okLabel === '清空' ? 'ok' : 'ok2';
+  pendingConfirm = action;
+  document.getElementById('confirmMask').classList.add('show');
+}
+function hideConfirm() { document.getElementById('confirmMask').classList.remove('show'); pendingConfirm = null; }
+function confirmAction() { if (pendingConfirm) pendingConfirm(); hideConfirm(); }
+
+function confirmDeleteHist(i) {
+  showConfirm('确定删除这条测试记录吗？', '删除', () => {
+    const h = getHistory();
+    h.splice(i, 1);
+    setHistory(h);
+    openHistory();
+  });
+}
+function confirmClearAll() {
+  showConfirm('确定清空全部历史记录吗？此操作不可恢复！', '清空', () => {
+    setHistory([]);
+    openHistory();
+  });
+}
+
+/* ===== 备份与导入 ===== */
+function exportBackup() {
+  const h = getHistory();
+  const payload = { app: 'IGCSE Economics 词汇卡片测试', version: 2, exportedAt: new Date().toISOString(), records: h };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'IGCSE-Econ-词汇测试记录备份-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+}
+function importBackup() {
+  document.getElementById('importFile').click();
+}
+document.getElementById('importFile').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const obj = JSON.parse(ev.target.result);
+      const records = Array.isArray(obj) ? obj : (obj.records || []);
+      if (!records.length) { alert('备份文件中没有记录'); return; }
+      const h = getHistory();
+      const merged = records.concat(h);
+      const seen = new Set();
+      const dedup = merged.filter(r => { const k = r.id || (r.ts + r.user); if (seen.has(k)) return false; seen.add(k); return true; });
+      setHistory(dedup);
+      alert('✅ 成功导入 ' + records.length + ' 条记录');
+      if (document.getElementById('histMask').classList.contains('show')) openHistory();
+    } catch(err) { alert('导入失败：文件格式不正确'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+</script>
+</body>
+</html>
