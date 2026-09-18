@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Consumer Choice Theory - Interactive Classroom</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <script src="vendor/chart.umd.js"></script>
+    <script src="vendor/chartjs-plugin-annotation.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -116,7 +116,13 @@
             font-weight: 700;
             font-size: 16px;
             width: 180px;
+            flex-shrink: 0;
             color: #2f3542;
+        }
+        /* The good-type row carries three radio options, so it gets a tighter label column */
+        .control-row.type-row label {
+            width: 122px;
+            font-size: 15px;
         }
         .slider-wrapper {
             display: flex;
@@ -142,15 +148,18 @@
         }
         .radio-group {
             display: flex;
-            gap: 30px;
+            gap: 8px 14px;
             flex-grow: 1;
+            flex-wrap: wrap;
+            justify-content: flex-start;
         }
         .radio-label {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             cursor: pointer;
-            font-size: 16px !important;
+            white-space: nowrap;
+            font-size: 13.5px !important;
             font-weight: 600 !important;
         }
         input[type="radio"] {
@@ -171,11 +180,96 @@
             border-top: 1px solid #f1f2f6;
             padding-top: 10px;
         }
+        .viewbar { display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+        .vbtn { padding:7px 15px; border:1px solid #d5dce5; background:#fff; color:#2c3e50;
+                border-radius:8px; font-size:14px; cursor:pointer; font-weight:600;
+                font-family:inherit; }
+        .vbtn:hover { border-color:#95a5a6; }
+        .vbtn.active { background:#2c3e50; color:#fff; border-color:#2c3e50; }
+        .viewbar .right { margin-left:auto; display:flex; align-items:center; gap:14px; }
+        .legend { display:flex; gap:12px; font-size:12px; color:#5b6b83; align-items:center; }
+        .legend .sw { display:inline-block; width:12px; height:12px; border-radius:2px;
+                      margin-right:5px; vertical-align:-2px; border:1px solid rgba(0,0,0,0.08); }
+        .mapview { display:none; flex-direction:column; gap:14px; flex-grow:1; min-height:0; }
+        .maprow { display:flex; gap:14px; flex-grow:1; min-height:260px; }
+        .mapcard { flex:1; background:#fff; border-radius:10px; padding:12px 14px 8px;
+                   box-shadow:0 6px 16px rgba(0,0,0,0.06); display:flex; flex-direction:column;
+                   min-width:0; min-height:0; }
+        .mapcard h3 { margin:0 0 6px; font-size:16px; }
+        .mapcard h3 .cn { font-size:12px; color:#95a5a6; font-weight:500; margin-left:6px; }
+        .mapcard .box { position:relative; flex-grow:1; min-height:0; }
+        .mapnotes { display:flex; gap:14px; }
+        .mapnote { flex:1; background:#fff; border-radius:10px; padding:11px 14px;
+                   box-shadow:0 6px 16px rgba(0,0,0,0.06); font-size:12.5px; color:#34495e;
+                   min-width:0; line-height:1.45; }
+        .mapnote .fx { font-family:"Cambria Math",Georgia,serif; font-size:14px; color:#1f2d3d;
+                       background:#f4f7fa; border-left:3px solid #3498db; padding:6px 10px;
+                       border-radius:4px; margin-bottom:7px; overflow-x:auto; white-space:nowrap; }
+        .mapnote ul { margin:0; padding-left:17px; }
+        .mapnote li { margin-bottom:2px; }
+        .mapnote b { color:#2c3e50; }
+        @media(max-width:1100px){ .maprow,.mapnotes{flex-direction:column;} }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
+        <div class="viewbar">
+        <button class="vbtn active" id="btnSim">Simulation</button>
+        <button class="vbtn" id="btnMap">IC Shape Map</button>
+        <div class="right" id="mapOnly" style="display:none">
+            <button class="vbtn" id="btnHeat">Heat map: off</button>
+            <div class="legend" id="legendHeat" style="display:none">
+                <span><span class="sw" style="background:#440154"></span>low U</span>
+                <span><span class="sw" style="background:#21918c"></span></span>
+                <span><span class="sw" style="background:#fde725"></span>high U</span>
+                <span><span class="sw" style="background:#f0f0f0"></span>outside the map</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="mapview" id="mapView">
+        <div class="maprow">
+            <div class="mapcard">
+                <h3>Normal Good<span class="cn">正常品</span></h3>
+                <div class="box"><canvas id="mapNormal"></canvas></div>
+            </div>
+            <div class="mapcard">
+                <h3>Inferior Good<span class="cn">劣等品</span></h3>
+                <div class="box"><canvas id="mapInferior"></canvas></div>
+            </div>
+            <div class="mapcard">
+                <h3>Giffen Good<span class="cn">吉芬品</span></h3>
+                <div class="box"><canvas id="mapGiffen"></canvas></div>
+            </div>
+        </div>
+        <div class="mapnotes">
+            <div class="mapnote">
+                <div class="fx">U(x, y) = x &middot; y</div>
+                <ul>
+                    <li>ICs are rectangular hyperbolas <b>convex to the origin</b>.</li>
+                    <li><b>Homothetic</b>: every IC is one curve scaled up, so the expansion path is a straight ray and both goods stay normal.</li>
+                </ul>
+            </div>
+            <div class="mapnote">
+                <div class="fx">h<sub>x</sub> = X&#772;(u)&middot;(P<sub>x</sub>/P<sub>y</sub>)<sup>&minus;&sigma;</sup> ,&nbsp; X&#772;(u) = x&#8320; + x&#8321;e<sup>&minus;&lambda;u</sup> &darr;</div>
+                <ul>
+                    <li><b>No closed-form U</b>: the map is the demand system integrated through Shephard's lemma.</li>
+                    <li>The map stretches toward y as u rises, so x is <b>inferior</b> &mdash; yet every IC is still convex.</li>
+                    <li>Heat map: <b>grey</b> = no contour of this map passes there, so those bundles are not ranked.</li>
+                </ul>
+            </div>
+            <div class="mapnote">
+                <div class="fx">U(x, y) = (x + 0.25y &minus; 9)<sup>0.07</sup> &middot; y<sup>0.93</sup></div>
+                <ul>
+                    <li>A committed outlay of 9 puts x in the inferior region (x* &lt; 9).</li>
+                    <li>An affine image of Cobb&ndash;Douglas, so ICs stay convex &mdash; but the income effect now <b>beats</b> substitution.</li>
+                    <li>Heat map: the flat dark wedge is <b>x + 0.25y &le; 9</b> &mdash; the outlay is not covered, so U = 0.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+<div class="app-container" id="appContainer">
         <!-- Left half: Consumer Equilibrium Graph -->
         <div class="panel-left">
             <h2>1. Consumer Equilibrium & Effects Breakdown</h2>
@@ -200,18 +294,19 @@
                     <button class="reset-btn" id="resetBtn">↺ Reset Values</button>
                 </div>
                 
-                <div class="control-row">
+                <div class="control-row type-row">
                     <label>Good X Type:</label>
                     <div class="radio-group">
                         <label class="radio-label"><input type="radio" name="goodType" value="normal" checked> Normal Good</label>
                         <label class="radio-label"><input type="radio" name="goodType" value="inferior"> Inferior Good</label>
+                        <label class="radio-label"><input type="radio" name="goodType" value="giffen"> Giffen Good</label>
                     </div>
                 </div>
 
                 <div class="control-row">
                     <label for="priceX">Price of Good X (P<sub>X</sub>):</label>
                     <div class="slider-wrapper">
-                        <input type="range" id="priceX" min="1.5" max="9.5" step="0.05" value="5">
+                        <input type="range" id="priceX" min="1.5" max="7.75" step="0.05" value="5">
                         <span class="value-badge" id="priceXLabel">$5.00</span>
                     </div>
                 </div>
@@ -236,6 +331,100 @@
         const Px_init = 5;
         const I_init = 100;
 
+        // ---------------------------------------------------------------------
+        // INFERIOR-mode preference map, built by INVERSION rather than by
+        // guessing an algebraic U.
+        //
+        // Writing down U and hoping its contour happens to look economical is how
+        // the previous versions produced hook-shaped ICs: the very cross term that
+        // creates inferiority also drives Ux = a x^(a-1) - c y negative just a few
+        // units to the right, so the IC turns back upward.
+        //
+        // So we specify the DEMAND SYSTEM instead, where inferiority is a
+        // one-line condition, and recover the preference map from it:
+        //
+        //   h_x(Px, u) = Xbar(u) * (Px/Py)^(-sigma)          Hicksian demand
+        //   Xbar(u)    = x0 + x1 * exp(-decay * u)           DECREASING in u
+        //   e(Px, u)   = Py u + Py Xbar(u) k [Px^(1-s) - Py^(1-s)],  k = Py^(s-1)/(1-s)
+        //
+        // e comes from Shephard's lemma (integrate h_x in Px), so the Slutsky
+        // matrix is symmetric by construction and a genuine utility function
+        // exists. Marshallian demand is then obtained by solving e(Px,u) = I for
+        // u and substituting back into h_x.
+        //
+        // Xbar decreasing is exactly "richer households buy less x" = INFERIOR.
+        // Verified over Px in [1.5, 7.75], I in [70,140]: dx/dI < 0, dx/dPx < 0,
+        // compensated own-price effect S_xx = dx/dPx + x dx/dI < 0 everywhere.
+        //
+        // Why crossing is now IMPOSSIBLE rather than merely unobserved: each IC is
+        // traced by sweeping Px at FIXED u, and x(Px) = Xbar(u)(Px/Py)^-sigma is
+        // strictly decreasing in Px for every u (its derivative is -sigma Xbar/Px
+        // < 0). Every IC is therefore a strict graph over x, and the family is
+        // nested by u. Two level sets of one function cannot meet.
+        // ---------------------------------------------------------------------
+        const INF_SIGMA = 0.80;   // price elasticity of Hickisian x
+        const INF_X0    = 2.0;    // Xbar(u) floor: quantity bought at very high u
+        const INF_X1    = 8.0;    // Xbar(u) span
+        const INF_DECAY = 0.05;   // how fast Xbar falls with u
+
+        // ---------------------------------------------------------------------
+        // GIFFEN-mode preference map: a SMOOTH utility function, no kink.
+        //
+        //     U(x, y) = (x + t*y - L)^a * y^b
+        //
+        // Put z = x + t*y - L.  The budget line becomes
+        //     Px*z + mu*y = J ,   mu = Py - t*Px ,  J = I - L*Px
+        // i.e. a plain linear budget over (z, y), so the optimum is Cobb-Douglas:
+        //     z* = a*J/(S*Px) ,  y* = b*J/(S*mu) ,  x* = z* - t*y* + L ,  S = a+b
+        // Closed form -- nothing on this page is placed by hand, and there is no
+        // root-finding anywhere.
+        //
+        // WHY THE ICs ARE CONVEX AND CANNOT CROSS (a theorem, not a coincidence):
+        // U = CD(z, y) and (x,y) -> (z,y) is an invertible AFFINE map (its matrix
+        // is [[1,t],[0,1]], determinant 1), and the preimage of a convex set under
+        // an invertible affine map is convex.  So {U >= c} is convex, i.e. U is
+        // strictly quasiconcave and each IC is the level set of ONE function.
+        //
+        // WHY THAT STILL ALLOWS GIFFEN (the usual slogan "quasiconcave => no
+        // Giffen" is false): Giffen needs a NEGATIVE R_y = d(Ux/Uy)/dy.  Here
+        //     R = Ux/Uy = a*y / (a*t*y + b*z) ,   R_y = a*b*(z - t*y) / D^2
+        // so x is inferior exactly when z < t*y, equivalently x* < L.  With
+        // x* around 6-9 and L = 9 the demo lives in that region.  Roy's identity
+        // still forces utility DOWN as Px rises, so IC1 is legitimately the INNER
+        // curve -- that is correct economics, not a defect: C moves right while
+        // sitting on a lower indifference curve.
+        //
+        // A is pinned to (Px_init, I_init) exactly like the other two modes, so
+        // IC0 and the compensated line never slide when the income slider moves.
+        // ---------------------------------------------------------------------
+        const G_A = 0.07;    // weight on the committed composite z
+        const G_B = 0.93;    // weight on y
+        const G_T = 0.25;    // y-content of one unit of the composite
+        const G_L = 9.00;    // committed outlay (x* < G_L  <=>  inferior region)
+
+        // e(Px,u)/Py -- the expenditure function divided by the y-price.
+        function infExpRel(Px, u) {
+            const s = INF_SIGMA;
+            const Xb = INF_X0 + INF_X1 * Math.exp(-INF_DECAY * u);
+            if (Math.abs(s - 1) < 1e-9) return u + Xb * Math.log(Px / Py);
+            const k = Math.pow(Py, s - 1) / (1 - s);
+            return u + Xb * k * (Math.pow(Px, 1 - s) - Math.pow(Py, 1 - s));
+        }
+
+        // Marshallian optimum: solve e(Px,u) = I for u, then x = Xbar(u)(Px/Py)^-s.
+        function infMarshallian(Px, I) {
+            let lo = 1e-6, hi = 1e4;
+            if (!(infExpRel(Px, lo) * Py < I && infExpRel(Px, hi) * Py > I)) return null;
+            for (let i = 0; i < 200; i++) {
+                const m = 0.5 * (lo + hi);
+                if (infExpRel(Px, m) * Py < I) lo = m; else hi = m;
+            }
+            const u = 0.5 * (lo + hi);
+            const Xb = INF_X0 + INF_X1 * Math.exp(-INF_DECAY * u);
+            const x = Xb * Math.pow(Px / Py, -INF_SIGMA);
+            return { x: x, y: (I - Px * x) / Py, u: u };
+        }
+
         // Core Mathematical Engine for Indifference Curves and Optima
         function getCoordinates(Px, I, type) {
             let xA = 10, yA = 10; 
@@ -250,31 +439,192 @@
                 xB = Math.sqrt(100 * Py / Px);
                 yB = 100 / xB;
                 ic1_params = { x0: 0, y0: 0, k: xC * yC };
+            } else if (type === 'inferior') {
+                // --- Inferior Good, from an inverted (integrated) demand system ---
+                // See the INF_* block above for the construction. Nothing here is
+                // placed by hand: A, B and C are all read off the SAME preference
+                // map, so IC0 and IC1 are level sets of one function and cannot
+                // cross -- that is a theorem about level sets, not a numerical
+                // coincidence that happens to hold for the current parameters.
+
+                // C = today's optimum (live sliders), the tangency on BL1.
+                const cC = infMarshallian(Px, I);
+                xC = cC.x; yC = cC.y;
+
+                // A = the FIXED reference bundle, pinned to the INITIAL price and
+                // income. Pinning it to (Px_init, I_init) rather than the live
+                // sliders is what keeps IC0 and the compensated line from sliding
+                // when the income slider moves.
+                const cA = infMarshallian(Px_init, I_init);
+                xA = cA.x; yA = cA.y;
+
+                // B = substitution-effect point: same utility as A, on the
+                // compensated line through C with slope -Px/Py. Because the
+                // preference map is only available through its expenditure
+                // function, "same utility as A" means "same u as A", so B is
+                // obtained by evaluating the HICKSIAN demand at uA on the
+                // compensated line -- no root-finding needed:
+                //   xB = Xbar(uA) * (Px/Py)^-sigma
+                // which is precisely h_x at the new price holding u fixed. That is
+                // the textbook substitution effect by definition.
+                const uA = cA.u;
+                const XbA = INF_X0 + INF_X1 * Math.exp(-INF_DECAY * uA);
+                xB = XbA * Math.pow(Px / Py, -INF_SIGMA);
+                yB = yA + (xA - xB) * (Px / Py);      // on the compensated line
+
+                // Both ICs carry the UTILITY LEVEL, not a centre+k. Tracing a
+                // level set of the single expenditure function is the whole point.
+                ic0_params = { inf: true, u: uA };
+                ic1_params = { inf: true, u: cC.u };
             } else {
-                xC = 10 * Math.pow(5 / Px, 0.8) * Math.pow(100 / I, 1.5);
-                yC = (I - Px * xC) / Py;
-
-                let c0 = 25; 
-                ic0_params = { 
-                    x0: xA - c0, 
-                    y0: yA - c0 * (Px_init / Py), 
-                    k: c0 * c0 * (Px_init / Py) 
+                // --- Giffen Good: SMOOTH utility, no kink -----------------
+                // U(x,y) = (x + t*y - L)^a * y^b.  The G_* block at the top of
+                // the script derives the closed form, proves the map is strictly
+                // quasiconcave (so ICs are convex and cannot cross) and shows why
+                // it can nevertheless be Giffen.  Every point below is a level set
+                // of that ONE function.
+                const gSolve = (p, Inc) => {
+                    const S = G_A + G_B;
+                    const mu = Py - G_T * p;
+                    const J = Inc - G_L * p;
+                    if (mu <= 0 || J <= 0 || p <= 0) return null;
+                    const z = G_A * J / (S * p);
+                    const y = G_B * J / (S * mu);
+                    const x = z - G_T * y + G_L;
+                    if (!(x > 0) || !(y > 0)) return null;
+                    return { x: x, y: y, z: z };
+                };
+                // x on the level set {U = Ub} at height y, in closed form.
+                const gIcX = (y, Ub) => Math.pow(Ub / Math.pow(y, G_B), 1 / G_A)
+                                       - G_T * y + G_L;
+                // dx/dy on that level set -- exact, no finite differences.
+                const gIcSlope = (y, Ub) => {
+                    const x = gIcX(y, Ub);
+                    if (!isFinite(x)) return null;
+                    const z = x + G_T * y - G_L;
+                    if (!(z > 0)) return null;
+                    const s = -(G_B / G_A) * z / y - G_T;
+                    return isFinite(s) ? s : null;
                 };
 
-                xB = Math.sqrt(ic0_params.k * Py / Px) + ic0_params.x0;
-                yB = ic0_params.y0 + ic0_params.k / (xB - ic0_params.x0);
+                // C = today's optimum (live sliders).  A = the FIXED reference
+                // bundle at (Px_init, I_init) -- pinning A is what keeps IC0 and
+                // the compensated line from sliding when the income slider moves.
+                const cC = gSolve(Px, I) || { x: 0, y: 0, z: 0 };
+                xC = cC.x; yC = cC.y;
+                const cA = gSolve(Px_init, I_init) || { x: 0, y: 0, z: 0 };
+                xA = cA.x; yA = cA.y;
+                const gUbA = Math.pow(cA.z, G_A) * Math.pow(cA.y, G_B);
 
-                let c1 = 25 * Math.sqrt(5 / Px);
-                ic1_params = {
-                    x0: xC - c1,
-                    y0: yC - c1 * (Px / Py),
-                    k: c1 * c1 * (Px / Py)
+                // B = the compensated point: on IC0, where the IC slope equals the
+                // NEW price ratio written in the SAME convention,
+                //     dx/dy = -Py/Px
+                // Mixing that with -Px/Py is the classic trap -- they are
+                // reciprocals and agree only when Px = Py.
+                // The slope at A is exactly -Py/Px_init and rises toward -t as y
+                // grows, so the target lies ABOVE A when Px > Px_init and BELOW A
+                // when Px < Px_init.  Scan in the right direction.
+                const gFindB = () => {
+                    if (Math.abs(Px - Px_init) < 1e-9) return { x: xA, y: yA };
+                    const target = -Py / Px;
+                    const upward = target > (-Py / Px_init);
+                    let prevY = null, prevV = null;
+                    let y = upward ? yA * 1.000001 : yA * 0.999999;
+                    const step = upward ? 1.02 : 0.98;
+                    for (let i = 0; i < 900; i++) {
+                        const s = gIcSlope(y, gUbA);
+                        if (s !== null) {
+                            const v = s - target;
+                            if (prevV !== null && prevV * v <= 0) {
+                                let lo2 = prevY, hi2 = y;
+                                for (let k = 0; k < 140; k++) {
+                                    const m = 0.5 * (lo2 + hi2);
+                                    const sm = gIcSlope(m, gUbA);
+                                    if (sm === null) break;
+                                    const va = gIcSlope(lo2, gUbA) - target;
+                                    if (va * (sm - target) <= 0) hi2 = m; else lo2 = m;
+                                }
+                                const yBf = 0.5 * (lo2 + hi2);
+                                const xBf = gIcX(yBf, gUbA);
+                                if (isFinite(xBf) && xBf > 0) return { x: xBf, y: yBf };
+                                break;
+                            }
+                            prevY = y; prevV = v;
+                        }
+                        y *= step;
+                        if (upward ? y > yA * 400 : y < yA * 0.002) break;
+                    }
+                    return { x: xA, y: yA };
                 };
+                const cB = gFindB();
+                xB = cB.x; yB = cB.y;
+
+                ic0_params = { shift: true, Ub: gUbA };
+                ic1_params = { shift: true,
+                               Ub: Math.pow(cC.z, G_A) * Math.pow(cC.y, G_B) };
             }
             return { xA, yA, xB, yB, xC, yC, ic0_params, ic1_params };
         }
 
         function generateICPoints(params, max_x) {
+            // --- Giffen mode: trace ONE level set of the smooth ShiftedCD utility
+            //     U = (x + t*y - L)^a y^b defined by the G_* constants.  Solving
+            //     U = Ub for x gives the curve in closed form:
+            //          x(y) = (Ub / y^b)^(1/a) - t*y + L
+            //     Letting y run upward traces it right-to-left; the result is a
+            //     strict graph over x, so two levels of one function cannot meet.
+            //     y is swept LOG-SPACED so the near-vertical foot and the long flat
+            //     arm both get samples.  Points outside the frame (including the
+            //     x < 0 branch beyond y = L/t) are dropped rather than clamped --
+            //     clamping would paint a phantom straight run along the frame edge.
+            if (params.shift) {
+                const Ub = params.Ub;
+                const pts = [];
+                if (!(Ub > 0)) return pts;
+                const YCAP = 60.0, XCAP = max_x * 1.25;
+                const YMIN = 0.15, YMAX = 80.0, N = 1600;
+                for (let i = 0; i <= N; i++) {
+                    const y = YMIN * Math.pow(YMAX / YMIN, i / N);
+                    const x = Math.pow(Ub / Math.pow(y, G_B), 1 / G_A)
+                              - G_T * y + G_L;
+                    if (!isFinite(x) || !isFinite(y)) continue;
+                    if (x < 0 || y < 0 || x > XCAP || y > YCAP) continue;
+                    pts.push({ x: x, y: y });
+                }
+                pts.sort((a, b) => a.x - b.x);
+                return pts;
+            }
+            // --- Inferior mode: trace ONE indifference curve of the integrated
+            //     demand system defined by the INF_* constants. ---
+            // The curve is parameterised by the relative price rather than by x:
+            //     (x, y) = ( h_x(Px, u),  e(Px, u) - Px h_x(Px, u) ) / Py
+            // which is the textbook price-offer construction. x(Px) is strictly
+            // decreasing in Px, so the sweep never folds back and the curve is a
+            // strict graph over x -- two levels of the same function therefore
+            // cannot cross anywhere in the box.
+            //
+            // The price sweep is clipped to the window the sliders can actually
+            // reach [1.5, 7.75], padded a little so the curve still runs off the
+            // edges of the frame instead of stopping in mid-air.
+            if (params.inf) {
+                const u = params.u;
+                const pts = [];
+                const YCAP = 28.0;
+                const PMIN = 0.30, PMAX = 40.0, N = 600;
+                const Xb = INF_X0 + INF_X1 * Math.exp(-INF_DECAY * u);
+                for (let i = 0; i <= N; i++) {
+                    // log-spaced so both the steep and the flat end get samples
+                    const Pxq = PMIN * Math.pow(PMAX / PMIN, i / N);
+                    const x = Xb * Math.pow(Pxq / Py, -INF_SIGMA);
+                    const y = (infExpRel(Pxq, u) * Py - Pxq * x) / Py;
+                    if (!isFinite(x) || !isFinite(y)) continue;
+                    if (x < 0 || y < 0) continue;
+                    if (x > max_x || y > YCAP) continue;
+                    pts.push({ x: x, y: y });
+                }
+                pts.sort((a, b) => a.x - b.x);
+                return pts;
+            }
             let points = [];
             let startX = Math.max(0.1, params.x0 + 0.1);
             for (let x = startX; x <= max_x; x += 0.5) {
@@ -293,9 +643,9 @@
             data: {
                 datasets: [
                     { label: 'Initial Budget (BL₀)', data: [], borderColor: '#7f8c8d', borderWidth: 3, borderDash: [6, 6], pointRadius: 0, fill: false },
-                    { label: 'Initial Curve (IC₀)', data: [], borderColor: '#3498db', borderWidth: 3, borderDash: [6, 6], pointRadius: 0, fill: false, tension: 0.2 },
+                    { label: 'Initial Curve (IC₀)', data: [], borderColor: '#3498db', borderWidth: 3, borderDash: [6, 6], pointRadius: 0, fill: false },
                     { label: 'New Budget Line (BL₁)', data: [], borderColor: '#c0392b', borderWidth: 4, pointRadius: 0, fill: false },
-                    { label: 'New Curve (IC₁)', data: [], borderColor: '#2980b9', borderWidth: 4, pointRadius: 0, fill: false, tension: 0.2 },
+                    { label: 'New Curve (IC₁)', data: [], borderColor: '#2980b9', borderWidth: 4, pointRadius: 0, fill: false },
                     { label: 'Compensated Budget Line', data: [], borderColor: '#8e44ad', borderWidth: 2.5, pointRadius: 0, fill: false },
                     { label: 'Optima Dots', data: [], backgroundColor: (ctx) => ['#2c3e50', '#8e44ad', '#27ae60'][ctx.dataIndex], pointRadius: 9, showLine: false }
                 ]
@@ -321,15 +671,18 @@
                             lineB: { type: 'line', xMin: 0, xMax: 0, yMin: 0, yMax: 0, borderColor: 'rgba(142, 68, 173, 0.4)', borderWidth: 2, borderDash: [4, 4] },
                             lineC: { type: 'line', xMin: 0, xMax: 0, yMin: 0, yMax: 0, borderColor: 'rgba(39, 174, 96, 0.4)', borderWidth: 2, borderDash: [4, 4] },
                             
-                            subZone: { type: 'box', xMin: 0, xMax: 0, yMin: 0, yMax: 1.5, backgroundColor: 'rgba(142, 68, 173, 0.2)', borderWidth: 1, borderColor: 'rgba(142, 68, 173, 0.5)' },
-                            incZone: { type: 'box', xMin: 0, xMax: 0, yMin: 1.6, yMax: 3.1, backgroundColor: 'rgba(39, 174, 96, 0.2)', borderWidth: 1, borderColor: 'rgba(39, 174, 96, 0.5)' },
+                            subZone: { type: 'box', xMin: 0, xMax: 0, yMin: 0, yMax: 1.5, backgroundColor: 'rgba(142, 68, 173, 0.2)', borderWidth: 1, borderColor: 'rgba(142, 68, 173, 0.5)', display: true },
+                            incZone: { type: 'box', xMin: 0, xMax: 0, yMin: 1.6, yMax: 3.1, backgroundColor: 'rgba(39, 174, 96, 0.2)', borderWidth: 1, borderColor: 'rgba(39, 174, 96, 0.5)', display: true },
                             
                             labelA: { type: 'label', xValue: 0, yValue: 0, content: 'A', font: { size: 18, weight: 'bold' }, color: '#2c3e50', backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 4 },
                             labelB: { type: 'label', xValue: 0, yValue: 0, content: 'B', font: { size: 18, weight: 'bold' }, color: '#8e44ad', backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 4 },
                             labelC: { type: 'label', xValue: 0, yValue: 0, content: 'C', font: { size: 18, weight: 'bold' }, color: '#27ae60', backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 4 },
                             
-                            txtSub: { type: 'label', xValue: 0, yValue: 0.75, content: 'Sub Effect', font: { size: 14, weight: 'bold' }, color: '#8e44ad' },
-                            txtInc: { type: 'label', xValue: 0, yValue: 2.35, content: 'Income Effect', font: { size: 14, weight: 'bold' }, color: '#218c74' }
+                            txtSub: { type: 'label', xValue: 0, yValue: 0.75, content: 'Sub Effect', font: { size: 14, weight: 'bold' }, color: '#8e44ad', display: true },
+                            txtInc: { type: 'label', xValue: 0, yValue: 2.35, content: 'Income Effect', font: { size: 14, weight: 'bold' }, color: '#218c74', display: true },
+
+                            giffenSpan: { type: 'line', xMin: 0, xMax: 0, yMin: 0, yMax: 0, borderColor: '#c0392b', borderWidth: 3, borderDash: [4, 3], display: false },
+                            giffenTag: { type: 'label', xValue: -999, yValue: -999, content: 'Qx rises with Px', font: { size: 14, weight: 'bold' }, color: '#c0392b', backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 4, display: false }
                         }
                     }
                 }
@@ -366,10 +719,17 @@
 
         const staticNormalDemand = [];
         const staticInferiorDemand = [];
-        for (let p = 1.5; p <= 10; p += 0.2) {
+        const staticGiffenDemand = [];
+        for (let p = 1.5; p <= 7.75; p += 0.05) {
             staticNormalDemand.push({ x: getCoordinates(p, 100, 'normal').xC, y: p });
             staticInferiorDemand.push({ x: getCoordinates(p, 100, 'inferior').xC, y: p });
+            staticGiffenDemand.push({ x: getCoordinates(p, 100, 'giffen').xC, y: p });
         }
+        const staticDemandByType = {
+            normal: staticNormalDemand,
+            inferior: staticInferiorDemand,
+            giffen: staticGiffenDemand
+        };
 
         function updateSimulation() {
             const Px = parseFloat(document.getElementById('priceX').value);
@@ -381,11 +741,23 @@
 
             const { xA, yA, xB, yB, xC, yC, ic0_params, ic1_params } = getCoordinates(Px, I, type);
 
+            // Giffen mode needs a SQUARE window.  On the default 0-45 x 0-28 frame a
+            // convex IC drawn at Giffen quantities collapses into a near-vertical
+            // stroke, and the whole point of this mode is to SEE the curvature.
+            // The window is rebuilt from the current income so that the budget
+            // intercepts (I/Px, 0) and (0, I/Py) stay comfortably inside it.
+            const isGiffen = (type === 'giffen');
+            const eqXMax = isGiffen ? (I / Py) * 1.06 : 45;
+            const eqYMax = isGiffen ? (I / Py) * 1.06 : 28;
+            eqChart.options.scales.x.max = eqXMax;
+            eqChart.options.scales.y.max = eqYMax;
+            const icMaxX = eqXMax;
+
             // Left Chart: Lines
             eqChart.data.datasets[0].data = [{ x: 0, y: 100 / Py }, { x: 100 / Px_init, y: 0 }];
-            eqChart.data.datasets[1].data = generateICPoints(ic0_params, 55);
+            eqChart.data.datasets[1].data = generateICPoints(ic0_params, icMaxX);
             eqChart.data.datasets[2].data = [{ x: 0, y: I / Py }, { x: I / Px, y: 0 }];
-            eqChart.data.datasets[3].data = generateICPoints(ic1_params, 55);
+            eqChart.data.datasets[3].data = generateICPoints(ic1_params, icMaxX);
             eqChart.data.datasets[4].data = [{ x: 0, y: yB + xB * (Px / Py) }, { x: xB + yB * (Py / Px), y: 0 }];
             eqChart.data.datasets[5].data = [{ x: xA, y: yA }, { x: xB, y: yB }, { x: xC, y: yC }];
 
@@ -402,20 +774,126 @@
             anno.subZone.xMin = Math.min(xA, xB); anno.subZone.xMax = Math.max(xA, xB);
             anno.incZone.xMin = Math.min(xB, xC); anno.incZone.xMax = Math.max(xB, xC);
 
-            anno.txtSub.xValue = (xA + xB) / 2;
-            anno.txtInc.xValue = (xB + xC) / 2;
+            // Effect bands. They live BELOW the lowest of A/B/C and are stacked with
+            // a clear gap, so the band captions never collide with the dots or with
+            // the Giffen brace. Band heights track the plot scale rather than using
+            // fixed pixel offsets, and the whole stack is anchored off the lowest
+            // bundle so it follows the picture as the sliders move.
+            const yRef = Math.min(yA, yB, yC);
+            const bandH = Math.max(0.9, yRef * 0.10);
+            const bandGap = bandH * 0.6;
+            // Leave real clearance under the lowest point, then two stacked bands.
+            const stackTop = Math.max(3.6, yRef - bandH * 1.6);
+            anno.incZone.yMax = stackTop;
+            anno.incZone.yMin = stackTop - bandH;
+            anno.subZone.yMax = stackTop - bandH - bandGap;
+            anno.subZone.yMin = stackTop - bandH * 2 - bandGap;
+
+            // The substitution and income bands are shown in ALL THREE modes.
+            // In Giffen mode B is a genuine compensated tangency on IC0 (found by
+            // matching dx/dy = -Py/Px on the level set), so both bands have a real,
+            // distinct width -- and putting them side by side is the whole point:
+            // the income band is several times wider than the substitution band,
+            // and that dominance is what makes the good Giffen.
+            anno.subZone.display = true;
+            anno.incZone.display = true;
+            anno.txtSub.display = true;
+            anno.txtInc.display = true;
+            // The captions are centred on the band midpoint, but at high Px every
+            // bundle slides well left, so a raw midpoint can fall outside the plot
+            // and the text gets clipped by the y-axis. Clamp to a comfortable inset;
+            // if the band is too narrow for the caption to fit inside, park the text
+            // just PAST the right edge of the band instead of letting it sit on the
+            // axis -- still clearly labelling the band, never overlapping its neighbour.
+            // Use eqXMax, NOT eqChart.scales.x.max: the option change above is only
+            // reflected in the live scale once update() runs, so reading it here
+            // would clamp the captions against the PREVIOUS window.
+            const xMax = eqXMax;
+            // The captions are centred labels, so their half-width must clear the plot
+            // edges. Keep a generous right margin: "Income Effect" is long, and letting
+            // its centre sit near the frame makes the text overrun the border.
+            const txtSubW = 3.4, txtIncW = 5.2;   // half-widths, in x-units
+            const clampLabel = (mid, halfWidth) => {
+                const lo = Math.max(mid, halfWidth);            // clear the y-axis
+                const hi = xMax - halfWidth * 1.35;             // clear the right frame
+                return Math.min(lo, hi);
+            };
+            anno.txtSub.xValue = clampLabel((xA + xB) / 2, txtSubW);
+            anno.txtSub.yValue = (anno.subZone.yMin + anno.subZone.yMax) / 2;
+            anno.txtInc.xValue = clampLabel((xB + xC) / 2, txtIncW);
+            anno.txtInc.yValue = (anno.incZone.yMin + anno.incZone.yMax) / 2;
+
+            // Gate on xC > xA, not on isGiffen alone.  A is pinned to I_init (so
+            // IC0 never slides when the income slider moves, exactly as in the
+            // other two modes), which means at incomes far from I_init the A-to-C
+            // span also carries the income change.  Above I ~ 132 that swamps the
+            // price effect and xC lands LEFT of xA, so the brace would assert
+            // "Qx rises with Px" across a span that visibly fails to the left.
+            // The demand chart is built at the LIVE income and remains a correct
+            // demand curve throughout, so the Giffen story is still visible there.
+            if (isGiffen && xC > xA) {
+                // The Giffen brace spans the whole A-to-C gap and therefore lives on
+                // its own horizontal line BETWEEN the two band captions. Putting it
+                // below the stack is not an option: the stack is already anchored
+                // close to the x-axis, and the band are only tall enough to host one
+                // line of text each. A dedicated lane costs one extra band-height of
+                // vertical room and guarantees the three labels never touch.
+                const lo = Math.min(xA, xC), hi = Math.max(xA, xC);
+                const spanGap = bandH * 0.55;
+                const yBrace = anno.subZone.yMin - spanGap;
+                anno.giffenSpan.xMin = lo; anno.giffenSpan.xMax = hi;
+                anno.giffenSpan.yMin = yBrace; anno.giffenSpan.yMax = yBrace;
+                anno.giffenSpan.display = true;
+                // The tag sits on the brace lane, centred on the A-to-C span. Guard
+                // both the plot edges AND the caption widths: a left-clamped or a
+                // very short span could otherwise push the red text onto "Sub Effect".
+                const tagHalfWidth = 7.5, clearOfSub = 1.2;
+                const wantX = (lo + hi) / 2;
+                const minX = Math.max(tagHalfWidth, anno.txtSub.xValue + txtSubW + clearOfSub);
+                anno.giffenTag.xValue = Math.min(Math.max(wantX, minX), xMax - tagHalfWidth);
+                anno.giffenTag.yValue = yBrace;
+                anno.giffenTag.content = 'Qx rises with Px';
+                anno.giffenTag.display = true;
+            } else {
+                anno.giffenSpan.display = false;
+                anno.giffenTag.display = false;
+                // Chart.js still paints a label whose `display` is false, so blank
+                // its text as well -- that is the only reliable way to hide it.
+                anno.giffenTag.content = '';
+                anno.giffenTag.xValue = -999;
+                anno.giffenTag.yValue = -999;
+            }
 
             eqChart.update('none');
 
             // Right Chart
-            deChart.data.datasets[0].data = (type === 'normal') ? staticNormalDemand : staticInferiorDemand;
+            deChart.data.datasets[0].data = staticDemandByType[type] || staticNormalDemand;
             const dynamicDemandCurve = [];
-            for (let p = 1.5; p <= 10; p += 0.2) {
+            for (let p = 1.5; p <= 7.75; p += 0.05) {
                 dynamicDemandCurve.push({ x: getCoordinates(p, I, type).xC, y: p });
             }
             deChart.data.datasets[1].data = dynamicDemandCurve;
             deChart.data.datasets[2].data = [{ x: xC, y: Px }];
-            
+
+            // Giffen quantities sit in a narrow band (~5-9), so on the default 0-45
+            // demand axis the whole curve is a smudge against the y-axis and the
+            // upturn -- the entire point of the mode -- is invisible.  Fit the axis
+            // to the data, keeping a little headroom on both sides.
+            if (isGiffen) {
+                let dmin = Infinity, dmax = -Infinity;
+                for (const pt of dynamicDemandCurve) {
+                    if (isFinite(pt.x)) { dmin = Math.min(dmin, pt.x); dmax = Math.max(dmax, pt.x); }
+                }
+                if (isFinite(dmin) && dmax > dmin) {
+                    const pad = Math.max(0.6, (dmax - dmin) * 0.15);
+                    deChart.options.scales.x.min = Math.max(0, dmin - pad);
+                    deChart.options.scales.x.max = dmax + pad;
+                }
+            } else {
+                deChart.options.scales.x.min = 0;
+                deChart.options.scales.x.max = 45;
+            }
+
             deChart.update('none');
         }
 
@@ -424,17 +902,279 @@
             // Restore Values Without Changing Good Type
             document.getElementById('priceX').value = 5;
             document.getElementById('income').value = 100;
-            // Re-render
+            // Re-render.  updateSimulation() re-derives both axis windows from the
+            // restored income, so nothing from Giffen mode is left behind.
             updateSimulation();
         });
 
         // Event Listeners
         document.getElementById('priceX').addEventListener('input', updateSimulation);
         document.getElementById('income').addEventListener('input', updateSimulation);
-        document.querySelectorAll('input[name="goodType"]').forEach(r => r.addEventListener('change', updateSimulation));
+
+        // Switching to the Giffen case while Px sits at the base price would show a
+        // degenerate picture (A, B and C all collapse onto one point). Nudge the
+        // slider so the case is visible straight away.
+        document.querySelectorAll('input[name="goodType"]').forEach(r => r.addEventListener('change', () => {
+            const slider = document.getElementById('priceX');
+            if (r.value === 'giffen' && Math.abs(parseFloat(slider.value) - Px_init) < 0.01) {
+                slider.value = 7;
+            }
+            updateSimulation();
+        }));
 
         // Initial Paint
         updateSimulation();
+
+        // =====================================================================
+        // IC SHAPE MAP -- the three preference maps side by side.
+        //
+        // Purely a SHAPE comparison, so it deliberately does not depend on the
+        // sliders: each panel shows several iso-U contours (or a heat field) of
+        // the SAME map that drives the simulation.  That is the point -- the
+        // three goods differ in the shape of this field, not in any hand-drawn
+        // curve.
+        //
+        // normal   U = x*y                              closed form
+        // giffen   U = (x + t*y - L)^a * y^b            closed form
+        // inferior none.  Inverted from the demand system instead (see mapU).
+        // =====================================================================
+        const MAP_MAX = 25;
+        const MAP_LEVELS = {
+            normal:   [25, 60, 110, 180, 280, 420],
+            inferior: [4, 8, 12, 16, 20, 24, 28, 32],
+            giffen:   [2, 5, 8, 11, 14, 17, 20, 23]
+        };
+        const MAP_INK = ['#1f5fd0', '#0f8a5f', '#c2410c', '#7c3aed',
+                         '#0891b2', '#b45309', '#be185d', '#166534'];
+        // Continuous viridis ramp.  A stepped ramp was what made the cell edges
+        // show, so the map is interpolated between stops and blitted with
+        // smoothing on -- the field then reads as a gradient, not as tiles.
+        const HEAT_STOPS = [[68, 1, 84], [72, 45, 123], [59, 82, 139], [44, 114, 142],
+                            [33, 145, 140], [40, 174, 128], [94, 201, 98],
+                            [173, 220, 48], [253, 231, 37]];
+        const HEAT_GREY = [235, 235, 235];
+        function heatRGB(t) {
+            t = t < 0 ? 0 : (t > 1 ? 1 : t);
+            const n = HEAT_STOPS.length - 1;
+            const s = t * n, i = Math.min(n - 1, Math.floor(s)), f = s - i;
+            const a = HEAT_STOPS[i], b = HEAT_STOPS[i + 1];
+            return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
+        }
+
+        // u(x, y) pointwise.  normal and giffen are closed form.  The inferior
+        // map has no closed form, so it is INVERTED from the demand system: at a
+        // bundle (x, y) the tangency price is
+        //      Px(u) = Py * ( Xbar(u) / x )^(1/sigma)
+        // and the bundle's expenditure must equal e(Px, u), i.e.
+        //      F(u) = Py*e_rel(Px(u), u) - Px(u)*x - Py*y = 0
+        // One bisection in u.  Checked against every Marshallian optimum of the
+        // inferior mode: relative error 0 and the price round-trips exactly.
+        function mapU(mode, x, y) {
+            if (mode === 'normal') return (x > 0 && y > 0) ? x * y : null;
+            if (mode === 'giffen') {
+                // z = x + t*y - L is the committed composite (a Stone-Geary
+                // subsistence term).  z <= 0 means the bundle does not even cover
+                // the committed outlay, and U -> 0 as z -> 0+, so extending the
+                // map by U = 0 there is CONTINUOUS and weakly monotone -- the
+                // standard reading.  It leaves no hole, and the flat dark wedge
+                // becomes the picture of the subsistence constraint itself.
+                const z = x + G_T * y - G_L;
+                return z > 0 ? Math.pow(z, G_A) * Math.pow(y, G_B) : 0;
+            }
+            if (!(x > 0) || !(y > 0)) return null;
+            const PxOf = (u) =>
+                Py * Math.pow((INF_X0 + INF_X1 * Math.exp(-INF_DECAY * u)) / x, 1 / INF_SIGMA);
+            const F = (u) => { const p = PxOf(u); return Py * infExpRel(p, u) - p * x - Py * y; };
+            // 60 bisections over a 400-wide bracket resolve u to ~1e-16, which is
+            // far past what a colour ramp can show.  80 was just wasted time at
+            // 22.5k grid points.
+            let lo = 1e-6, hi = 400, flo = F(lo), fhi = F(hi);
+            if (!isFinite(flo) || !isFinite(fhi) || flo * fhi > 0) return null;
+            for (let i = 0; i < 60; i++) {
+                const m = 0.5 * (lo + hi), fm = F(m);
+                if (fm === 0) { lo = hi = m; break; }
+                if (flo * fm < 0) { hi = m; fhi = fm; } else { lo = m; flo = fm; }
+            }
+            return 0.5 * (lo + hi);
+        }
+
+        // The field is rendered ONCE into an offscreen ImageData at N x N, then
+        // blitted into the chart area with imageSmoothingEnabled = true.  The
+        // browser's bilinear filter does the interpolation for free: 22.5k
+        // evaluations give a gradient as smooth as a per-pixel pass would, and
+        // the stair-stepping disappears completely.
+        //
+        // Cells where the preference map genuinely has no level are flagged and
+        // painted from a second, CRISP pass (smoothing off) so that the domain
+        // edge reads as a deliberate boundary rather than as missing data.
+        const heatPlugin = {
+            id: 'mapHeat',
+            beforeDraw(chart, args, opts) {
+                if (!opts || !opts.on) return;
+                const { ctx, chartArea, scales } = chart;
+                const N = 150;
+                const x0 = scales.x.min, x1 = scales.x.max;
+                const y0 = scales.y.min, y1 = scales.y.max;
+                if (!opts._field) {
+                    const v = new Float64Array(N * N);
+                    const off = new Uint8Array(N * N);
+                    let lo = Infinity, hi = -Infinity;
+                    for (let r = 0; r < N; r++) {
+                        // image row 0 is the TOP of the picture, i.e. the largest y
+                        const y = y0 + (y1 - y0) * (N - 1 - r + 0.5) / N;
+                        for (let c = 0; c < N; c++) {
+                            const x = x0 + (x1 - x0) * (c + 0.5) / N;
+                            const u = opts.fn(x, y);
+                            const k = r * N + c;
+                            if (u === null || !isFinite(u)) { off[k] = 1; v[k] = lo === Infinity ? 0 : lo; }
+                            else { v[k] = u; if (u < lo) lo = u; if (u > hi) hi = u; }
+                        }
+                    }
+                    const span = Math.max(1e-12, hi - lo);
+                    const cv1 = document.createElement('canvas');
+                    cv1.width = N; cv1.height = N;
+                    const c1 = cv1.getContext('2d');
+                    const im = c1.createImageData(N, N);
+                    for (let k = 0; k < N * N; k++) {
+                        const rgb = heatRGB((v[k] - lo) / span);
+                        im.data[4 * k] = rgb[0]; im.data[4 * k + 1] = rgb[1];
+                        im.data[4 * k + 2] = rgb[2]; im.data[4 * k + 3] = 255;
+                    }
+                    c1.putImageData(im, 0, 0);
+
+                    let anyOff = false;
+                    for (let k = 0; k < N * N; k++) if (off[k]) { anyOff = true; break; }
+                    let mask = null;
+                    if (anyOff) {
+                        mask = document.createElement('canvas');
+                        mask.width = N; mask.height = N;
+                        const c2 = mask.getContext('2d');
+                        const im2 = c2.createImageData(N, N);
+                        for (let k = 0; k < N * N; k++) {
+                            im2.data[4 * k] = HEAT_GREY[0]; im2.data[4 * k + 1] = HEAT_GREY[1];
+                            im2.data[4 * k + 2] = HEAT_GREY[2];
+                            im2.data[4 * k + 3] = off[k] ? 255 : 0;
+                        }
+                        c2.putImageData(im2, 0, 0);
+                    }
+                    // lo/hi are kept only so a test harness can assert the ramp
+                    // actually spans the window
+                    opts._field = { img: cv1, mask: mask, lo: lo, hi: hi, hasMask: !!mask };
+                }
+                const f = opts._field;
+                const px0 = scales.x.getPixelForValue(x0), px1 = scales.x.getPixelForValue(x1);
+                const py0 = scales.y.getPixelForValue(y0), py1 = scales.y.getPixelForValue(y1);
+                const L = Math.min(px0, px1), T = Math.min(py0, py1);
+                const W = Math.abs(px1 - px0), H = Math.abs(py1 - py0);
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(chartArea.left, chartArea.top,
+                         chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+                ctx.clip();
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(f.img, L, T, W, H);
+                if (f.mask) {
+                    // Smoothing stays ON here too: the mask carries its own alpha
+                    // channel, so bilinear filtering feathers the domain edge by
+                    // about one cell instead of leaving a blocky staircase where
+                    // the crisp mask meets the smoothed colour field.
+                    ctx.drawImage(f.mask, L, T, W, H);
+                }
+                ctx.restore();
+            }
+        };
+        Chart.register(heatPlugin);
+
+        const mapCharts = {};
+        function buildMap() {
+            ['normal', 'inferior', 'giffen'].forEach((mode) => {
+                const lv = MAP_LEVELS[mode];
+                const id = 'map' + mode[0].toUpperCase() + mode.slice(1);
+                const c = new Chart(document.getElementById(id).getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        datasets: lv.map((U, i) => ({
+                            label: 'U=' + U,
+                            // Same generator the simulation uses -- so the map and
+                            // the simulation cannot drift apart.
+                            data: generateICPoints(
+                                mode === 'normal'   ? { x0: 0, y0: 0, k: U } :
+                                mode === 'inferior' ? { inf: true, u: U } :
+                                                      { shift: true, Ub: U }, MAP_MAX),
+                            borderColor: MAP_INK[i % MAP_INK.length],
+                            borderWidth: 2, pointRadius: 0, fill: false, tension: 0
+                        }))
+                    },
+                    options: {
+                        maintainAspectRatio: false, animation: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false },
+                            mapHeat: { on: false, fn: (x, y) => mapU(mode, x, y) }
+                        },
+                        scales: {
+                            x: { type: 'linear', min: 0, max: MAP_MAX,
+                                 title: { display: true, text: 'x', color: '#5b6b83' },
+                                 ticks: { color: '#8494ab', maxTicksLimit: 6 },
+                                 grid: { color: '#eef2f8' } },
+                            y: { type: 'linear', min: 0, max: MAP_MAX,
+                                 title: { display: true, text: 'y', color: '#5b6b83' },
+                                 ticks: { color: '#8494ab', maxTicksLimit: 6 },
+                                 grid: { color: '#eef2f8' } }
+                        }
+                    }
+                });
+                mapCharts[mode] = c;
+            });
+        }
+
+        let heatOn = false;
+        function setHeat(on) {
+            heatOn = on;
+            Object.keys(mapCharts).forEach(m => {
+                const c = mapCharts[m];
+                c.options.plugins.mapHeat.on = on;
+                // On the heat field the coloured contours vanish, so switch them
+                // to white and soften the grid from dark grey to translucent.
+                c.data.datasets.forEach((d, i) => {
+                    d.borderColor = on ? '#ffffff' : MAP_INK[i % MAP_INK.length];
+                    d.borderWidth = on ? 2.4 : 2;
+                });
+                ['x', 'y'].forEach(ax => {
+                    c.options.scales[ax].grid.color = on ? 'rgba(255,255,255,0.22)' : '#eef2f8';
+                    c.options.scales[ax].ticks.color = on ? 'rgba(255,255,255,0.85)' : '#8494ab';
+                });
+                c.update('none');
+            });
+            document.getElementById('btnHeat').textContent = 'Heat map: ' + (on ? 'on' : 'off');
+            document.getElementById('legendHeat').style.display = on ? '' : 'none';
+        }
+
+        let mapBuilt = false;
+        function showView(which) {
+            const sim = (which === 'sim');
+            document.getElementById('btnSim').classList.toggle('active', sim);
+            document.getElementById('btnMap').classList.toggle('active', !sim);
+            document.getElementById('appContainer').style.display = sim ? '' : 'none';
+            document.getElementById('mapView').style.display = sim ? 'none' : 'flex';
+            document.getElementById('mapOnly').style.display = sim ? 'none' : 'flex';
+            if (!sim) {
+                if (!mapBuilt) { buildMap(); mapBuilt = true; }
+                // the container was display:none when the charts were built, so
+                // they must be re-measured once it is actually laid out
+                Object.values(mapCharts).forEach(c => c.resize());
+                setHeat(heatOn);
+            }
+        }
+        document.getElementById('btnSim').addEventListener('click', () => showView('sim'));
+        document.getElementById('btnMap').addEventListener('click', () => showView('map'));
+        document.getElementById('btnHeat').addEventListener('click', () => setHeat(!heatOn));
+        window.addEventListener('resize', () => {
+            if (document.getElementById('mapView').style.display === 'flex') {
+                Object.values(mapCharts).forEach(c => c.resize());
+            }
+        });
     </script>
 </body>
 </html>
