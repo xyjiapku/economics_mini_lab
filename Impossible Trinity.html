@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impossible Trinity — Mundell-Fleming Interactive Lab</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+    :root {
+        --primary: #1a3a5c;
+        --bg: #f4f7fb;
+        --card: #ffffff;
+        --cR: #2e86de;      /* policy rate blue */
+        --cRS: #e74c3c;     /* world rate red */
+        --cE: #8e44ad;      /* exchange rate purple */
+        --cRes: #f39c12;    /* reserves amber */
+        --ok: #27ae60;
+        --text: #2c3e50;
+        --text2: #7f8c8d;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: var(--bg); color: var(--text);
+        min-height: 100vh; display: flex; justify-content: center; padding: 10px;
+    }
+    .app {
+        width: 100%; max-width: 1420px; background: var(--card); border-radius: 14px;
+        box-shadow: 0 8px 32px rgba(26, 58, 92, 0.12); padding: 12px 16px 10px;
+        display: flex; flex-direction: column; min-height: calc(100vh - 20px);
+    }
+    header { text-align: center; margin-bottom: 8px; }
+    header h1 { font-size: 27px; color: var(--primary); }
+    header .sub { color: var(--text2); font-size: 14px; margin-top: 2px; }
+
+    .tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; }
+    .tab-btn {
+        padding: 9px 26px; border: 1.5px solid rgba(42, 90, 140, 0.25); border-radius: 30px;
+        background: #fff; font-size: 15px; font-weight: 700; color: var(--primary); cursor: pointer; transition: .2s;
+    }
+    .tab-btn:hover { border-color: var(--primary); }
+    .tab-btn.active { background: var(--primary); color: #fff; }
+    .tab-content { display: none; flex: 1; min-height: 0; }
+    .tab-content.active { display: block; }
+
+    /* ============ TAB 1: TRILEMMA ============ */
+    .tri-wrap { display: flex; gap: 14px; flex: 1; min-height: 0; }
+    .tri-left {
+        flex: 1.15 1 0; min-width: 0; display: flex; flex-direction: column; gap: 10px;
+    }
+    .tri-stage {
+        background: #fbfdff; border: 1px solid #e8eef5; border-radius: 12px;
+        flex: 1; min-height: 380px; display: flex; align-items: center; justify-content: center; position: relative;
+    }
+    .tri-stage svg { width: 100%; max-width: 560px; height: 100%; max-height: 480px; }
+    .tri-node { cursor: pointer; }
+    .tri-node circle { transition: fill .25s, stroke .25s, filter .25s; }
+    .tri-node .ring { fill: #fff; stroke: #c9d6e4; stroke-width: 3; }
+    .tri-node.on .ring { fill: var(--primary); stroke: #12314f; filter: drop-shadow(0 3px 8px rgba(26,58,92,.35)); }
+    .tri-node.dead .ring { fill: #f4f6f8; stroke: #e2b4b4; }
+    .tri-node text { font-family: "Segoe UI", Arial, sans-serif; pointer-events: none; }
+    .tri-node .t1 { font-size: 17px; font-weight: 800; fill: var(--text); }
+    .tri-node .t2 { font-size: 12.5px; fill: var(--text2); }
+    .tri-node.on .t1 { fill: #fff; } .tri-node.on .t2 { fill: #cfe0f2; }
+    .tri-node.dead .t1 { fill: #b9c2cc; } .tri-node.dead .t2 { fill: #c9ced4; }
+    .tri-node.dead .cross { opacity: 1; }
+    .tri-node .cross { opacity: 0; transition: opacity .25s; }
+    .tri-edge { stroke: #d7e1ec; stroke-width: 5; fill: none; }
+    .tri-edge.hot { stroke: var(--primary); stroke-width: 8; }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+    .tri-node.shake { animation: shake .35s; }
+    .tri-verdict {
+        min-height: 86px; background: #f8fafc; border: 1px solid #e8eef5; border-radius: 10px;
+        padding: 10px 14px; display: flex; flex-direction: column; justify-content: center;
+    }
+    .tri-verdict .v-title { font-size: 16px; font-weight: 800; color: var(--primary); margin-bottom: 3px; }
+    .tri-verdict .v-sub { font-size: 13.5px; color: var(--text2); line-height: 1.45; }
+    .tri-right { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+    .theory-card { background: #f8fafc; border: 1px solid #e8eef5; border-radius: 10px; padding: 12px 16px; }
+    .theory-card h3 { font-size: 16.5px; color: var(--primary); margin-bottom: 8px; }
+    .theory-card p, .theory-card li { font-size: 14.5px; line-height: 1.6; }
+    .step-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    .step-btn {
+        padding: 8px 18px; border: 1.5px solid rgba(42, 90, 140, 0.3); border-radius: 8px;
+        background: #fff; font-size: 13.5px; font-weight: 700; color: var(--primary); cursor: pointer; transition: .2s;
+    }
+    .step-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .step-btn:disabled { opacity: .45; cursor: not-allowed; }
+    .hidden-step { display: none; }
+    .hidden-step.show { display: block; animation: fadeUp .35s; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .chain-step { display: flex; gap: 10px; align-items: flex-start; background: #fff; border: 1.5px solid #e8eef5; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+    .chain-step .n { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center; }
+    .chain-step p { font-size: 14.5px; line-height: 1.55; }
+    .chain-step b.up { color: #b03a2e; } .chain-step b.down { color: #1e8449; }
+    .res-item { background: #fff; border: 2px solid #e8eef5; border-radius: 10px; padding: 10px 14px; font-size: 14.5px; line-height: 1.55; }
+    .res-item.winner { border-color: var(--ok); background: #f2faf5; }
+    .res-item .flag { font-size: 20px; margin-right: 6px; }
+    .res-item .cn { font-size: 13px; color: var(--text2); }
+    .regime-jump { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+    .jump-btn {
+        padding: 7px 14px; border-radius: 20px; border: 1.5px solid rgba(42,90,140,.3); background: #fff;
+        font-size: 13px; font-weight: 700; color: var(--primary); cursor: pointer; transition: .2s;
+    }
+    .jump-btn:hover { background: #eaf2fb; }
+
+    /* ============ TAB 2: POLICY LAB ============ */
+    .lab-wrap { display: flex; gap: 12px; flex: 1; min-height: 0; }
+    .lab-left { flex: 0 0 330px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+    .panel { background: #f8fafc; border: 1px solid #e8eef5; border-radius: 10px; padding: 10px 12px; }
+    .panel h3 { font-size: 14.5px; color: var(--primary); margin-bottom: 8px; }
+    .regime-cards { display: flex; flex-direction: column; gap: 7px; }
+    .regime-card {
+        border: 2px solid #e8eef5; border-radius: 10px; background: #fff; padding: 9px 12px;
+        cursor: pointer; transition: .2s; text-align: left; width: 100%;
+    }
+    .regime-card:hover { border-color: #9fbdd9; }
+    .regime-card.on { border-color: var(--primary); background: #eef5fc; box-shadow: 0 2px 8px rgba(26,58,92,.10); }
+    .regime-card .r-name { font-size: 14.5px; font-weight: 800; color: var(--primary); }
+    .regime-card .r-eg { font-size: 12.5px; color: var(--text2); margin-top: 2px; }
+    .regime-card .r-keep { font-size: 12px; margin-top: 4px; font-weight: 700; }
+    .slider-box { margin-top: 2px; }
+    .slider-box .lab { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; font-weight: 800; color: #1e5c96; }
+    .slider-box .lab .val { font-family: Consolas, monospace; font-size: 15px; color: var(--cR); }
+    .slider-box input[type=range] { width: 100%; accent-color: var(--cR); height: 22px; cursor: pointer; }
+    .world-line { font-size: 13.5px; color: var(--text2); margin-top: 4px; }
+    .world-line b { color: var(--cRS); font-family: Consolas, monospace; }
+    .ctl-row { display: flex; gap: 7px; margin-top: 9px; flex-wrap: wrap; }
+    .run-btn {
+        flex: 1; padding: 9px 10px; border-radius: 8px; border: 1.5px solid rgba(42,90,140,.3);
+        background: #fff; font-size: 13.5px; font-weight: 700; color: var(--primary); cursor: pointer; transition: .2s; white-space: nowrap;
+    }
+    .run-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .run-btn:hover:not(:disabled) { filter: brightness(1.08); }
+    .run-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .stat-card { background: #fff; border: 1.5px solid #e8eef5; border-radius: 9px; padding: 8px 10px; }
+    .stat-card .s-lab { font-size: 11.5px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .4px; }
+    .stat-card .s-val { font-family: Consolas, monospace; font-size: 19px; font-weight: 800; margin-top: 1px; }
+    .stat-card .s-note { font-size: 12px; margin-top: 1px; font-weight: 700; }
+    .note-up { color: #b03a2e; } .note-down { color: #1e8449; } .note-flat { color: #95a5a6; }
+    .event-bar {
+        min-height: 46px; border-radius: 9px; border: 1.5px solid #e8eef5; background: #fff;
+        padding: 8px 12px; font-size: 13.5px; line-height: 1.5; color: var(--text);
+    }
+    .event-bar.warn { border-color: #f1c40f; background: #fef9e7; }
+    .event-bar.bad { border-color: #e74c3c; background: #fdedec; color: #922b21; font-weight: 700; }
+    .event-bar.good { border-color: #27ae60; background: #f2faf5; }
+    .lab-right { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+    .chart-box { background: #fbfdff; border: 1px solid #e8eef5; border-radius: 12px; padding: 10px 12px 6px; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .chart-box h3 { font-size: 14.5px; color: var(--primary); }
+    .chart-holder { flex: 1; min-height: 0; position: relative; }
+    .chart-hint { font-size: 12px; color: #999; text-align: center; margin-top: 2px; }
+    .mini-tri { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .mini-tri .mt {
+        font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 14px;
+        background: #eef5fc; color: var(--primary); border: 1.5px solid #d7e4f2;
+    }
+    .mini-tri .mt.drop { background: #fdedec; color: #b03a2e; border-color: #f1b0ae; text-decoration: line-through; }
+    /* capital flow gauge */
+    .gauge-box { display: flex; flex-direction: column; align-items: center; }
+    .gauge-box svg { width: 100%; max-width: 300px; height: auto; }
+    .gauge-note { font-size: 13px; font-weight: 700; color: var(--text2); text-align: center; margin-top: 2px; min-height: 20px; }
+    .gauge-note.out { color: #c0392b; }
+    .gauge-note.in { color: #1e8449; }
+    .gauge-note.wall { color: #6d4c41; }
+    footer { text-align: center; font-size: 12px; color: #b6c2cf; margin-top: 6px; }
+
+    /* toast */
+    #toast {
+        position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%) translateY(20px);
+        background: #2c3e50; color: #fff; padding: 10px 22px; border-radius: 24px;
+        font-size: 14px; font-weight: 700; opacity: 0; pointer-events: none; transition: .3s; z-index: 99;
+        box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="app">
+    <header>
+        <h1>The Impossible Trinity</h1>
+        <div class="sub">Fixed FX · Free capital · Independent money — <b>pick any two</b></div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" id="tabBtn1" onclick="switchTab(1)">① The Trilemma · Why Pick Two?</button>
+        <button class="tab-btn" id="tabBtn2" onclick="switchTab(2)">② Policy Lab · Run Your Central Bank</button>
+    </div>
+
+    <!-- ═══════════ TAB 1 ═══════════ -->
+    <div class="tab-content active" id="tab1">
+        <div class="tri-wrap">
+            <div class="tri-left">
+                <div class="tri-stage">
+                    <svg viewBox="0 0 460 430">
+                        <polygon class="tri-edge" id="edge-fo" points="230,88 138,318"/>
+                        <polygon class="tri-edge" id="edge-fi" points="138,318 322,318"/>
+                        <polygon class="tri-edge" id="edge-oi" points="322,318 230,88"/>
+                        <g class="tri-node" id="node-fixed" onclick="toggleCorner('fixed')">
+                            <circle class="ring" cx="230" cy="88" r="62"/>
+                            <text class="t1" x="230" y="82" text-anchor="middle">Fixed</text>
+                            <text class="t1" x="230" y="100" text-anchor="middle">exchange rate</text>
+                            <text class="t2" x="230" y="118" text-anchor="middle">钉住汇率</text>
+                            <g class="cross"><line x1="196" y1="60" x2="264" y2="116" stroke="#c0392b" stroke-width="6" stroke-linecap="round"/></g>
+                        </g>
+                        <g class="tri-node" id="node-open" onclick="toggleCorner('open')">
+                            <circle class="ring" cx="138" cy="318" r="62"/>
+                            <text class="t1" x="138" y="312" text-anchor="middle">Free capital</text>
+                            <text class="t1" x="138" y="330" text-anchor="middle">flows</text>
+                            <text class="t2" x="138" y="348" text-anchor="middle">资本自由流动</text>
+                            <g class="cross"><line x1="104" y1="290" x2="172" y2="346" stroke="#c0392b" stroke-width="6" stroke-linecap="round"/></g>
+                        </g>
+                        <g class="tri-node" id="node-indep" onclick="toggleCorner('indep')">
+                            <circle class="ring" cx="322" cy="318" r="62"/>
+                            <text class="t1" x="322" y="304" text-anchor="middle">Independent</text>
+                            <text class="t1" x="322" y="322" text-anchor="middle">monetary</text>
+                            <text class="t1" x="322" y="340" text-anchor="middle">policy</text>
+                            <text class="t2" x="322" y="358" text-anchor="middle">独立货币政策</text>
+                            <g class="cross"><line x1="288" y1="290" x2="356" y2="346" stroke="#c0392b" stroke-width="6" stroke-linecap="round"/></g>
+                        </g>
+                        <text x="230" y="245" text-anchor="middle" font-size="15" font-weight="800" fill="#7f8c8d">Click any TWO corners</text>
+                        <text x="230" y="266" text-anchor="middle" font-size="13" fill="#aeb9c5" font-weight="700">点击任意两个角 — the third must go</text>
+                    </svg>
+                </div>
+                <div class="tri-verdict" id="triVerdict">
+                    <div class="v-title">Click any two corners</div>
+                    <div class="v-sub">Each pair = one real-world regime.</div>
+                </div>
+            </div>
+            <div class="tri-right">
+                <div class="theory-card">
+                    <h3>Why can't we keep all three?</h3>
+                    <div class="step-controls">
+                        <button class="step-btn primary" id="stepNext" onclick="doStep()">Next step</button>
+                        <button class="step-btn" onclick="resetTheory()">Reset</button>
+                        <span class="step-pill" id="stepPill" style="font-size:13px;font-weight:700;color:var(--primary);background:#eaf2fb;border-radius:16px;padding:4px 12px;">0 / 4</span>
+                    </div>
+                    <div class="hidden-step" id="st1">
+                        <div class="chain-step"><div class="n">1</div>
+                            <p><b class="up">r = 7%</b> vs world <b>r* = 5%</b> + open capital → <b>capital flows IN</b></p>
+                        </div>
+                    </div>
+                    <div class="hidden-step" id="st2">
+                        <div class="chain-step"><div class="n">2</div>
+                            <p>They buy our currency → <b class="down">upward pressure</b> → to hold the peg the central bank <b>buys FX</b></p>
+                        </div>
+                    </div>
+                    <div class="hidden-step" id="st3">
+                        <div class="chain-step"><div class="n">3</div>
+                            <p>Buying FX = issuing money → money supply expands → <b class="down">r falls back to r*</b></p>
+                        </div>
+                    </div>
+                    <div class="hidden-step" id="st4">
+                        <div class="chain-step"><div class="n">4</div>
+                            <p>Pegged + open ⇒ the rate is <b>imported</b>. Autonomy gone. <b>One corner must go.</b></p>
+                        </div>
+                    </div>
+                    <div class="hidden-step" id="st5">
+                        <div class="res-item winner"><span class="flag">💡</span>Every economy lives on an <b>edge</b> — never inside. Test the three edges →</div>
+                        <div class="regime-jump">
+                            <button class="jump-btn" onclick="jumpTo('float')">🇺🇸 US edge</button>
+                            <button class="jump-btn" onclick="jumpTo('fixopen')">🇭🇰 HK edge</button>
+                            <button class="jump-btn" onclick="jumpTo('fixctl')">🇨🇳 China edge</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ TAB 2 ═══════════ -->
+    <div class="tab-content" id="tab2">
+        <div class="lab-wrap">
+            <div class="lab-left">
+                <div class="panel">
+                    <h3>Choose your regime</h3>
+                    <div class="regime-cards">
+                        <button class="regime-card" id="rc-float" onclick="setRegime('float')">
+                            <div class="r-name">🌊 Floating + Open capital</div>
+                            <div class="r-eg">🇺🇸 United States · keep: flows + independence</div>
+                            <div class="r-keep r-keep-drop" style="color:#b03a2e;">Drop: fixed exchange rate</div>
+                        </button>
+                        <button class="regime-card" id="rc-fixopen" onclick="setRegime('fixopen')">
+                            <div class="r-name">📌 Fixed + Open capital</div>
+                            <div class="r-eg">🇭🇰 Hong Kong · keep: peg + flows</div>
+                            <div class="r-keep" style="color:#b03a2e;">Drop: independent monetary policy</div>
+                        </button>
+                        <button class="regime-card" id="rc-fixctl" onclick="setRegime('fixctl')">
+                            <div class="r-name">🧱 Fixed + Capital controls</div>
+                            <div class="r-eg">🇨🇳 China · keep: peg + independence</div>
+                            <div class="r-keep" style="color:#b03a2e;">Drop: free capital flows</div>
+                        </button>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3>Your policy rate</h3>
+                    <div class="slider-box">
+                        <div class="lab"><span>Policy rate r</span><span class="val" id="rVal">5.0%</span></div>
+                        <input type="range" id="rSlider" min="1" max="9" step="0.1" value="5" oninput="onRateInput()">
+                    </div>
+                    <div class="world-line">World interest rate <b>r* = 5.0%</b> — set by the global capital market.</div>
+                    <div class="ctl-row">
+                        <button class="run-btn primary" id="btnAdv" onclick="advance()">Advance 1 month</button>
+                        <button class="run-btn" id="btnAuto" onclick="toggleAuto()">▶ Auto</button>
+                        <button class="run-btn" onclick="resetSim()">Reset</button>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3>Status · <span id="monthLab" style="font-family:Consolas,monospace;">month 0</span></h3>
+                    <div class="stat-grid">
+                        <div class="stat-card"><div class="s-lab">Exchange rate</div><div class="s-val" id="stE" style="color:var(--cE);">7.80</div><div class="s-note note-flat" id="stENote">pegged</div></div>
+                        <div class="stat-card"><div class="s-lab">FX reserves</div><div class="s-val" id="stR" style="color:var(--cRes);">$300bn</div><div class="s-note note-flat" id="stRNote">—</div></div>
+                        <div class="stat-card"><div class="s-lab">Your rate r</div><div class="s-val" id="stRt" style="color:var(--cR);">5.0%</div><div class="s-note note-flat" id="stRtNote">at world level</div></div>
+                        <div class="stat-card"><div class="s-lab">Capital flow</div><div class="s-val" id="stCF" style="font-size:16px;">—</div><div class="s-note note-flat" id="stCFNote">no pressure</div></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3>Capital flow gauge</h3>
+                    <div class="gauge-box">
+                        <svg viewBox="0 0 300 168" id="gaugeSvg">
+                            <path d="M 41.7 123.9 A 110 110 0 0 1 103.5 43.3" fill="none" stroke="#e74c3c" stroke-width="17" stroke-linecap="round" opacity=".85"/>
+                            <path d="M 103.5 43.3 A 110 110 0 0 1 134.7 34.1" fill="none" stroke="#f5b7b1" stroke-width="17"/>
+                            <path d="M 134.7 34.1 A 110 110 0 0 1 165.3 34.1" fill="none" stroke="#cfd8e3" stroke-width="17"/>
+                            <path d="M 165.3 34.1 A 110 110 0 0 1 196.5 43.3" fill="none" stroke="#a9dfbf" stroke-width="17"/>
+                            <path d="M 196.5 43.3 A 110 110 0 0 1 258.3 123.9" fill="none" stroke="#27ae60" stroke-width="17" stroke-linecap="round" opacity=".85"/>
+                            <text x="26" y="160" font-size="13" font-weight="800" fill="#c0392b">OUT</text>
+                            <text x="252" y="160" font-size="13" font-weight="800" fill="#1e8449">IN</text>
+                            <text x="150" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#95a5a6">$bn / month</text>
+                            <g id="gaugeWall" style="display:none;">
+                                <rect x="140" y="52" width="20" height="98" rx="4" fill="#a1887f"/>
+                                <line x1="140" y1="72" x2="160" y2="72" stroke="#8d6e63" stroke-width="3"/>
+                                <line x1="140" y1="92" x2="160" y2="92" stroke="#8d6e63" stroke-width="3"/>
+                                <line x1="140" y1="112" x2="160" y2="112" stroke="#8d6e63" stroke-width="3"/>
+                                <line x1="140" y1="132" x2="160" y2="132" stroke="#8d6e63" stroke-width="3"/>
+                            </g>
+                            <g id="gaugePointer" style="transform-origin:150px 143px;">
+                                <line x1="150" y1="143" x2="150" y2="60" stroke="#2c3e50" stroke-width="4.5" stroke-linecap="round"/>
+                                <circle cx="150" cy="143" r="8" fill="#2c3e50"/>
+                            </g>
+                            <text id="gaugeVal" x="150" y="132" text-anchor="middle" font-size="15" font-weight="800" fill="#2c3e50" style="font-family:Consolas,monospace;">0</text>
+                        </svg>
+                        <div class="gauge-note" id="gaugeNote">no pressure — set a rate away from 5%</div>
+                    </div>
+                </div>
+                <div class="event-bar" id="eventBar">Pick a regime, set a rate away from 5%, press <b>Advance</b>.</div>
+                <div class="panel">
+                    <h3>Trinity check</h3>
+                    <div class="mini-tri" id="miniTri"></div>
+                </div>
+            </div>
+            <div class="lab-right">
+                <div class="chart-box">
+                    <h3>Interest rate — yours vs. the world</h3>
+                    <div class="chart-holder"><canvas id="rateChart"></canvas></div>
+                    <div class="chart-hint">Can you hold your rate away from r*? It depends on the regime.</div>
+                </div>
+                <div class="chart-box">
+                    <h3>Exchange rate &amp; FX reserves</h3>
+                    <div class="chart-holder"><canvas id="fxChart"></canvas></div>
+                    <div class="chart-hint">The pressure has to go somewhere: the rate, the reserves, or a wall of controls.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>© 2026 Dr. Jia · economics_mini_lab</footer>
+</div>
+<div id="toast"></div>
+
+<script>
+/* ═══════════ constants & helpers ═══════════ */
+const RSTAR = 5.0;        // world interest rate %
+const E_PEG = 7.80;       // pegged exchange rate
+const RES0 = 300;         // initial FX reserves, $bn
+const KAPPA = 27;         // capital flow $bn per pp gap per month
+const ALPHA = 0.30;       // monthly convergence of r toward r* (fixed + open)
+const BETA  = 0.15;       // monthly FX drift per pp gap (floating)
+const E_CRISIS = 12.50;   // post-break rate
+const PREM_CRISIS = 4.0;  // crisis risk premium (pp)
+const CORNERS = { fixed: 'Fixed exchange rate', open: 'Free capital flows', indep: 'Independent monetary policy' };
+
+let toastTimer = null;
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+const fmtR = v => v.toFixed(1) + '%';
+const fmtE = v => v.toFixed(2);
+const fmtRes = v => '$' + Math.max(0, Math.round(v)) + 'bn';
+
+/* ═══════════ TAB switching ═══════════ */
+function switchTab(n) {
+    document.getElementById('tab1').classList.toggle('active', n === 1);
+    document.getElementById('tab2').classList.toggle('active', n === 2);
+    document.getElementById('tabBtn1').classList.toggle('active', n === 1);
+    document.getElementById('tabBtn2').classList.toggle('active', n === 2);
+    if (n === 2) { rateChart.resize(); fxChart.resize(); }
+}
+function jumpTo(reg) { setRegime(reg); switchTab(2); }
+
+/* ═══════════ TAB 1: trilemma triangle ═══════════ */
+const COMBOS = {
+    'fixed|open':  { drop: 'indep', title: 'Fixed + Flows → currency board', sub: '🇭🇰 Hong Kong: rates follow the Fed. 联系汇率', regime: 'fixopen' },
+    'fixed|indep': { drop: 'open',  title: 'Fixed + Independence → capital wall', sub: '🇨🇳 China: capital needs approval. 资本管制', regime: 'fixctl' },
+    'open|indep':  { drop: 'fixed', title: 'Flows + Independence → floating', sub: '🇺🇸 United States: the FX rate takes the strain. 浮动汇率', regime: 'float' }
+};
+let picked = [];
+function toggleCorner(c) {
+    const el = document.getElementById('node-' + c);
+    if (picked.includes(c)) {
+        picked = picked.filter(x => x !== c);
+        el.classList.remove('on');
+    } else if (picked.length < 2) {
+        picked.push(c);
+        el.classList.add('on');
+        el.classList.remove('dead');
+    } else {
+        el.classList.add('shake');
+        setTimeout(() => el.classList.remove('shake'), 400);
+        showToast('Pick any two — the third must go!');
+        return;
+    }
+    refreshTriangle();
+}
+function refreshTriangle() {
+    const v = document.getElementById('triVerdict');
+    ['fixed', 'open', 'indep'].forEach(c => {
+        const el = document.getElementById('node-' + c);
+        const isPicked = picked.includes(c);
+        el.classList.toggle('on', isPicked);
+        el.classList.toggle('dead', picked.length === 2 && !isPicked);
+    });
+    document.getElementById('edge-fo').classList.toggle('hot', picked.includes('fixed') && picked.includes('open'));
+    document.getElementById('edge-fi').classList.toggle('hot', picked.includes('fixed') && picked.includes('indep'));
+    document.getElementById('edge-oi').classList.toggle('hot', picked.includes('open') && picked.includes('indep'));
+    if (picked.length < 2) {
+        v.innerHTML = '<div class="v-title">Click any two corners</div><div class="v-sub">Each pair = one real-world regime.</div>';
+        return;
+    }
+    const key = [...picked].sort().join('|');
+    const combo = COMBOS[key];
+    v.innerHTML = '<div class="v-title">' + combo.title + '</div><div class="v-sub">' + combo.sub +
+        '<br><button class="jump-btn" style="margin-top:6px;" onclick="jumpTo(\'' + combo.regime + '\')">Run this regime in the Policy Lab →</button></div>';
+}
+
+/* ═══════════ TAB 1: theory steps ═══════════ */
+const STEP_IDS = ['st1', 'st2', 'st3', 'st4', 'st5'];
+let stepI = 0;
+function doStep() {
+    if (stepI >= STEP_IDS.length) return;
+    document.getElementById(STEP_IDS[stepI]).classList.add('show');
+    stepI++;
+    updateStepUI();
+}
+function resetTheory() {
+    stepI = 0;
+    STEP_IDS.forEach(id => document.getElementById(id).classList.remove('show'));
+    updateStepUI();
+}
+function updateStepUI() {
+    document.getElementById('stepPill').textContent = Math.min(stepI, 4) + ' / 4';
+    const btn = document.getElementById('stepNext');
+    if (stepI >= STEP_IDS.length) { btn.disabled = true; btn.textContent = 'All shown ✓'; }
+    else { btn.disabled = false; btn.textContent = 'Next step'; }
+}
+
+/* ═══════════ TAB 2: policy lab ═══════════ */
+const REGIMES = {
+    float:   { keep: ['open', 'indep'], drop: 'fixed', label: 'Floating + Open' },
+    fixopen: { keep: ['fixed', 'open'], drop: 'indep', label: 'Fixed + Open' },
+    fixctl:  { keep: ['fixed', 'indep'], drop: 'open', label: 'Fixed + Controls' }
+};
+let regime = 'fixopen';
+let sim = null;
+let autoTimer = null;
+
+function newSim(r) {
+    return { t: 0, r: r, rSet: r, e: E_PEG, res: RES0, lastCF: null, netCF: 0,
+        hist: { t: [0], r: [r], e: [E_PEG], res: [RES0] }, broken: false };
+}
+function setRegime(reg) {
+    regime = reg;
+    ['float', 'fixopen', 'fixctl'].forEach(k =>
+        document.getElementById('rc-' + k).classList.toggle('on', k === reg));
+    renderMiniTri();
+    resetSim();
+    showToast('Regime: ' + REGIMES[reg].label + ' — ' + REGIMES[reg].drop + ' is gone');
+}
+function renderMiniTri() {
+    const box = document.getElementById('miniTri');
+    box.innerHTML = Object.keys(CORNERS).map(c => {
+        const drop = REGIMES[regime].drop === c;
+        return '<span class="mt' + (drop ? ' drop' : '') + '">' + (drop ? '✗ ' : '✓ ') + CORNERS[c] + '</span>';
+    }).join('');
+}
+function onRateInput() {
+    const v = parseFloat(document.getElementById('rSlider').value);
+    sim.rSet = v;
+    sim.r = v;                       // the central bank re-asserts its target whenever it moves the slider
+    if (sim.t === 0) { sim.hist.r[0] = v; }
+    document.getElementById('rVal').textContent = fmtR(v);
+    updateStats(sim.lastCF);
+    drawCharts();
+}
+function resetSim() {
+    stopAuto();
+    const v = parseFloat(document.getElementById('rSlider').value);
+    sim = newSim(v);
+    document.getElementById('rVal').textContent = fmtR(v);
+    document.getElementById('eventBar').className = 'event-bar';
+    document.getElementById('eventBar').innerHTML = pickHint();
+    document.getElementById('btnAdv').disabled = false;
+    document.getElementById('btnAuto').disabled = false;
+    updateStats(0);
+    drawCharts();
+}
+function pickHint() {
+    if (regime === 'fixopen')
+        return '🇭🇰 <b>Fixed + Open:</b> hold any rate you like — the gauge and your reserves decide how long it lasts. Try 7% or 9%.';
+    if (regime === 'float')
+        return '🇺🇸 <b>Floating + Open:</b> your rate holds. The exchange rate adjusts instead. Watch the gauge still swing.';
+    return '🇨🇳 <b>Fixed + Controls:</b> rate AND peg both hold — the wall locks the gauge at zero.';
+}
+function toggleAuto() {
+    if (autoTimer) { stopAuto(); return; }
+    autoTimer = setInterval(() => {
+        advance();
+        if (sim.broken || sim.t >= 36) stopAuto();
+    }, 750);
+    document.getElementById('btnAuto').textContent = '⏸ Pause';
+}
+function stopAuto() {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+    const b = document.getElementById('btnAuto');
+    if (b) b.textContent = '▶ Auto';
+}
+
+function advance() {
+    if (sim.broken) return;
+    let ev = '', cls = 'event-bar';
+    if (regime === 'fixopen') {
+        const gap = sim.r - RSTAR;                     // market reacts to the rate you are actually holding
+        const cf = -KAPPA * gap;                       // >0 inflow, <0 outflow
+        sim.lastCF = cf;
+        sim.res += cf;
+        if (sim.res <= 0) {
+            sim.broken = true;
+            sim.res = 0;
+            sim.e = E_CRISIS;
+            sim.r = RSTAR + PREM_CRISIS;
+            ev = '💥 <b>Month ' + (sim.t + 1) + ' — RESERVES GONE → peg broken.</b> 7.80 → ' + fmtE(E_CRISIS) +
+                 ' · crisis premium +' + PREM_CRISIS.toFixed(0) + 'pp · like 1992 & 1997';
+            cls = 'event-bar bad';
+        } else {
+            sim.r = Math.max(1, Math.min(9, sim.r - ALPHA * (sim.r - RSTAR)));   // money-supply channel drags r toward r*
+            ev = 'Month ' + (sim.t + 1) + ': gap ' + (gap >= 0 ? '+' : '') + gap.toFixed(1) + 'pp → ' +
+                 (cf >= 0 ? 'inflow' : 'outflow') + ' $' + Math.abs(cf).toFixed(0) + 'bn → reserves ' + fmtRes(sim.res) +
+                 ' → <b>r slips to ' + fmtR(sim.r) + '</b>';
+            if (Math.abs(gap) >= 0.05) cls = 'event-bar warn';
+        }
+        sim.e = E_PEG;
+        if (!sim.broken) sim.netCF += cf;
+    } else if (regime === 'float') {
+        const gap = sim.rSet - RSTAR;
+        sim.lastCF = -KAPPA * gap;
+        sim.netCF += sim.lastCF;
+        sim.e = Math.max(4, Math.min(20, sim.e - BETA * gap));   // FX absorbs the pressure
+        sim.r = sim.rSet;                                        // full independence
+        ev = 'Month ' + (sim.t + 1) + ': <b>r holds at ' + fmtR(sim.r) + ' ✓</b> · currency ' +
+             (gap > 0 ? 'appreciates' : gap < 0 ? 'depreciates' : 'steady') + ' → e ' + fmtE(sim.e) +
+             ' · pressure hits the FX market, not the reserves';
+        if (Math.abs(gap) > 0.05) cls = 'event-bar good';
+    } else {
+        sim.r = sim.rSet;
+        sim.lastCF = 0;
+        ev = 'Month ' + (sim.t + 1) + ': <b>r ' + fmtR(sim.r) + ' + peg 7.80 both hold ✓</b> · wall blocks all flows';
+        cls = 'event-bar good';
+    }
+    sim.t++;
+    sim.hist.t.push(sim.t);
+    sim.hist.r.push(sim.r);
+    sim.hist.e.push(sim.e);
+    sim.hist.res.push(sim.res);
+    const bar = document.getElementById('eventBar');
+    bar.className = cls;
+    bar.innerHTML = ev;
+    updateStats(sim.lastCF);
+    drawCharts();
+    if (sim.broken) {
+        document.getElementById('btnAdv').disabled = true;
+        document.getElementById('btnAuto').disabled = true;
+        stopAuto();
+    }
+}
+function updateStats(cf) {
+    document.getElementById('monthLab').textContent = 'month ' + sim.t;
+    document.getElementById('stE').textContent = fmtE(sim.e);
+    document.getElementById('stR').textContent = fmtRes(sim.res);
+    document.getElementById('stRt').textContent = fmtR(sim.r);
+    const gap = sim.rSet - RSTAR;
+    document.getElementById('stCF').textContent = (cf === undefined || cf === null || regime === 'fixctl') ? '—' :
+        (cf > 0 ? '↑ In ~$' + Math.round(cf) + 'bn' : cf < 0 ? '↓ Out ~$' + Math.round(-cf) + 'bn' : '0');
+    const en = document.getElementById('stENote'), rn = document.getElementById('stRNote'),
+          rtn = document.getElementById('stRtNote'), cfn = document.getElementById('stCFNote');
+    if (regime === 'fixopen') {
+        en.textContent = sim.broken ? 'collapsed!' : 'pegged 7.80'; en.className = 's-note ' + (sim.broken ? 'note-up' : 'note-flat');
+        rn.textContent = sim.res < RES0 * 0.35 ? 'running dry' : (sim.res < RES0 ? 'falling' : '—');
+        rn.className = 's-note ' + (sim.res < RES0 ? 'note-up' : 'note-flat');
+        rtn.textContent = sim.broken ? 'crisis premium' : (Math.abs(sim.r - sim.rSet) > 0.05 ? 'market overrides you' : 'as you set — for now');
+        rtn.className = 's-note ' + (sim.broken || Math.abs(sim.r - sim.rSet) > 0.05 ? 'note-up' : 'note-flat');
+        cfn.textContent = Math.abs(gap) < 0.05 ? 'no pressure' : (gap > 0 ? 'outflow pressure' : 'inflow pressure');
+        cfn.className = 's-note ' + (Math.abs(gap) < 0.05 ? 'note-flat' : 'note-up');
+    } else if (regime === 'float') {
+        en.textContent = 'floating — it moves'; en.className = 's-note note-flat';
+        rn.textContent = 'no intervention'; rn.className = 's-note note-flat';
+        rtn.textContent = 'independent ✓'; rtn.className = 's-note note-down';
+        cfn.textContent = 'flows hit the FX market'; cfn.className = 's-note note-flat';
+    } else {
+        en.textContent = 'pegged 7.80'; en.className = 's-note note-flat';
+        rn.textContent = 'untouched'; rn.className = 's-note note-flat';
+        rtn.textContent = 'independent ✓'; rtn.className = 's-note note-down';
+        cfn.textContent = 'wall: no flows'; cfn.className = 's-note note-flat';
+    }
+    updateGauge(cf);
+}
+
+/* ═══════════ capital flow gauge ═══════════ */
+function updateGauge(cf) {
+    const ptr = document.getElementById('gaugePointer');
+    const val = document.getElementById('gaugeVal');
+    const note = document.getElementById('gaugeNote');
+    const wall = document.getElementById('gaugeWall');
+    let shown, deg = 0, txt = '0', ncls = '', ntext = '';
+    if (regime === 'fixctl') {
+        shown = 0; deg = 0; txt = 'WALL';
+        ncls = 'wall'; ntext = '🧱 flows blocked in both directions · net $0';
+    } else if (sim.broken) {
+        shown = -110; deg = -80; txt = 'GONE';
+        ncls = 'out'; ntext = 'reserves exhausted defending the rate';
+    } else {
+        shown = Math.max(-110, Math.min(110, cf || 0));
+        deg = shown / 110 * 80;
+        txt = Math.abs(shown) < 0.5 ? '0' : (shown > 0 ? 'IN $' + Math.round(shown) + 'bn' : 'OUT $' + Math.round(-shown) + 'bn');
+        if (shown > 0.5) { ncls = 'in'; ntext = 'inflow — net ' + fmtNet(sim.netCF) + ' since start'; }
+        else if (shown < -0.5) { ncls = 'out'; ntext = 'outflow — net ' + fmtNet(sim.netCF) + ' since start'; }
+        else { ncls = ''; ntext = 'no pressure — set a rate away from 5%'; }
+    }
+    ptr.style.transform = 'rotate(' + deg + 'deg)';
+    val.textContent = txt;
+    val.setAttribute('fill', shown > 0.5 ? '#1e8449' : shown < -0.5 ? '#c0392b' : '#2c3e50');
+    note.className = 'gauge-note ' + ncls;
+    note.textContent = ntext;
+    wall.style.display = regime === 'fixctl' ? 'block' : 'none';
+}
+function fmtNet(v) {
+    if (!v) return '$0bn';
+    return (v > 0 ? '+$' : '−$') + Math.abs(Math.round(v)) + 'bn';
+}
+
+/* ═══════════ charts ═══════════ */
+const labelPlugin = {
+    id: 'chartLabels',
+    afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        ctx.save();
+        ctx.font = 'bold 12.5px "Segoe UI", Arial, sans-serif';
+        ctx.textBaseline = 'bottom';
+        chart.data.datasets.forEach(ds => {
+            if (ds.hidden || !ds.tagText || !ds.data || !ds.data.length) return;
+            let p = ds.data[ds.data.length - 1];
+            const xs = chart.scales[ds.tagScale || 'y'], ys = chart.scales[ds.tagYScale || 'y'];
+            const px = chart.scales.x.getPixelForValue(p.x) + (ds.tagDx || 0);
+            const py = ys.getPixelForValue(p.y) + (ds.tagDy !== undefined ? ds.tagDy : -4);
+            if (px < 0 || px > chart.width) return;
+            const w = ctx.measureText(ds.tagText).width;
+            ctx.fillStyle = 'rgba(255,255,255,0.92)';
+            ctx.fillRect(px - 3, py - 14, w + 6, 18);
+            ctx.fillStyle = ds.tagColor || '#7f8c8d';
+            ctx.fillText(ds.tagText, px, py);
+        });
+        ctx.restore();
+    }
+};
+const commonOpts = {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    interaction: { mode: 'nearest', intersect: false },
+    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+    scales: {
+        x: { title: { display: true, text: 'months', font: { size: 12 } }, grid: { color: '#eef2f7' },
+             ticks: { font: { size: 11.5 }, callback: v => 'm' + v } },
+        y: { grid: { color: '#eef2f7' }, ticks: { font: { size: 11.5 } } }
+    }
+};
+let rateChart = null, fxChart = null;
+function drawCharts() {
+    const T = sim.hist.t;
+    rateChart.data.datasets[0].data = T.map((t, i) => ({ x: t, y: sim.hist.r[i] }));
+    rateChart.data.datasets[1].data = [{ x: 0, y: RSTAR }, { x: Math.max(12, sim.t), y: RSTAR }];
+    rateChart.data.datasets[0].tagText = 'your r: ' + fmtR(sim.r);
+    rateChart.update();
+
+    fxChart.data.datasets[0].data = T.map((t, i) => ({ x: t, y: sim.hist.e[i] }));
+    fxChart.data.datasets[1].data = T.map((t, i) => ({ x: t, y: sim.hist.res[i] }));
+    fxChart.data.datasets[0].tagText = 'e: ' + fmtE(sim.e);
+    fxChart.data.datasets[1].tagText = 'reserves: ' + fmtRes(sim.res);
+    fxChart.update();
+}
+function initCharts() {
+    const rateOpts = JSON.parse(JSON.stringify(commonOpts));
+    rateOpts.scales.y.min = 0; rateOpts.scales.y.max = 10;
+    rateOpts.scales.y.title = { display: true, text: 'interest rate (%)', font: { size: 12 } };
+    rateChart = new Chart(document.getElementById('rateChart'), {
+        type: 'scatter',
+        data: { datasets: [
+            { label: 'your r', data: [{ x: 0, y: RSTAR }], showLine: true, borderColor: '#2e86de',
+              backgroundColor: '#2e86de', borderWidth: 3, pointRadius: 4, tension: 0,
+              tagText: 'your r: 5.0%', tagColor: '#1e5c96', tagDx: -6, tagDy: -12 },
+            { label: 'world r*', data: [{ x: 0, y: RSTAR }, { x: 12, y: RSTAR }], showLine: true,
+              borderColor: '#e74c3c', borderDash: [7, 5], borderWidth: 2.5, pointRadius: 0,
+              tagText: 'world r* = 5.0%', tagColor: '#c0392b', tagAnchor: 0, tagDx: 4, tagDy: 14 }
+        ]},
+        options: rateOpts
+    }, [labelPlugin]);
+
+    const fxOpts = JSON.parse(JSON.stringify(commonOpts));
+    fxOpts.scales.y = { position: 'left',
+        title: { display: true, text: 'exchange rate', font: { size: 12 } },
+        grid: { color: '#eef2f7' }, ticks: { font: { size: 11.5 } } };
+    fxOpts.scales.y2 = { min: 0, position: 'right',
+        title: { display: true, text: 'FX reserves ($bn)', font: { size: 12 } },
+        grid: { drawOnChartArea: false }, ticks: { font: { size: 11.5 } } };
+    fxChart = new Chart(document.getElementById('fxChart'), {
+        type: 'scatter',
+        data: { datasets: [
+            { label: 'exchange rate', data: [{ x: 0, y: E_PEG }], showLine: true, borderColor: '#8e44ad',
+              backgroundColor: 'rgba(142,68,173,.12)', borderWidth: 3, pointRadius: 4, tension: 0,
+              yAxisID: 'y', tagText: 'e: 7.80', tagColor: '#6c3483', tagDx: -6, tagDy: -12 },
+            { label: 'FX reserves', data: [{ x: 0, y: RES0 }], showLine: true, borderColor: '#f39c12',
+              backgroundColor: 'rgba(243,156,18,.15)', borderWidth: 2.5, pointRadius: 3, fill: true, tension: 0,
+              yAxisID: 'y2', tagText: 'reserves: $300bn', tagColor: '#a57d12', tagDx: -6, tagDy: -12 }
+        ]},
+        options: fxOpts
+    }, [labelPlugin]);
+}
+
+/* ═══════════ init ═══════════ */
+document.addEventListener('DOMContentLoaded', function () {
+    initCharts();
+    setRegime('fixopen');
+    refreshTriangle();
+    updateStepUI();
+});
+</script>
+</body>
+</html>
