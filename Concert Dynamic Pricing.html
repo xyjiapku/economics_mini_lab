@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concert Dynamic Pricing — Price Discrimination | Dr. Jia</title>
+<style>
+  :root{
+    --ink:#2c3e50; --dim:#7f8c9a; --line:#e9ecef; --bg:#f8f9fa; --card:#ffffff;
+    --demand:#2980b9; --mr:#8e44ad; --mc:#e67e22;
+    --cs:#3498db; --ps:#27ae60; --dwl:#e74c3c;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:14px 18px 0; height:100vh; display:flex; flex-direction:column;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); overflow:hidden;
+  }
+  header{flex:0 0 auto; padding-bottom:2px;}
+  h1{margin:0; font-size:clamp(20px,2.1vw,27px); font-weight:700; letter-spacing:-.2px;}
+  header .sub{font-size:clamp(12.5px,1.05vw,14.5px); color:var(--dim); margin-top:3px; line-height:1.4;}
+  header .sub b{color:var(--ink);}
+
+  .modebar{display:flex; gap:8px; margin:11px 0 10px; flex-wrap:wrap; flex:0 0 auto;}
+  .mode-btn{
+    border:2px solid #dfe6ec; background:#fff; color:var(--dim); border-radius:9px;
+    padding:7px 15px; font-size:13.5px; font-weight:600; cursor:pointer;
+    transition:all .16s; font-family:inherit;
+  }
+  .mode-btn:hover{border-color:#c3d2de; color:var(--ink);}
+  .mode-btn.active{background:var(--ink); border-color:var(--ink); color:#fff;}
+
+  .main{display:flex; gap:15px; flex:1 1 auto; min-height:0; padding-bottom:10px;}
+  .chartcard{
+    flex:1 1 auto; min-width:0; background:var(--card); border-radius:11px; padding:8px 10px;
+    box-shadow:0 5px 15px rgba(0,0,0,.055); display:flex; flex-direction:column; min-height:0;
+  }
+  #stage{width:100%; flex:1 1 auto; min-height:0; display:block;}
+  .hint{
+    flex:0 0 auto; font-size:13px; line-height:1.5; color:#5b6b7b; padding:5px 4px 2px;
+    border-top:1px solid var(--line); margin-top:4px;
+  }
+  .hint b{color:var(--ink);}
+  /* legend lives in the page, not in the chart — inside the SVG it kept running
+     into the capacity label whenever the arena was wide */
+  .legend{display:flex; gap:17px; flex-wrap:wrap; padding:6px 4px 1px; font-size:12.5px; color:#5b6b7b;}
+  .legend span{display:flex; align-items:center; gap:6px;}
+  .legend i{width:12px; height:12px; border-radius:3px; display:inline-block; opacity:.62;}
+
+  .side{flex:0 0 372px; display:flex; flex-direction:column; gap:11px; overflow-y:auto; padding-right:3px;}
+  .side::-webkit-scrollbar{width:7px;} .side::-webkit-scrollbar-thumb{background:#cfd8e0; border-radius:4px;}
+  .card{background:var(--card); border-radius:11px; padding:13px 15px; box-shadow:0 5px 15px rgba(0,0,0,.055);}
+  .card h3{
+    margin:0 0 9px; font-size:12px; font-weight:700; letter-spacing:.7px; text-transform:uppercase;
+    color:var(--dim);
+  }
+  .row{margin-bottom:11px;} .row:last-child{margin-bottom:0;}
+  .row .lab{display:flex; justify-content:space-between; align-items:baseline; font-size:13.5px; margin-bottom:4px;}
+  .row .lab b{font-variant-numeric:tabular-nums; font-size:14px;}
+  input[type=range]{width:100%; accent-color:#2c3e50; cursor:pointer; height:5px;}
+  input[type=range]:disabled{opacity:.4; cursor:default;}
+
+  .acts{display:flex; gap:8px; margin-top:11px;}
+  .btn{
+    flex:1; border:none; border-radius:8px; padding:8px 10px; font-size:13px; font-weight:600;
+    cursor:pointer; font-family:inherit; transition:.16s;
+  }
+  .btn.primary{background:var(--ps); color:#fff;} .btn.primary:hover{filter:brightness(1.07);}
+  .btn.ghost{background:#eef2f6; color:var(--ink);} .btn.ghost:hover{background:#e2eaf1;}
+  .btn:disabled{opacity:.45; cursor:default; filter:none;}
+
+  table.tiers{width:100%; border-collapse:collapse; font-size:12.5px;}
+  table.tiers th{
+    text-align:right; font-weight:600; color:var(--dim); font-size:11px; letter-spacing:.4px;
+    padding:2.5px 5px; border-bottom:1px solid var(--line); text-transform:uppercase;
+  }
+  table.tiers th:first-child{text-align:left;}
+  table.tiers td{padding:2.6px 5px; text-align:right; border-bottom:1px solid #f4f7f9; font-variant-numeric:tabular-nums;}
+  table.tiers td:first-child{text-align:left; font-weight:600;}
+  table.tiers tr.live{background:#eafaf1;}
+  table.tiers tr.pending{opacity:.32;}
+  .pace{display:inline-block; height:6px; border-radius:3px; background:var(--ps); vertical-align:middle;}
+
+  .stats{display:grid; grid-template-columns:1fr 1fr; gap:9px 13px;}
+  .stat .k{font-size:11px; letter-spacing:.5px; color:var(--dim); text-transform:uppercase; font-weight:600;}
+  .stat .v{font-size:19px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:1px; line-height:1.15;}
+  .stat.cs .v{color:#1f6fa8;} .stat.ps .v{color:#1e8449;} .stat.dwl .v{color:#c0392b;}
+  .stat.ts .v{color:var(--ink);}
+  .divide{grid-column:1/-1; height:1px; background:var(--line); margin:1px 0;}
+  .note{font-size:11.5px; color:var(--dim); line-height:1.45; margin-top:9px;}
+
+  footer{
+    flex:0 0 auto; display:flex; justify-content:space-between; align-items:center;
+    font-size:11.5px; color:#9aa7b2; padding:7px 2px 9px;
+  }
+  @media (max-width:1080px){
+    body{height:auto; overflow:auto;}
+    .main{flex-direction:column;} .side{flex:1 1 auto; width:100%;}
+    #stage{height:56vh;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Concert Dynamic Pricing</h1>
+  <div class="sub">One arena, a normal downward demand curve, and a marginal cost that is <b>≈ ¥0 until the seats run out</b> — then vertical · 动态定价与价格歧视</div>
+</header>
+
+<div class="modebar">
+  <button class="mode-btn active" data-mode="single">① One price</button>
+  <button class="mode-btn" data-mode="tiers">② Dynamic tiers</button>
+  <button class="mode-btn" data-mode="person">③ Every seat at its own price</button>
+</div>
+
+<div class="main">
+  <div class="chartcard">
+    <svg id="stage" viewBox="0 0 780 560" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="legend">
+      <span><i style="background:#3498db"></i>Consumer surplus</span>
+      <span><i style="background:#27ae60"></i>Producer surplus</span>
+      <span><i style="background:#e74c3c"></i>Deadweight loss</span>
+    </div>
+    <div class="hint" id="hint"></div>
+  </div>
+
+  <div class="side">
+    <div class="card">
+      <h3>The market</h3>
+      <div class="row">
+        <div class="lab"><span>Demand strength — top willingness to pay</span><b id="aVal">¥1,000</b></div>
+        <input type="range" id="aSl" min="400" max="1200" step="20" value="1000">
+      </div>
+      <div class="row">
+        <div class="lab"><span>Arena capacity</span><b id="kVal">20,000</b></div>
+        <input type="range" id="kSl" min="10" max="40" step="1" value="20">
+      </div>
+      <div class="note" id="regime"></div>
+    </div>
+
+    <div class="card" id="tierCard" style="display:none;">
+      <h3>How finely the seller slices</h3>
+      <div class="row">
+        <div class="lab"><span>Number of price tiers</span><b id="nVal">4</b></div>
+        <input type="range" id="nSl" min="1" max="12" step="1" value="4">
+      </div>
+      <div class="acts">
+        <button class="btn primary" id="runBtn">▶ Run the sale</button>
+        <button class="btn ghost" id="stopBtn">Reset</button>
+      </div>
+      <div id="tierWrap" style="margin-top:10px;">
+        <table class="tiers" id="tierTable"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Welfare</h3>
+      <div class="stats">
+        <div class="stat cs"><div class="k">Consumer surplus</div><div class="v" id="sCS">—</div></div>
+        <div class="stat ps"><div class="k">Producer surplus</div><div class="v" id="sPS">—</div></div>
+        <div class="stat dwl"><div class="k">Deadweight loss</div><div class="v" id="sDWL">—</div></div>
+        <div class="stat ts"><div class="k">Total surplus</div><div class="v" id="sTS">—</div></div>
+        <div class="divide"></div>
+        <div class="stat"><div class="k">Seats sold</div><div class="v" id="sQ" style="font-size:16px;">—</div></div>
+        <div class="stat"><div class="k">Average price</div><div class="v" id="sP" style="font-size:16px;">—</div></div>
+      </div>
+      <div class="note" id="surplusNote"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span id="footL"></span>
+  <span>© 2026 Dr. Jia · economics_mini_lab</span>
+</footer>
+
+<script>
+"use strict";
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODEL
+   Demand is a straight line, P = a − b·q   (q in thousand seats, P in ¥)
+   Marginal cost is ≈ 0 while seats are spare, and vertical at capacity K.
+
+   The three buttons are ONE formula with one knob, n = how many price tiers
+   the seller creates:
+        n = 1        → a single monopoly price
+        n = 2,3,…    → dynamic pricing (open high, keep cutting)
+        n = ∞        → every seat at the buyer's own maximum willingness
+   Because demand is linear, the seller's best ladder is evenly spaced, and
+        Qₙ = min( a·n / (b(n+1)) , K )
+   which collapses to the monopoly quantity a/2b at n = 1 — so a single price
+   really is just the coarsest possible tier structure.
+
+   Two consequences fall out for free (and are what the deck is about):
+     · Consumer surplus falls roughly as 1/n while output is unchanged, so
+       tiering is a pure transfer from buyers to the seller.
+     · Where capacity is NOT binding, finer tiers also raise output toward the
+       competitive level, which shrinks deadweight loss — down to zero for a
+       fully personalised price.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const B = 20;                       // slope: ¥ per thousand seats
+const NS = 'http://www.w3.org/2000/svg';
+
+const S = {
+  a: 1000,      // demand intercept = top willingness to pay (¥)
+  K: 20,        // capacity, thousand seats
+  n: 4,         // tiers in mode ②
+  mode: 'single',
+  aa: 1000,     // the animated (displayed) value of a
+  kk: 20,       // the animated (displayed) value of K
+  playing: 0,   // 0 = idle, else index of the tier just sold
+  timer: null
+};
+
+/* ── the whole model, in one place ─────────────────────────────────────── */
+function solve(a, K, mode, n){
+  const A0  = a / B;                       // quantity demanded at P = 0
+  const Qc  = Math.min(A0, K);             // competitive output (P = MC)
+  const TS0 = a * Qc - 0.5 * B * Qc * Qc;  // total surplus at the competitive output
+  const tiers = [];
+  let CS, PS;
+
+  if (mode === 'person'){
+    // Each seat sells at its own buyer's maximum: consumer surplus is gone.
+    CS = 0;
+    PS = TS0;
+  } else {
+    const k = (mode === 'single') ? 1 : n;
+    const Qn = Math.min(A0 * k / (k + 1), K);
+    const seg = Qn / k;
+    CS = 0;
+    PS = 0;
+    for (let i = 1; i <= k; i++){
+      const q = seg * i;
+      const p = a - B * q;                 // the tier's price = the last buyer in it
+      const cs = 0.5 * B * seg * seg;      // straight line ⇒ each tier's CS is a small triangle
+      tiers.push({ i, p, q0: seg * (i - 1), q1: q, seg, cs });
+      CS += cs; PS += p * seg;
+    }
+  }
+  const Q = tiers.length ? tiers[tiers.length - 1].q1 : Qc;
+  const TS = CS + PS;
+  /* Two different thresholds — do not mix them up:
+       compBinding: the COMPETITIVE market wants more than the arena holds (A0 > K),
+                    so the competitive price is above ¥0.
+       monoBinding: the MONOPOLIST's profit-maximising output a/2b already fills the
+                    arena (a ≥ 2bK), so it sells exactly K — the same output the
+                    competitive market would serve, and the deadweight loss is zero.
+     These switch at a = bK and a = 2bK respectively, so there is a middle band
+     (bK < a < 2bK) where capacity binds for the market but not for the seller,
+     and the deadweight loss is still positive. */
+  return { a, K, A0, Qc, Q, TS0, CS, PS, TS, DWL: Math.max(0, TS0 - TS), tiers,
+           compBinding: A0 > K,
+           monoBinding: A0 / 2 >= K - 1e-9,
+           avg: Q > 0 ? PS / Q : 0 };
+}
+
+/* ── formatting ─────────────────────────────────────────────────────────── */
+const fmtSeats = q => Math.round(q * 1000).toLocaleString('en-US');
+const fmtYen   = p => '¥' + Math.round(p).toLocaleString('en-US');
+// surplus is in thousand-¥; show it in ¥ million, 1 decimal, no float tails
+const fmtM = v => '¥' + (v / 1000).toFixed(1) + 'm';
+
+/* ── svg helpers ────────────────────────────────────────────────────────── */
+function el(tag, attrs, text){
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  return e;
+}
+const svg  = document.getElementById('stage');
+const gGrid = el('g'), gArea = el('g'), gTiers = el('g'), gCurve = el('g'),
+      gMark = el('g'), gTag = el('g');
+[gGrid, gArea, gTiers, gCurve, gMark, gTag].forEach(g => svg.appendChild(g));
+
+const defs = el('defs');
+defs.innerHTML =
+  '<marker id="ah" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" refX="12" refY="6.5" orient="auto">' +
+    '<path d="M0,0 L13,6.5 L0,13 z" fill="#2c3e50"/></marker>' +
+  '<pattern id="stripes" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(90)">' +
+    '<rect width="7" height="7" fill="#27ae60" fill-opacity="0.13"/>' +
+    '<rect width="3" height="7" fill="#27ae60" fill-opacity="0.42"/></pattern>';
+svg.insertBefore(defs, gGrid);
+
+let PL = { x0: 92, x1: 742, y0: 54, y1: 486 };
+
+function render(){
+  const m = solve(S.aa, S.kk, S.mode, S.n);
+  const QMAX = Math.max(m.A0, m.K, 5) * 1.14;
+  const PMAX = S.aa * 1.12;
+  const X = q => PL.x0 + (q / QMAX) * (PL.x1 - PL.x0);
+  const Y = p => PL.y1 - (p / PMAX) * (PL.y1 - PL.y0);
+  const D = q => Math.max(0, S.aa - B * q);
+
+  gGrid.innerHTML = ''; gArea.innerHTML = ''; gTiers.innerHTML = '';
+  gCurve.innerHTML = ''; gMark.innerHTML = ''; gTag.innerHTML = '';
+
+  /* ── grid + axes ── */
+  const qStep = QMAX > 50 ? 10 : (QMAX > 20 ? 5 : 2);
+  for (let q = 0; q <= QMAX; q += qStep){
+    gGrid.appendChild(el('line', { x1:X(q), y1:PL.y0, x2:X(q), y2:PL.y1, stroke:'#eef2f6', 'stroke-width':1 }));
+    gGrid.appendChild(el('text', { x:X(q), y:PL.y1 + 20, 'text-anchor':'middle', 'font-size':12, fill:'#9aa7b2' }, q));
+  }
+  const pStep = PMAX > 1000 ? 400 : (PMAX > 600 ? 200 : 100);
+  for (let p = 0; p <= PMAX; p += pStep){
+    gGrid.appendChild(el('line', { x1:PL.x0, y1:Y(p), x2:PL.x1, y2:Y(p), stroke:'#eef2f6', 'stroke-width':1 }));
+    gGrid.appendChild(el('text', { x:PL.x0 - 9, y:Y(p) + 4, 'text-anchor':'end', 'font-size':12, fill:'#9aa7b2' }, p));
+  }
+  gGrid.appendChild(el('line', { x1:PL.x0, y1:PL.y1, x2:PL.x1, y2:PL.y1, stroke:'#2c3e50', 'stroke-width':2 }));
+  gGrid.appendChild(el('line', { x1:PL.x0, y1:PL.y1, x2:PL.x0, y2:PL.y0, stroke:'#2c3e50', 'stroke-width':2 }));
+  gGrid.appendChild(el('line', { x1:PL.x1 + 4, y1:PL.y1, x2:PL.x1 + 24, y2:PL.y1, stroke:'#2c3e50', 'stroke-width':2, 'marker-end':'url(#ah)' }));
+  gGrid.appendChild(el('line', { x1:PL.x0, y1:PL.y0 - 4, x2:PL.x0, y2:PL.y0 - 24, stroke:'#2c3e50', 'stroke-width':2, 'marker-end':'url(#ah)' }));
+  gGrid.appendChild(el('text', { x:PL.x1 + 30, y:PL.y1 + 5, 'font-size':13.5, fill:'#5b6b7b', 'font-weight':600 }, 'Seats'));
+  gGrid.appendChild(el('text', { x:PL.x0 - 4, y:PL.y0 - 30, 'font-size':13.5, fill:'#5b6b7b', 'font-weight':600, 'text-anchor':'end' }, 'Price ¥'));
+
+  /* ── DWL: the output the competitive market would have served anyway ── */
+  const qL = m.tiers.length ? m.tiers[m.tiers.length - 1].q1 : m.Q;
+  if (m.DWL > 1 && m.Qc > qL + 1e-6){
+    gArea.appendChild(el('polygon', {
+      points: [[X(qL), Y(D(qL))], [X(qL), Y(0)], [X(m.Qc), Y(0)], [X(m.Qc), Y(D(m.Qc))]]
+        .map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '),
+      fill:'#e74c3c', 'fill-opacity':.24, stroke:'#e74c3c', 'stroke-width':1.4, 'stroke-dasharray':'5 4'
+    }));
+  }
+
+  /* ── the surplus the seller captures, and what is left for buyers ── */
+  if (S.mode === 'person'){
+    // one continuous block: every seat at its own buyer's maximum
+    const pts = [[X(0), Y(0)]];
+    pts.push([X(0), Y(D(0))]);
+    const steps = 60;
+    for (let i = 1; i <= steps; i++){ const q = m.Q * i / steps; pts.push([X(q), Y(D(q))]); }
+    pts.push([X(m.Q), Y(0)]);
+    gArea.appendChild(el('polygon', {
+      points: pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '), fill:'url(#stripes)'
+    }));
+    gArea.appendChild(el('polyline', {
+      points: pts.slice(1, -1).map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '),
+      fill:'none', stroke:'#1e8449', 'stroke-width':2
+    }));
+  } else {
+    // one green rectangle (the seller's take) + a small blue triangle (what the tier leaves buyers)
+    m.tiers.forEach(t => {
+      const hidden = S.playing && t.i > S.playing;
+      if (hidden) return;
+      const live = S.playing && t.i === S.playing;
+      gArea.appendChild(el('rect', {
+        x:X(t.q0), y:Y(t.p), width:(X(t.q1) - X(t.q0)).toFixed(1), height:(Y(0) - Y(t.p)).toFixed(1),
+        fill:'#27ae60', 'fill-opacity': live ? .62 : .34,
+        stroke:'#1e8449', 'stroke-width': live ? 2 : 1
+      }));
+      gArea.appendChild(el('polygon', {
+        points: [[X(t.q0), Y(D(t.q0))], [X(t.q0), Y(t.p)], [X(t.q1), Y(t.p)]]
+          .map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '),
+        fill:'#3498db', 'fill-opacity': live ? .62 : .38, stroke:'#2980b9', 'stroke-width':1
+      }));
+    });
+  }
+
+  /* ── supply / marginal cost: flat until capacity, then vertical ── */
+  gCurve.appendChild(el('line', { x1:X(0), y1:Y(0), x2:X(m.K), y2:Y(0),
+    stroke:'#e67e22', 'stroke-width':7, 'stroke-linecap':'round' }));
+  if (m.K < QMAX){
+    gCurve.appendChild(el('line', { x1:X(m.K), y1:Y(0), x2:X(m.K), y2:Y(0) - (PL.y1 - PL.y0) * .97,
+      stroke:'#e67e22', 'stroke-width':4.5, 'stroke-dasharray':'9 6' }));
+    gTag.appendChild(el('text', { x:X(m.K) + 7, y:PL.y0 + 14, 'font-size':12.5, fill:'#b9601a', 'font-weight':700 },
+      'capacity ' + fmtSeats(m.K)));
+  }
+  gTag.appendChild(el('text', { x:X(0) + 9, y:Y(0) - 16, 'font-size':12.5, fill:'#b9601a', 'font-weight':700 },
+    'MC ≈ ¥0 — spare seats'));
+
+  /* ── demand and marginal revenue ── */
+  const qEnd = Math.min(m.A0, QMAX);
+  gCurve.appendChild(el('line', { x1:X(0), y1:Y(S.aa), x2:X(qEnd), y2:Y(D(qEnd)),
+    stroke:'#2980b9', 'stroke-width':3.4 }));
+  /* the label sits just above the curve, where nothing else lives */
+  const qLab = qEnd * 0.74;
+  gCurve.appendChild(el('text', { x:X(qLab) - 5, y:Y(D(qLab)) - 15, 'font-size':13.5, fill:'#2980b9',
+    'font-weight':700, 'text-anchor':'end' }, 'Demand'));
+
+  if (S.mode !== 'person'){
+    const qMR = Math.min(m.A0 / 2, QMAX);
+    gCurve.appendChild(el('line', { x1:X(0), y1:Y(S.aa), x2:X(qMR), y2:Y(S.aa - 2 * B * qMR),
+      stroke:'#8e44ad', 'stroke-width':2.2, 'stroke-dasharray':'8 6' }));
+    /* the label rides part-way along the MR line rather than at its foot, where
+       the deadweight-loss or producer-surplus block would sit behind it */
+    const qm = qMR * 0.42, pm = S.aa - 2 * B * qm;
+    gCurve.appendChild(el('text', { x:X(qm) + 8, y:Y(pm) + 4, 'font-size':12.5, fill:'#7d3c98', 'font-weight':700 }, 'MR'));
+  }
+
+  /* ── markers ──
+     In the tier views the step labels already carry the prices, so only the
+     single-price view needs the two reference dots — and when capacity makes
+     them the same point, say so once instead of stacking two labels. */
+  if (S.mode === 'single'){
+    const qMon = Math.min(m.A0 / 2, m.K), pMon = D(qMon);
+    const same = Math.abs(qMon - m.K) < 0.05;
+    gMark.appendChild(el('circle', { cx:X(qMon), cy:Y(pMon), r:6.5, fill:'#8e44ad', stroke:'#fff', 'stroke-width':2.5 }));
+    gMark.appendChild(el('text', { x:X(qMon) + 12, y:Y(pMon) - 7, 'font-size':12.5, fill:'#7d3c98', 'font-weight':700 },
+      same ? 'MR = MC · arena full at ' + fmtYen(pMon) : 'MR = MC'));
+    if (!same){
+      const pC = D(m.Qc);
+      gMark.appendChild(el('circle', { cx:X(m.Qc), cy:Y(pC), r:6.5, fill:'#e67e22', stroke:'#fff', 'stroke-width':2.5 }));
+      gMark.appendChild(el('text', { x:X(m.Qc) + 12, y:Y(pC) - 8, 'font-size':12.5, fill:'#b9601a',
+        'font-weight':700 }, 'competitive ' + fmtYen(pC)));
+    }
+  }
+
+  /* ── tier rows: the price tag on each step ── */
+  if (S.mode === 'tiers' && m.tiers.length > 1){
+    const shown = m.tiers.filter(t => !S.playing || t.i <= S.playing);
+    const every = Math.ceil(shown.length / 6);   /* don't crowd the chart when n is large */
+    shown.forEach(t => {
+      if (t.i % every && shown.length > 7) return;
+      gTag.appendChild(el('text', { x:(X(t.q0) + X(t.q1)) / 2, y:Y(t.p) - 8, 'text-anchor':'middle',
+        'font-size':12, fill:'#1e8449', 'font-weight':700 }, fmtYen(t.p)));
+    });
+  }
+
+  buildTierTable(m);
+  paintStats(m);
+  document.getElementById('hint').innerHTML = HINTS[S.mode];
+  document.getElementById('footL').textContent =
+    'n = ' + (S.mode === 'person' ? '∞' : (S.mode === 'single' ? 1 : S.n)) + ' price tier' +
+    ((S.mode === 'single' || S.n === 1) ? '' : 's');
+}
+
+/* ── right-hand tables ─────────────────────────────────────────────────── */
+function buildTierTable(m){
+  const tb = document.getElementById('tierTable');
+  if (S.mode !== 'tiers' || !m.tiers.length){ tb.innerHTML = ''; return; }
+  const seg = m.tiers[0].seg;
+  let html = '<tr><th>Tier</th><th>Price</th><th>Seats</th><th>Buyers’ eagerness</th></tr>';
+  m.tiers.forEach(t => {
+    // the top tier holds the keenest buyers, so it clears fastest — the seller
+    // reads exactly that pace to decide whether to hold the price up
+    const eager = Math.round(100 * (1 - (t.i - 1) / (m.tiers.length * 1.25)));
+    const cls = S.playing ? (t.i < S.playing ? '' : (t.i === S.playing ? 'live' : 'pending')) : '';
+    html += '<tr class="' + cls + '"><td>' + t.i + '</td><td>' + fmtYen(t.p) + '</td><td>' +
+            fmtSeats(seg) + '</td><td><span class="pace" style="width:' + eager + '%; max-width:44px;"></span></td></tr>';
+  });
+  tb.innerHTML = html;
+}
+
+function paintStats(m){
+  document.getElementById('sCS').textContent  = fmtM(m.CS);
+  document.getElementById('sPS').textContent  = fmtM(m.PS);
+  document.getElementById('sDWL').textContent = fmtM(m.DWL);
+  document.getElementById('sTS').textContent  = fmtM(m.TS);
+  document.getElementById('sQ').textContent   = fmtSeats(m.Q);
+  document.getElementById('sP').textContent   = m.Q > 0 ? fmtYen(m.avg) : '—';
+
+  const base = solve(S.aa, S.kk, 'single', 1);
+  let note = '';
+  if (S.mode === 'single'){
+    note = m.monoBinding
+      ? 'The seller wants to sell more than the arena holds, so the arena simply sells out: '
+        + 'the competitive market would serve exactly the same ' + fmtSeats(m.Qc) +
+        ' seats at the same price. Nothing is lost — the deadweight loss is zero.'
+      : 'The seller holds output back to keep the price up: ' + fmtSeats(m.Q) + ' seats instead of ' +
+        fmtSeats(m.Qc) + '. Over that last stretch buyers would have paid more than the ¥0 it costs '
+        + 'to seat them, and those sales never happen — that gap is the deadweight loss.';
+  } else if (S.mode === 'tiers'){
+    const ratio = base.CS > 0 ? (base.CS / m.CS) : 0;
+    note = 'Consumer surplus is down to ' + fmtM(m.CS) + ' from ' + fmtM(base.CS) +
+           ' with one price — about ' + (ratio >= 1.8 ? ratio.toFixed(0) + '×' : ratio.toFixed(1) + '×') +
+           ' smaller, for the same ' + fmtSeats(m.Q) + ' seats. Nothing was created or destroyed here: '
+           + 'it moved from buyers to the seller.';
+  } else {
+    note = 'Every seat goes at its own buyer’s maximum, so consumer surplus is ¥0 and the seller takes the whole '
+         + 'area under the demand curve. Output rises to the competitive level, so deadweight loss is ¥0 as well — '
+         + 'the efficient quantity, and none of the surplus left for buyers.';
+  }
+  document.getElementById('surplusNote').textContent = note;
+
+  /* This card describes the MARKET only — the competitive benchmark. What the seller
+     does about it depends on the pricing mode, so that belongs in the welfare note. */
+  const reg = document.getElementById('regime');
+  reg.textContent = (m.compBinding
+      ? 'At ¥0 the market wants ' + fmtSeats(m.A0) + ' seats; the arena only holds ' + fmtSeats(m.K) +
+        '. So the competitive price is ' + fmtYen(S.aa - B * m.K) + ', not ¥0 — every seat sells at the last seat’s worth.'
+      : 'At ¥0 the market wants ' + fmtSeats(m.A0) + ' seats and the arena holds ' + fmtSeats(m.K) +
+        '. Capacity is never the constraint here, so the competitive price would be ¥0.');
+}
+
+const HINTS = {
+  single:
+    'The seller charges one price and holds it, selling where <b>MR = MC</b>. Because MC is ¥0, that is where ' +
+    'marginal revenue is zero. Output stops short of the competitive level — the red area is deadweight loss.',
+  tiers:
+    'The seller slices the seats into tiers, <b>opens high and keeps cutting</b>. A tier that sells out faster than ' +
+    'planned is the signal that buyers will pay more, so the next price is held up; a tier that lingers gets cut. ' +
+    'Output does not change — surplus moves from buyers to the seller.',
+  person:
+    'Every seat is sold at the buyer’s own maximum willingness to pay — the ticket, the app and the algorithm all ' +
+    'know who is looking. Consumer surplus is gone. And where capacity is not binding, output expands to the ' +
+    'competitive level, so deadweight loss goes with it.'
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INTERACTION
+   ═══════════════════════════════════════════════════════════════════════════ */
+const aSl = document.getElementById('aSl'), kSl = document.getElementById('kSl'),
+      nSl = document.getElementById('nSl');
+
+/* tween a and K so the picture eases instead of jumping */
+let raf = null;
+function tick(){
+  const da = S.a - S.aa, dk = S.K - S.kk;
+  if (Math.abs(da) < 0.4 && Math.abs(dk) < 0.02){ S.aa = S.a; S.kk = S.K; render(); raf = null; return; }
+  S.aa += da * 0.22; S.kk += dk * 0.22;
+  render();
+  raf = requestAnimationFrame(tick);
+}
+function kick(){ if (!raf) raf = requestAnimationFrame(tick); }
+/* jump straight to the target — used by the automated screenshot pass so it never
+   captures a half-finished tween */
+window.__snap = function(){ S.aa = S.a; S.kk = S.K; render(); };
+
+function syncLabels(){
+  document.getElementById('aVal').textContent = fmtYen(S.a);
+  document.getElementById('kVal').textContent = fmtSeats(S.K);
+  document.getElementById('nVal').textContent = S.n;
+}
+function setMode(mode){
+  S.mode = mode;
+  S.playing = 0; clearTimeout(S.timer);
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.getElementById('tierCard').style.display = (mode === 'tiers') ? '' : 'none';
+  render();
+}
+aSl.addEventListener('input', () => { S.a = +aSl.value; syncLabels(); kick(); });
+kSl.addEventListener('input', () => { S.K = +kSl.value; syncLabels(); kick(); });
+nSl.addEventListener('input', () => { S.n = +nSl.value; S.playing = 0; clearTimeout(S.timer); syncLabels(); render(); });
+document.querySelectorAll('.mode-btn').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+
+/* ── "Run the sale": tiers clear one after another, high price first ── */
+function runSale(){
+  if (S.mode !== 'tiers') return;
+  clearTimeout(S.timer);
+  const total = S.n;
+  S.playing = 0; render();
+  const step = () => {
+    S.playing++;
+    render();
+    if (S.playing < total) S.timer = setTimeout(step, 620);
+    else S.timer = setTimeout(() => { S.playing = 0; render(); }, 2100);
+  };
+  S.timer = setTimeout(step, 300);
+}
+document.getElementById('runBtn').addEventListener('click', runSale);
+document.getElementById('stopBtn').addEventListener('click', () => {
+  clearTimeout(S.timer); S.playing = 0; render();
+});
+
+/* ── go ── */
+syncLabels();
+setMode('single');
+</script>
+</body>
+</html>
