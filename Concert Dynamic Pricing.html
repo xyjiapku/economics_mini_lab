@@ -66,6 +66,7 @@
     cursor:pointer; font-family:inherit; transition:.16s;
   }
   .btn.primary{background:var(--ps); color:#fff;} .btn.primary:hover{filter:brightness(1.07);}
+  .btn.stop{background:var(--dwl); color:#fff;}
   .btn.ghost{background:#eef2f6; color:var(--ink);} .btn.ghost:hover{background:#e2eaf1;}
   .btn:disabled{opacity:.45; cursor:default; filter:none;}
 
@@ -78,7 +79,8 @@
   table.tiers td{padding:2.6px 5px; text-align:right; border-bottom:1px solid #f4f7f9; font-variant-numeric:tabular-nums;}
   table.tiers td:first-child{text-align:left; font-weight:600;}
   table.tiers tr.live{background:#eafaf1;}
-  table.tiers tr.pending{opacity:.32;}
+  table.tiers tr.done td{color:#1e8449;}
+  table.tiers tr.pending{opacity:.3;}
   .pace{display:inline-block; height:6px; border-radius:3px; background:var(--ps); vertical-align:middle;}
 
   .stats{display:grid; grid-template-columns:1fr 1fr; gap:9px 13px;}
@@ -88,6 +90,11 @@
   .stat.ts .v{color:var(--ink);}
   .divide{grid-column:1/-1; height:1px; background:var(--line); margin:1px 0;}
   .note{font-size:11.5px; color:var(--dim); line-height:1.45; margin-top:9px;}
+  .know{
+    font-size:12.5px; line-height:1.5; color:var(--ink); background:#f2f8ff;
+    border-left:4px solid var(--demand); border-radius:0 8px 8px 0; padding:8px 11px; margin-top:9px;
+  }
+  .know b{color:#1f6fa8;}
 
   footer{
     flex:0 0 auto; display:flex; justify-content:space-between; align-items:center;
@@ -139,11 +146,12 @@
     </div>
 
     <div class="card" id="tierCard" style="display:none;">
-      <h3>How finely the seller slices</h3>
-      <div class="row">
+      <h3 id="tierHead">How finely the seller slices</h3>
+      <div class="row" id="nRow">
         <div class="lab"><span>Number of price tiers</span><b id="nVal">4</b></div>
-        <input type="range" id="nSl" min="1" max="12" step="1" value="4">
+        <input type="range" id="nSl" min="1" max="24" step="1" value="4">
       </div>
+      <div class="know" id="know" style="display:none;"></div>
       <div class="acts">
         <button class="btn primary" id="runBtn">▶ Run the sale</button>
         <button class="btn ghost" id="stopBtn">Reset</button>
@@ -192,14 +200,18 @@
    really is just the coarsest possible tier structure.
 
    Two consequences fall out for free (and are what the deck is about):
-     · Consumer surplus falls roughly as 1/n while output is unchanged, so
-       tiering is a pure transfer from buyers to the seller.
-     · Where capacity is NOT binding, finer tiers also raise output toward the
-       competitive level, which shrinks deadweight loss — down to zero for a
-       fully personalised price.
+     · Where capacity binds, output is pinned at K, so consumer surplus falls
+       as CS₁/n — tiering is a pure transfer from buyers to the seller.
+     · Where capacity does NOT bind, finer tiers also raise output toward the
+       competitive level, and the last tier's price a/(n+1) → ¥0: the last
+       seats go almost free, deadweight loss vanishes, and so does consumer
+       surplus. That is the fully personalised price.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const B = 20;                       // slope: ¥ per thousand seats
+/* FIXED axes. Auto-scaling made it impossible to see which curve was actually
+   moving while a slider was being dragged — see the axis note in the corner. */
+const QMAX = 64, PMAX = 1300;       // a ≤ 1200 ⇒ A0 ≤ 60 ; K ≤ 40
 const NS = 'http://www.w3.org/2000/svg';
 
 const S = {
@@ -209,9 +221,20 @@ const S = {
   mode: 'single',
   aa: 1000,     // the animated (displayed) value of a
   kk: 20,       // the animated (displayed) value of K
-  playing: 0,   // 0 = idle, else index of the tier just sold
-  timer: null
+  sale: null    // null = show the finished picture; otherwise the running animation
 };
+
+/* the ladder the personalised seller walks down, coarsest to finest */
+const PERSON_STEPS = [1, 2, 4, 8, 16, 32, Infinity];
+const PERSON_NOTES = [
+  'One price for everybody — the seller knows nothing about you.',
+  'Two prices: the app starts guessing who is willing to pay more.',
+  'Four — postcode, device and time of booking are folded in.',
+  'Eight — your browsing history on the ticket site joins the model.',
+  'Sixteen — it can see you came back three times without buying.',
+  'Thirty-two segments, still moving while you read this.',
+  'A price for every seat. Everyone sees the same page — and a different number.'
+];
 
 /* ── the whole model, in one place ─────────────────────────────────────── */
 function solve(a, K, mode, n){
@@ -222,15 +245,13 @@ function solve(a, K, mode, n){
   let CS, PS;
 
   if (mode === 'person'){
-    // Each seat sells at its own buyer's maximum: consumer surplus is gone.
     CS = 0;
     PS = TS0;
   } else {
     const k = (mode === 'single') ? 1 : n;
     const Qn = Math.min(A0 * k / (k + 1), K);
     const seg = Qn / k;
-    CS = 0;
-    PS = 0;
+    CS = 0; PS = 0;
     for (let i = 1; i <= k; i++){
       const q = seg * i;
       const p = a - B * q;                 // the tier's price = the last buyer in it
@@ -256,6 +277,29 @@ function solve(a, K, mode, n){
            avg: Q > 0 ? PS / Q : 0 };
 }
 
+/* how much of the ladder has actually been sold at this instant */
+function realized(m){
+  if (!S.sale || !m.tiers.length) return m;
+  const k = S.sale.k, ph = S.sale.phase, fr = S.sale.frac;
+  const out = []; let CS = 0, PS = 0, Q = 0;
+  m.tiers.forEach(t => {
+    if (t.i < k){                                   // already sold out
+      out.push(t); CS += t.cs; PS += t.p * t.seg; Q = t.q1;
+      return;
+    }
+    if (t.i > k) return;                            // not on sale yet
+    if (ph === 'announce') return;                  // price posted, nobody has bought yet
+    const seg = t.seg * (ph === 'hold' ? 1 : fr);
+    /* a half-sold tier: CS is the trapezium between the demand line and the flat price */
+    const cs = B * seg * (t.seg - seg / 2);
+    out.push({ i:t.i, p:t.p, q0:t.q0, q1:t.q0 + seg, seg:t.seg, cs });
+    CS += cs; PS += t.p * seg; Q = t.q0 + seg;
+  });
+  const TS = CS + PS;
+  return Object.assign({}, m, { tiers: out, CS, PS, Q, TS,
+    DWL: Math.max(0, m.TS0 - TS), avg: Q > 0 ? PS / Q : 0 });
+}
+
 /* ── formatting ─────────────────────────────────────────────────────────── */
 const fmtSeats = q => Math.round(q * 1000).toLocaleString('en-US');
 const fmtYen   = p => '¥' + Math.round(p).toLocaleString('en-US');
@@ -269,10 +313,15 @@ function el(tag, attrs, text){
   if (text != null) e.textContent = text;
   return e;
 }
+/* chart labels sit on top of coloured blocks and, when there are many tiers, on top
+   of the rung borders — a white halo keeps every one of them readable */
+const HALO = { stroke:'#ffffff', 'stroke-width':3.6, 'paint-order':'stroke',
+               'stroke-linejoin':'round' };
+const txt = (attrs, str) => el('text', Object.assign({}, HALO, attrs), str);
+
 const svg  = document.getElementById('stage');
-const gGrid = el('g'), gArea = el('g'), gTiers = el('g'), gCurve = el('g'),
-      gMark = el('g'), gTag = el('g');
-[gGrid, gArea, gTiers, gCurve, gMark, gTag].forEach(g => svg.appendChild(g));
+const gGrid = el('g'), gArea = el('g'), gCurve = el('g'), gMark = el('g'), gTag = el('g');
+[gGrid, gArea, gCurve, gMark, gTag].forEach(g => svg.appendChild(g));
 
 const defs = el('defs');
 defs.innerHTML =
@@ -283,27 +332,33 @@ defs.innerHTML =
     '<rect width="3" height="7" fill="#27ae60" fill-opacity="0.42"/></pattern>';
 svg.insertBefore(defs, gGrid);
 
-let PL = { x0: 92, x1: 742, y0: 54, y1: 486 };
+const PL = { x0: 92, x1: 742, y0: 54, y1: 486 };
+const X = q => PL.x0 + (q / QMAX) * (PL.x1 - PL.x0);
+const Y = p => PL.y1 - (p / PMAX) * (PL.y1 - PL.y0);
+
+/* which ladder is on screen right now */
+function viewN(){
+  if (S.mode === 'person'){
+    if (!S.sale) return Infinity;                 // finished picture: continuous
+    return PERSON_STEPS[Math.min(S.sale.k, PERSON_STEPS.length) - 1];
+  }
+  return S.mode === 'single' ? 1 : S.n;
+}
 
 function render(){
-  const m = solve(S.aa, S.kk, S.mode, S.n);
-  const QMAX = Math.max(m.A0, m.K, 5) * 1.14;
-  const PMAX = S.aa * 1.12;
-  const X = q => PL.x0 + (q / QMAX) * (PL.x1 - PL.x0);
-  const Y = p => PL.y1 - (p / PMAX) * (PL.y1 - PL.y0);
+  const vn = viewN();
+  const m = (vn === Infinity) ? solve(S.aa, S.kk, 'person', 1) : solve(S.aa, S.kk, 'tiers', vn);
+  const live = realized(m);
   const D = q => Math.max(0, S.aa - B * q);
 
-  gGrid.innerHTML = ''; gArea.innerHTML = ''; gTiers.innerHTML = '';
-  gCurve.innerHTML = ''; gMark.innerHTML = ''; gTag.innerHTML = '';
+  gGrid.innerHTML = ''; gArea.innerHTML = ''; gCurve.innerHTML = ''; gMark.innerHTML = ''; gTag.innerHTML = '';
 
-  /* ── grid + axes ── */
-  const qStep = QMAX > 50 ? 10 : (QMAX > 20 ? 5 : 2);
-  for (let q = 0; q <= QMAX; q += qStep){
+  /* ── grid + axes (fixed) ── */
+  for (let q = 0; q <= QMAX; q += 10){
     gGrid.appendChild(el('line', { x1:X(q), y1:PL.y0, x2:X(q), y2:PL.y1, stroke:'#eef2f6', 'stroke-width':1 }));
     gGrid.appendChild(el('text', { x:X(q), y:PL.y1 + 20, 'text-anchor':'middle', 'font-size':12, fill:'#9aa7b2' }, q));
   }
-  const pStep = PMAX > 1000 ? 400 : (PMAX > 600 ? 200 : 100);
-  for (let p = 0; p <= PMAX; p += pStep){
+  for (let p = 0; p <= PMAX; p += 200){
     gGrid.appendChild(el('line', { x1:PL.x0, y1:Y(p), x2:PL.x1, y2:Y(p), stroke:'#eef2f6', 'stroke-width':1 }));
     gGrid.appendChild(el('text', { x:PL.x0 - 9, y:Y(p) + 4, 'text-anchor':'end', 'font-size':12, fill:'#9aa7b2' }, p));
   }
@@ -315,45 +370,41 @@ function render(){
   gGrid.appendChild(el('text', { x:PL.x0 - 4, y:PL.y0 - 30, 'font-size':13.5, fill:'#5b6b7b', 'font-weight':600, 'text-anchor':'end' }, 'Price ¥'));
 
   /* ── DWL: the output the competitive market would have served anyway ── */
-  const qL = m.tiers.length ? m.tiers[m.tiers.length - 1].q1 : m.Q;
-  if (m.DWL > 1 && m.Qc > qL + 1e-6){
+  const qL = live.tiers.length ? live.tiers[live.tiers.length - 1].q1 : live.Q;
+  if (live.DWL > 1 && m.Qc > qL + 1e-6){
     gArea.appendChild(el('polygon', {
       points: [[X(qL), Y(D(qL))], [X(qL), Y(0)], [X(m.Qc), Y(0)], [X(m.Qc), Y(D(m.Qc))]]
         .map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '),
       fill:'#e74c3c', 'fill-opacity':.24, stroke:'#e74c3c', 'stroke-width':1.4, 'stroke-dasharray':'5 4'
     }));
+    if (X(m.Qc) - X(qL) > 64)
+      gTag.appendChild(txt({ x:(X(qL) + X(m.Qc)) / 2, y:Y(D((qL + m.Qc) / 2)) + 24,
+        'text-anchor':'middle', 'font-size':12.5, fill:'#c0392b', 'font-weight':700 }, 'DWL'));
   }
 
-  /* ── the surplus the seller captures, and what is left for buyers ── */
-  if (S.mode === 'person'){
+  /* ── surplus: what the seller takes, and what the tiers leave buyers ── */
+  if (vn === Infinity){
     // one continuous block: every seat at its own buyer's maximum
-    const pts = [[X(0), Y(0)]];
-    pts.push([X(0), Y(D(0))]);
-    const steps = 60;
-    for (let i = 1; i <= steps; i++){ const q = m.Q * i / steps; pts.push([X(q), Y(D(q))]); }
+    const pts = [[X(0), Y(0)], [X(0), Y(D(0))]];
+    for (let i = 1; i <= 60; i++){ const q = m.Q * i / 60; pts.push([X(q), Y(D(q))]); }
     pts.push([X(m.Q), Y(0)]);
-    gArea.appendChild(el('polygon', {
-      points: pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '), fill:'url(#stripes)'
-    }));
-    gArea.appendChild(el('polyline', {
-      points: pts.slice(1, -1).map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '),
-      fill:'none', stroke:'#1e8449', 'stroke-width':2
-    }));
+    gArea.appendChild(el('polygon', { points: pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '),
+      fill:'url(#stripes)' }));
+    gArea.appendChild(el('polyline', { points: pts.slice(1, -1).map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '),
+      fill:'none', stroke:'#1e8449', 'stroke-width':2 }));
   } else {
-    // one green rectangle (the seller's take) + a small blue triangle (what the tier leaves buyers)
-    m.tiers.forEach(t => {
-      const hidden = S.playing && t.i > S.playing;
-      if (hidden) return;
-      const live = S.playing && t.i === S.playing;
+    live.tiers.forEach(t => {
+      const announcing = S.sale && t.i === S.sale.k && S.sale.phase === 'announce';
+      const q1 = announcing ? t.q0 : t.q1;
+      if (q1 <= t.q0) return;
       gArea.appendChild(el('rect', {
-        x:X(t.q0), y:Y(t.p), width:(X(t.q1) - X(t.q0)).toFixed(1), height:(Y(0) - Y(t.p)).toFixed(1),
-        fill:'#27ae60', 'fill-opacity': live ? .62 : .34,
-        stroke:'#1e8449', 'stroke-width': live ? 2 : 1
+        x:X(t.q0), y:Y(t.p), width:(X(q1) - X(t.q0)).toFixed(1), height:(Y(0) - Y(t.p)).toFixed(1),
+        fill:'#27ae60', 'fill-opacity':.34, stroke:'#1e8449', 'stroke-width':1
       }));
       gArea.appendChild(el('polygon', {
-        points: [[X(t.q0), Y(D(t.q0))], [X(t.q0), Y(t.p)], [X(t.q1), Y(t.p)]]
+        points: [[X(t.q0), Y(D(t.q0))], [X(t.q0), Y(t.p)], [X(q1), Y(t.p)], [X(q1), Y(D(q1))]]
           .map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '),
-        fill:'#3498db', 'fill-opacity': live ? .62 : .38, stroke:'#2980b9', 'stroke-width':1
+        fill:'#3498db', 'fill-opacity':.38, stroke:'#2980b9', 'stroke-width':1
       }));
     });
   }
@@ -361,32 +412,29 @@ function render(){
   /* ── supply / marginal cost: flat until capacity, then vertical ── */
   gCurve.appendChild(el('line', { x1:X(0), y1:Y(0), x2:X(m.K), y2:Y(0),
     stroke:'#e67e22', 'stroke-width':7, 'stroke-linecap':'round' }));
-  if (m.K < QMAX){
-    gCurve.appendChild(el('line', { x1:X(m.K), y1:Y(0), x2:X(m.K), y2:Y(0) - (PL.y1 - PL.y0) * .97,
-      stroke:'#e67e22', 'stroke-width':4.5, 'stroke-dasharray':'9 6' }));
-    gTag.appendChild(el('text', { x:X(m.K) + 7, y:PL.y0 + 14, 'font-size':12.5, fill:'#b9601a', 'font-weight':700 },
-      'capacity ' + fmtSeats(m.K)));
-  }
-  gTag.appendChild(el('text', { x:X(0) + 9, y:Y(0) - 16, 'font-size':12.5, fill:'#b9601a', 'font-weight':700 },
-    'MC ≈ ¥0 — spare seats'));
+  gCurve.appendChild(el('line', { x1:X(m.K), y1:Y(0), x2:X(m.K), y2:Y(0) - (PL.y1 - PL.y0) * .97,
+    stroke:'#e67e22', 'stroke-width':4.5, 'stroke-dasharray':'9 6' }));
+  gTag.appendChild(txt({ x:X(m.K) + 7, y:PL.y0 + 14, 'font-size':12.5, fill:'#b9601a', 'font-weight':700 },
+    'capacity ' + fmtSeats(m.K)));
+  gTag.appendChild(txt({ x:X(0) + 9, y:Y(0) - 16, 'font-size':12.5, fill:'#b9601a', 'font-weight':700 },
+    'MC ≈ ¥0'));
 
   /* ── demand and marginal revenue ── */
   const qEnd = Math.min(m.A0, QMAX);
   gCurve.appendChild(el('line', { x1:X(0), y1:Y(S.aa), x2:X(qEnd), y2:Y(D(qEnd)),
     stroke:'#2980b9', 'stroke-width':3.4 }));
-  /* the label sits just above the curve, where nothing else lives */
   const qLab = qEnd * 0.74;
-  gCurve.appendChild(el('text', { x:X(qLab) - 5, y:Y(D(qLab)) - 15, 'font-size':13.5, fill:'#2980b9',
+  gCurve.appendChild(txt({ x:X(qLab) - 5, y:Y(D(qLab)) - 15, 'font-size':13.5, fill:'#2980b9',
     'font-weight':700, 'text-anchor':'end' }, 'Demand'));
 
-  if (S.mode !== 'person'){
+  if (vn !== Infinity){
     const qMR = Math.min(m.A0 / 2, QMAX);
     gCurve.appendChild(el('line', { x1:X(0), y1:Y(S.aa), x2:X(qMR), y2:Y(S.aa - 2 * B * qMR),
       stroke:'#8e44ad', 'stroke-width':2.2, 'stroke-dasharray':'8 6' }));
     /* the label rides part-way along the MR line rather than at its foot, where
        the deadweight-loss or producer-surplus block would sit behind it */
     const qm = qMR * 0.42, pm = S.aa - 2 * B * qm;
-    gCurve.appendChild(el('text', { x:X(qm) + 8, y:Y(pm) + 4, 'font-size':12.5, fill:'#7d3c98', 'font-weight':700 }, 'MR'));
+    gCurve.appendChild(txt({ x:X(qm) + 8, y:Y(pm) + 4, 'font-size':12.5, fill:'#7d3c98', 'font-weight':700 }, 'MR'));
   }
 
   /* ── markers ──
@@ -397,59 +445,69 @@ function render(){
     const qMon = Math.min(m.A0 / 2, m.K), pMon = D(qMon);
     const same = Math.abs(qMon - m.K) < 0.05;
     gMark.appendChild(el('circle', { cx:X(qMon), cy:Y(pMon), r:6.5, fill:'#8e44ad', stroke:'#fff', 'stroke-width':2.5 }));
-    gMark.appendChild(el('text', { x:X(qMon) + 12, y:Y(pMon) - 7, 'font-size':12.5, fill:'#7d3c98', 'font-weight':700 },
+    gMark.appendChild(txt({ x:X(qMon) + 12, y:Y(pMon) - 7, 'font-size':12.5, fill:'#7d3c98', 'font-weight':700 },
       same ? 'MR = MC · arena full at ' + fmtYen(pMon) : 'MR = MC'));
     if (!same){
       const pC = D(m.Qc);
       gMark.appendChild(el('circle', { cx:X(m.Qc), cy:Y(pC), r:6.5, fill:'#e67e22', stroke:'#fff', 'stroke-width':2.5 }));
-      gMark.appendChild(el('text', { x:X(m.Qc) + 12, y:Y(pC) - 8, 'font-size':12.5, fill:'#b9601a',
+      gMark.appendChild(txt({ x:X(m.Qc) + 12, y:Y(pC) - 8, 'font-size':12.5, fill:'#b9601a',
         'font-weight':700 }, 'competitive ' + fmtYen(pC)));
     }
   }
 
-  /* ── tier rows: the price tag on each step ── */
-  if (S.mode === 'tiers' && m.tiers.length > 1){
-    const shown = m.tiers.filter(t => !S.playing || t.i <= S.playing);
-    const every = Math.ceil(shown.length / 6);   /* don't crowd the chart when n is large */
-    shown.forEach(t => {
-      if (t.i % every && shown.length > 7) return;
-      gTag.appendChild(el('text', { x:(X(t.q0) + X(t.q1)) / 2, y:Y(t.p) - 8, 'text-anchor':'middle',
-        'font-size':12, fill:'#1e8449', 'font-weight':700 }, fmtYen(t.p)));
+  /* ── the ladder on sale ── */
+  if (vn !== Infinity && m.tiers.length > 1){
+    const every = Math.ceil(m.tiers.length / 7);
+    live.tiers.forEach(t => {
+      const announcing = S.sale && t.i === S.sale.k && S.sale.phase === 'announce';
+      if (announcing){
+        // the price has just been posted: show the whole rung's price line, nothing sold yet
+        gTag.appendChild(el('line', { x1:X(t.q0), y1:Y(t.p), x2:X(t.q1) , y2:Y(t.p),
+          stroke:'#1e8449', 'stroke-width':3, 'stroke-dasharray':'7 5' }));
+        gTag.appendChild(txt({ x:(X(t.q0) + X(t.q1)) / 2, y:Y(t.p) - 9, 'text-anchor':'middle',
+          'font-size':14, fill:'#1e8449', 'font-weight':700 }, fmtYen(t.p)));
+        return;
+      }
+      const last = m.tiers[m.tiers.length - 1];
+      if (t.i % every === 0 || t.i === last.i)
+        gTag.appendChild(txt({ x:(X(t.q0) + X(t.q0 + t.seg)) / 2, y:Y(t.p) - 8, 'text-anchor':'middle',
+          'font-size':12, fill:'#1e8449', 'font-weight':700 }, fmtYen(t.p)));
     });
   }
 
-  buildTierTable(m);
-  paintStats(m);
-  document.getElementById('hint').innerHTML = HINTS[S.mode];
+  buildTierTable(m, vn);
+  if (S.mode === 'person') syncKnow(S.sale ? S.sale.k : 0);
+  paintStats(m, live);
+  document.getElementById('hint').innerHTML = hintText();
   document.getElementById('footL').textContent =
-    'n = ' + (S.mode === 'person' ? '∞' : (S.mode === 'single' ? 1 : S.n)) + ' price tier' +
-    ((S.mode === 'single' || S.n === 1) ? '' : 's');
+    'axes fixed at 0–' + QMAX + 'k seats · ¥0–' + PMAX + '   ·   n = ' +
+    (vn === Infinity ? '∞' : vn) + ' price tier' + (vn === 1 ? '' : 's');
 }
 
-/* ── right-hand tables ─────────────────────────────────────────────────── */
-function buildTierTable(m){
+/* ── right-hand table ──────────────────────────────────────────────────── */
+function buildTierTable(m, vn){
   const tb = document.getElementById('tierTable');
-  if (S.mode !== 'tiers' || !m.tiers.length){ tb.innerHTML = ''; return; }
+  if (vn === Infinity || !m.tiers.length){ tb.innerHTML = ''; return; }
   const seg = m.tiers[0].seg;
   let html = '<tr><th>Tier</th><th>Price</th><th>Seats</th><th>Buyers’ eagerness</th></tr>';
   m.tiers.forEach(t => {
-    // the top tier holds the keenest buyers, so it clears fastest — the seller
-    // reads exactly that pace to decide whether to hold the price up
     const eager = Math.round(100 * (1 - (t.i - 1) / (m.tiers.length * 1.25)));
-    const cls = S.playing ? (t.i < S.playing ? '' : (t.i === S.playing ? 'live' : 'pending')) : '';
+    let cls = '';
+    if (S.sale) cls = t.i < S.sale.k ? 'done' : (t.i === S.sale.k ? 'live' : 'pending');
     html += '<tr class="' + cls + '"><td>' + t.i + '</td><td>' + fmtYen(t.p) + '</td><td>' +
-            fmtSeats(seg) + '</td><td><span class="pace" style="width:' + eager + '%; max-width:44px;"></span></td></tr>';
+            fmtSeats(seg) + '</td><td><span class="pace" style="width:' + eager +
+            '%;max-width:44px;"></span></td></tr>';
   });
   tb.innerHTML = html;
 }
 
-function paintStats(m){
-  document.getElementById('sCS').textContent  = fmtM(m.CS);
-  document.getElementById('sPS').textContent  = fmtM(m.PS);
-  document.getElementById('sDWL').textContent = fmtM(m.DWL);
-  document.getElementById('sTS').textContent  = fmtM(m.TS);
-  document.getElementById('sQ').textContent   = fmtSeats(m.Q);
-  document.getElementById('sP').textContent   = m.Q > 0 ? fmtYen(m.avg) : '—';
+function paintStats(m, live){
+  document.getElementById('sCS').textContent  = fmtM(live.CS);
+  document.getElementById('sPS').textContent  = fmtM(live.PS);
+  document.getElementById('sDWL').textContent = fmtM(live.DWL);
+  document.getElementById('sTS').textContent  = fmtM(live.TS);
+  document.getElementById('sQ').textContent   = fmtSeats(live.Q);
+  document.getElementById('sP').textContent   = live.Q > 0 ? fmtYen(live.avg) : '—';
 
   const base = solve(S.aa, S.kk, 'single', 1);
   let note = '';
@@ -463,10 +521,14 @@ function paintStats(m){
         + 'to seat them, and those sales never happen — that gap is the deadweight loss.';
   } else if (S.mode === 'tiers'){
     const ratio = base.CS > 0 ? (base.CS / m.CS) : 0;
-    note = 'Consumer surplus is down to ' + fmtM(m.CS) + ' from ' + fmtM(base.CS) +
-           ' with one price — about ' + (ratio >= 1.8 ? ratio.toFixed(0) + '×' : ratio.toFixed(1) + '×') +
-           ' smaller, for the same ' + fmtSeats(m.Q) + ' seats. Nothing was created or destroyed here: '
-           + 'it moved from buyers to the seller.';
+    const last = m.tiers.length ? m.tiers[m.tiers.length - 1].p : 0;
+    note = 'Consumer surplus settles at ' + fmtM(m.CS) + ' against ' + fmtM(base.CS) +
+           ' with a single price — about ' + (ratio >= 1.8 ? ratio.toFixed(0) + '×' : ratio.toFixed(1) + '×') +
+           ' smaller. Nothing was created or destroyed: it moved from buyers to the seller.'
+           + (last < S.aa * 0.14
+              ? ' The last tier opens at just ' + fmtYen(last) + ': with seats still spare every extra '
+                + 'seat costs the seller ¥0, so there is no reason to stop cutting.'
+              : '');
   } else {
     note = 'Every seat goes at its own buyer’s maximum, so consumer surplus is ¥0 and the seller takes the whole '
          + 'area under the demand curve. Output rises to the competitive level, so deadweight loss is ¥0 as well — '
@@ -481,22 +543,29 @@ function paintStats(m){
       ? 'At ¥0 the market wants ' + fmtSeats(m.A0) + ' seats; the arena only holds ' + fmtSeats(m.K) +
         '. So the competitive price is ' + fmtYen(S.aa - B * m.K) + ', not ¥0 — every seat sells at the last seat’s worth.'
       : 'At ¥0 the market wants ' + fmtSeats(m.A0) + ' seats and the arena holds ' + fmtSeats(m.K) +
-        '. Capacity is never the constraint here, so the competitive price would be ¥0.');
+        '. Capacity is never the constraint here, so the competitive price would be ¥0. '
+        + (m.monoBinding ? '' : 'Seats are spare, so MC ≈ ¥0 — the seller\u2019s only cost of selling one more is nothing.'));
 }
 
-const HINTS = {
-  single:
-    'The seller charges one price and holds it, selling where <b>MR = MC</b>. Because MC is ¥0, that is where ' +
-    'marginal revenue is zero. Output stops short of the competitive level — the red area is deadweight loss.',
-  tiers:
-    'The seller slices the seats into tiers, <b>opens high and keeps cutting</b>. A tier that sells out faster than ' +
-    'planned is the signal that buyers will pay more, so the next price is held up; a tier that lingers gets cut. ' +
-    'Output does not change — surplus moves from buyers to the seller.',
-  person:
-    'Every seat is sold at the buyer’s own maximum willingness to pay — the ticket, the app and the algorithm all ' +
-    'know who is looking. Consumer surplus is gone. And where capacity is not binding, output expands to the ' +
-    'competitive level, so deadweight loss goes with it.'
-};
+function hintText(){
+  if (S.mode === 'single')
+    return 'The seller charges one price and holds it, selling where <b>MR = MC</b>. Because MC is ¥0, that is '
+         + 'where marginal revenue is zero. Output stops short of the competitive level — the red area is deadweight loss.';
+  if (S.mode === 'tiers'){
+    if (S.sale) return 'Watch the seats go <b>left to right</b>: each rung is one price, and it keeps selling until '
+         + 'everyone willing to pay that price has bought. Only then does the seller open the next, cheaper rung. '
+         + 'The blue triangle above each rung is what that tier’s buyers keep.';
+    return 'The seller slices the seats into tiers and <b>opens high</b>. A rung that clears faster than planned '
+         + 'tells them buyers will pay more, so the next price is held up; a rung that lingers gets cut. '
+         + 'Press <b>Run the sale</b> to watch the rungs fill in order.';
+  }
+  if (S.sale) return 'The ladder sharpening <b>is</b> the seller learning about you. Every extra slice needs more '
+       + 'information — device, postcode, browsing history, how long you hesitated — and each extra slice moves '
+       + 'surplus out of the blue triangles and into the green.';
+  return 'Every seat is sold at the buyer’s own maximum willingness to pay — the ticket, the app and the algorithm all '
+       + 'know who is looking. Consumer surplus is gone. And where capacity is not binding, output expands to the '
+       + 'competitive level, so deadweight loss goes with it. Press <b>Sharpen the ladder</b>.';
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    INTERACTION
@@ -523,36 +592,104 @@ function syncLabels(){
   document.getElementById('kVal').textContent = fmtSeats(S.K);
   document.getElementById('nVal').textContent = S.n;
 }
-function setMode(mode){
-  S.mode = mode;
-  S.playing = 0; clearTimeout(S.timer);
-  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-  document.getElementById('tierCard').style.display = (mode === 'tiers') ? '' : 'none';
+
+/* ═══ the sale animation ═══
+   tiers  : one rung at a time — post the price, then fill the block left→right
+   person : the same ladder sharpening — 1, 2, 4, 8, 16, 32 segments, then continuous
+   One shared rAF clock drives both, so the timing never fights the a/K tween. */
+const ANNOUNCE = 300, HOLD = 170;
+function fillMs(k){
+  if (S.mode === 'person') return 620;
+  return Math.max(240, Math.min(700, 1500 / k));    // many rungs ⇒ quicker rungs
+}
+function totalSteps(){ return S.mode === 'person' ? PERSON_STEPS.length : S.n; }
+
+let saleRaf = null, saleLast = 0;
+function saleLoop(ts){
+  const dt = saleLast ? Math.min(64, ts - saleLast) : 16;
+  saleLast = ts;
+  const k = S.sale.k;
+  S.sale.t += dt;
+
+  if (S.sale.phase === 'announce'){
+    if (S.sale.t >= ANNOUNCE){ S.sale.phase = 'fill'; S.sale.t = 0; S.sale.frac = 0; }
+  } else if (S.sale.phase === 'fill'){
+    S.sale.frac = Math.min(1, S.sale.t / fillMs(k));
+    if (S.sale.frac >= 1){ S.sale.phase = 'hold'; S.sale.t = 0; }
+  } else if (S.sale.t >= HOLD){
+    if (k >= totalSteps()){                       // sold out — leave the finished picture up
+      S.sale = null; saleRaf = null; saleLast = 0;
+      syncButtons(); render(); return;
+    }
+    S.sale.k = k + 1; S.sale.phase = 'announce'; S.sale.t = 0; S.sale.frac = 0;
+  }
+  render();
+  saleRaf = requestAnimationFrame(saleLoop);
+}
+
+function startSale(){
+  if (S.sale){ stopSale(); return; }
+  S.sale = { k: 1, phase: 'announce', t: 0, frac: 0 };
+  saleLast = 0;
+  syncButtons();
+  saleRaf = requestAnimationFrame(saleLoop);
+}
+function stopSale(){
+  S.sale = null; saleLast = 0;
+  if (saleRaf) cancelAnimationFrame(saleRaf);
+  saleRaf = null;
+  syncKnow(0);
+  syncButtons();
   render();
 }
+function syncButtons(){
+  const b = document.getElementById('runBtn');
+  if (S.sale){ b.textContent = '■ Stop'; b.className = 'btn stop'; }
+  else {
+    b.textContent = (S.mode === 'person') ? '▶ Sharpen the ladder' : '▶ Run the sale';
+    b.className = 'btn primary';
+  }
+}
+let knowKey = '';
+function syncKnow(k){
+  /* cache on mode AND step — caching on the step alone meant switching back into
+     ③ with the same step left the box hidden */
+  const key = S.mode + '|' + k;
+  if (key === knowKey) return;
+  knowKey = key;
+  const box = document.getElementById('know');
+  if (S.mode !== 'person'){ box.style.display = 'none'; return; }
+  box.style.display = '';
+  const n = k ? PERSON_STEPS[k - 1] : Infinity;
+  box.innerHTML = '<b>What the seller knows</b>' + (k ? ' · step ' + k + ' of ' + PERSON_STEPS.length : '') +
+    '<br>' + PERSON_NOTES[(k || PERSON_STEPS.length) - 1] +
+    (k && n !== Infinity ? '' : '');
+}
+
+function setMode(mode){
+  S.mode = mode;
+  if (saleRaf) cancelAnimationFrame(saleRaf);
+  S.sale = null; saleRaf = null; saleLast = 0;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.getElementById('tierCard').style.display = (mode === 'single') ? 'none' : '';
+  document.getElementById('nRow').style.display = (mode === 'tiers') ? '' : 'none';
+  document.getElementById('tierHead').textContent = (mode === 'person')
+    ? 'How much the seller knows about you' : 'How finely the seller slices';
+  syncKnow(0);
+  syncButtons();
+  render();
+}
+
 aSl.addEventListener('input', () => { S.a = +aSl.value; syncLabels(); kick(); });
 kSl.addEventListener('input', () => { S.K = +kSl.value; syncLabels(); kick(); });
-nSl.addEventListener('input', () => { S.n = +nSl.value; S.playing = 0; clearTimeout(S.timer); syncLabels(); render(); });
-document.querySelectorAll('.mode-btn').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
-
-/* ── "Run the sale": tiers clear one after another, high price first ── */
-function runSale(){
-  if (S.mode !== 'tiers') return;
-  clearTimeout(S.timer);
-  const total = S.n;
-  S.playing = 0; render();
-  const step = () => {
-    S.playing++;
-    render();
-    if (S.playing < total) S.timer = setTimeout(step, 620);
-    else S.timer = setTimeout(() => { S.playing = 0; render(); }, 2100);
-  };
-  S.timer = setTimeout(step, 300);
-}
-document.getElementById('runBtn').addEventListener('click', runSale);
-document.getElementById('stopBtn').addEventListener('click', () => {
-  clearTimeout(S.timer); S.playing = 0; render();
+nSl.addEventListener('input', () => {
+  S.n = +nSl.value; syncLabels();
+  if (S.sale){ S.sale = null; if (saleRaf) cancelAnimationFrame(saleRaf); saleRaf = null; syncButtons(); }
+  render();
 });
+document.querySelectorAll('.mode-btn').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+document.getElementById('runBtn').addEventListener('click', startSale);
+document.getElementById('stopBtn').addEventListener('click', stopSale);
 
 /* ── go ── */
 syncLabels();
