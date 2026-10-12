@@ -1458,16 +1458,6 @@ a { color: var(--gold-deep); }
   color: #FFFBF2;
 }
 
-/* 工具条右侧组：排序 + 搜索绑在一起，换行时同进同出，避免搜索框被单独挤下来 */
-.toolbar-side {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex: 1 1 480px;
-  margin-left: auto;
-  min-width: 0;
-}
-
 /* 排序切换 —— 一体式分段胶囊，与分类胶囊同一视觉语言 */.sort-wrap {
   display: flex;
   align-items: stretch;
@@ -2054,7 +2044,6 @@ a { color: var(--gold-deep); }
 /* 窄屏：顶栏挤了就收起 About 的文字，只留圆标，别把品牌挤没 */
 @media (max-width: 700px) {
   .toolbar { flex-direction: column; align-items: stretch; }
-  .toolbar-side { flex-direction: column-reverse; align-items: stretch; flex: none; gap: 10px; }
   .sort-wrap { justify-content: center; }
   .search-wrap { max-width: none; margin-left: 0; }
   .stats { justify-content: center; }
@@ -2167,6 +2156,10 @@ a { color: var(--gold-deep); }
       <span class="stat-sep" aria-hidden="true"></span>
       <span class="stat"><strong>4</strong>Categories</span>
     </div>
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="Search tools&hellip;"
+             aria-label="Search tools">
+    </div>
     <div class="filter-tags" id="filterTags">
       <button class="active" data-filter="all">All</button>
       <button data-filter="fundamentals">Fundamentals</button>
@@ -2174,15 +2167,9 @@ a { color: var(--gold-deep); }
       <button data-filter="macro">Macro</button>
       <button data-filter="advanced">Advanced</button>
     </div>
-    <div class="toolbar-side">
-      <div class="sort-wrap" id="sortWrap" role="group" aria-label="Sort order">
-        <button class="active" data-sort="az">A&ndash;Z</button>
-        <button data-sort="learning">Learning order</button>
-      </div>
-      <div class="search-wrap">
-        <input type="text" id="searchInput" placeholder="Search tools&hellip;"
-               aria-label="Search tools">
-      </div>
+    <div class="sort-wrap" id="sortWrap" role="group" aria-label="Sort order">
+      <button class="active" data-sort="az">A&ndash;Z</button>
+      <button data-sort="learning">Learning order</button>
     </div>
   </div>
 
