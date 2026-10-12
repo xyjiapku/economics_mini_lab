@@ -1458,6 +1458,57 @@ a { color: var(--gold-deep); }
   color: #FFFBF2;
 }
 
+/* 排序切换 —— 视觉与分类胶囊保持一致 */
+.sort-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+}
+.sort-wrap .sort-label {
+  font-size: var(--fs-small);
+  font-weight: 650;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-right: 2px;
+  white-space: nowrap;
+}
+.sort-wrap button {
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--bg-vellum) 94%, var(--bg-deep) 6%);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-body);
+  font-size: var(--fs-small);
+  font-weight: 650;
+  letter-spacing: .045em;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out);
+  white-space: nowrap;
+}
+.sort-wrap button:hover {
+  border-color: var(--line-gold);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+.sort-wrap button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.sort-wrap button.active {
+  background: linear-gradient(140deg, #A84530, var(--seal));
+  border-color: transparent;
+  color: #FFFBF2;
+  box-shadow: 0 6px 20px -6px color-mix(in srgb, var(--seal) 70%, transparent);
+}
+[data-theme="dusk"] .sort-wrap button.active {
+  background: linear-gradient(140deg, #A84530, var(--seal));
+  color: #FFFBF2;
+}
+
 /* 搜索框 */
 .search-wrap {
   position: relative;
@@ -2116,6 +2167,11 @@ a { color: var(--gold-deep); }
       <button data-filter="macro">Macro</button>
       <button data-filter="advanced">Advanced</button>
     </div>
+    <div class="sort-wrap" id="sortWrap" role="group" aria-label="Sort order">
+      <span class="sort-label">Sort</span>
+      <button class="active" data-sort="az">A&ndash;Z</button>
+      <button data-sort="learning">Learning order</button>
+    </div>
     <div class="search-wrap">
       <input type="text" id="searchInput" placeholder="Search tools&hellip;"
              aria-label="Search tools">
@@ -2281,6 +2337,37 @@ const toolsData = [
     { name: 'Gains from Trade', file: 'Gains from Trade - Two Countries.html', icon: '🤝', category: 'micro', desc: 'Comparative advantage with two countries: cloth & wine' }
 ];
 
+/* 学习顺序：参考 AP 经济学 topic 顺序（基础 → 微观 → 宏观 → 进阶）。
+   仅用于内部排序，页面上不展示任何 AP 单元号。键为 file，确保唯一且不受名称特殊字符影响。 */
+const LEARNING_ORDER = {
+  'Production Possibility Curve.html': 1,
+  'Marginal analysis.html': 2,
+  'supply-demand/index.html': 3,
+  'Econ Diagram Studio.html': 4,
+  'Gains from Trade - Two Countries.html': 5,
+  'Consumer Choice-Deriving the Demand Curve.html': 6,
+  'Consumer Choice-the equal MU per dollar rule.html': 7,
+  'Price Control.html': 8,
+  'Effects of Tax and Subsidy - Laffer.html': 9,
+  'Cost curves.html': 10,
+  'Long run adjustment.html': 11,
+  'Monopolistic Competition.html': 12,
+  'Monopoly and regulation.html': 13,
+  'Labour Demand & Least Cost.html': 14,
+  'Externality.html': 15,
+  'Lorenz Curve & Gini Coefficient.html': 16,
+  'International trade and protection.html': 17,
+  'Business Cycle and AD-AS model.html': 18,
+  'Financial Sector.html': 19,
+  'IGCSE-Macro-Integrated-Model.html': 20,
+  'AD-AS & Phillips Curve.html': 21,
+  'IS-LM to AD.html': 22,
+  'Solow Growth Model.html': 23,
+  'Macroeconomic Cycles & Crises.html': 24,
+  'Nash-Eq Location game.html': 25,
+  'Nash-Eq Quantity Game.html': 26
+};
+
 /* 每个分类对应一枚身份色，供卡片描边/图标章取用 */
 const CAT_COLOUR = {
     fundamentals: '#A8791F',
@@ -2301,11 +2388,15 @@ document.addEventListener('DOMContentLoaded', function() {
     /* ----- State ----- */
     let currentFilter = 'all';
     let currentQuery = '';
+    let currentSort = 'az';
 
     /* ----- Render ----- */
     function render() {
         if (!grid) { console.error('Grid element not found!'); return; }
-        const sorted = [...toolsData].sort((a, b) => a.name.localeCompare(b.name));
+        const sortFn = currentSort === 'learning'
+            ? (a, b) => (LEARNING_ORDER[a.file] ?? 999) - (LEARNING_ORDER[b.file] ?? 999)
+            : (a, b) => a.name.localeCompare(b.name);
+        const sorted = [...toolsData].sort(sortFn);
         const filtered = sorted.filter(tool => {
             const cats = Array.isArray(tool.category) ? tool.category : [tool.category];
             const matchFilter = currentFilter === 'all' || cats.includes(currentFilter);
@@ -2353,6 +2444,17 @@ document.addEventListener('DOMContentLoaded', function() {
             filterButtons.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentFilter = btn.dataset.filter;
+            render();
+        });
+    });
+
+    /* ----- Sort toggle (A–Z / Learning order) ----- */
+    const sortButtons = document.querySelectorAll('.sort-wrap button');
+    sortButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            sortButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentSort = btn.dataset.sort;
             render();
         });
     });
