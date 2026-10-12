@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tax &amp; Subsidy Incidence — Revenue &amp; DWL Curves</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#faf9f7;--card:#fff;--border:#e8e5e0;--panelBg:#f5f3f0;
+  --text:#1a1a1a;--textSec:#6b6560;--textMut:#9e9890;
+  --demand:#2563eb;--supply:#dc2626;--sprime:#ef4444;
+  --purple:#7c3aed;--pink:#db2777;--red:#ef4444;--green:#059669;--orange:#ea580c;--gray:#6b7280;
+  --accent:#7c3aed;
+  /* the same stack the courseware decks use — one family for everything */
+  --ui:"Segoe UI","Microsoft YaHei",system-ui,Arial,sans-serif;
+}
+html,body{height:100%}
+body{background:var(--bg);font-family:var(--ui);color:var(--text);font-variant-numeric:tabular-nums}
+/* NOTE: #app already carries .root, so App renders a nested .root. It must
+   stretch (width:100%) or the flex parent's align-items:center would shrink it
+   to max-content and the whole page would stop tracking the window width. */
+.root{min-height:100%;display:flex;flex-direction:column;align-items:center;padding:12px 16px 14px;width:100%}
+.root>.root{padding:0}
+
+/* Header */
+.hdr{text-align:center;margin-bottom:10px;max-width:880px}
+.hdr h1{font-size:clamp(24px,1.8vw,34px);font-weight:700;line-height:1.15;margin-bottom:5px}
+.hdr p{font-size:15px;color:var(--textSec);line-height:1.45}
+
+/* Mode toggle — walkthrough first, and it is the default mode */
+.mtog{display:flex;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:12px}
+.mbtn{padding:8px 20px;border-radius:8px;border:none;cursor:pointer;font-size:15px;font-weight:600;font-family:var(--ui);transition:all .2s}
+.mbtn.on{background:var(--accent);color:#fff}
+.mbtn:not(.on){background:transparent;color:var(--textSec)}
+
+/* ── Layout: diagram on the left (2/3), analysis rail on the right (1/3) ── */
+.main{
+  display:grid;
+  gap:14px;
+  width:100%;
+  max-width:1840px;
+  grid-template-columns:minmax(0,2fr) minmax(380px,1fr);
+  grid-template-areas:"chart rail";
+  align-items:stretch;
+}
+.cc{grid-area:chart;min-width:0}
+.rail{grid-area:rail;display:flex;flex-direction:column;gap:11px;min-width:0}
+/* Narrower windows: give the rail a bit more width so its panels stop wrapping
+   (a wrapped panel header steals the height the chart needs). */
+@media(max-width:1400px){
+  .main{grid-template-columns:minmax(0,1.55fr) minmax(430px,1fr)}
+}
+@media(max-width:1100px){
+  .main{grid-template-columns:minmax(0,1fr);grid-template-areas:"chart" "rail"}
+  .chartbox{max-height:none!important}
+  .cwrap{min-height:240px}   /* nothing to stretch against when stacked */
+}
+
+/* Chart card */
+.cc{
+  background:var(--card);
+  border-radius:14px;
+  border:1px solid var(--border);
+  box-shadow:0 2px 20px rgba(0,0,0,.04);
+  padding:14px 16px 12px;
+  display:flex;
+  flex-direction:column;
+}
+/* Plot area scales with window height, keeps the 620:450 drawing ratio */
+.chartbox{width:100%;aspect-ratio:62/45;flex:1 1 auto;max-height:calc(100vh - 330px);min-height:320px;margin-top:2px}
+.chartbox svg{width:100%;height:100%;display:block}
+
+/* Toggles */
+.togs{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:9px}
+.tb{display:flex;align-items:center;gap:6px;padding:6px 13px;border-radius:6px;cursor:pointer;transition:all .2s;background:transparent;font-size:14px;font-weight:600;font-family:var(--ui);color:var(--text)}
+.tb .d{width:9px;height:9px;border-radius:2px}
+
+/* Walk bar */
+.wbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:9px 14px;background:var(--panelBg);border-radius:10px}
+.wbar .mid{flex:1;text-align:center}
+.wbar .sn{font-size:14px;color:var(--textMut);font-family:var(--ui)}
+.wbar .st{font-size:18px;font-weight:700}
+.wb{padding:7px 18px;border-radius:6px;font-size:15px;font-weight:600;font-family:var(--ui);cursor:pointer;transition:opacity .2s}
+.wb.p{border:1px solid var(--border);background:var(--card);color:var(--text)}
+.wb.n{border:none;background:var(--accent);color:#fff}
+.wb:disabled{opacity:.3;cursor:default}
+
+/* Panels */
+.pc{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:12px 14px;box-shadow:0 2px 12px rgba(0,0,0,.03)}
+.phead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.ptag{font-size:14px;letter-spacing:1.6px;color:var(--accent);font-weight:600;font-family:var(--ui);text-transform:uppercase}
+.plegend{display:flex;gap:12px;font-size:14px;font-family:var(--ui);color:var(--textSec);font-weight:600}
+.plegend span{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.plegend i{width:9px;height:9px;border-radius:2px;display:inline-block}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;background:var(--panelBg);border-radius:10px;padding:4px}
+.tab{padding:7px 17px;border-radius:8px;border:none;cursor:pointer;font-size:15px;font-weight:600;font-family:var(--ui)}
+.tab.on{background:var(--accent);color:#fff}
+.tab:not(.on){background:transparent;color:var(--textSec)}
+
+/* Insight & Explanation */
+.expl{background:var(--card);border:1px solid var(--accent);border-radius:12px;padding:13px 15px;box-shadow:0 4px 12px rgba(124,58,237,0.1)}
+.expl p{font-size:16px;color:var(--text);line-height:1.6}
+.remember{background:var(--panelBg);border-radius:12px;padding:11px 14px;font-size:14.5px;color:var(--textSec);line-height:1.55}
+.remember strong{color:var(--text)}
+.cc>.remember{margin-top:10px}
+
+/* Welfare Table */
+.wtbl{width:100%;border-collapse:collapse;font-family:var(--ui);font-size:15px;text-align:right;margin-top:2px}
+.wtbl th{font-weight:600;color:var(--textSec);padding-bottom:6px;border-bottom:1px solid var(--border)}
+.wtbl th:first-child,.wtbl td:first-child{text-align:left}
+.wtbl td{padding:5px 0}
+.wtbl .total-row td{border-top:1px solid var(--border);font-weight:700;padding-top:9px}
+
+/* Controls (bottom-right) */
+.ctrls{margin-top:auto}
+.ctrls .cgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.cg label{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:600;color:var(--textSec);font-family:var(--ui);margin-bottom:4px;white-space:nowrap}
+.cg label .v{font-size:20px;font-weight:700;color:var(--accent)}
+.cg input[type=range]{width:100%;accent-color:var(--accent);height:6px;cursor:pointer}
+.cg.demand-ctrl input[type=range]{accent-color:var(--demand)}
+.cg.demand-ctrl label .v{color:var(--demand)}
+.cg.supply-ctrl input[type=range]{accent-color:var(--supply)}
+.cg.supply-ctrl label .v{color:var(--supply)}
+.cg.tax-ctrl input[type=range]{accent-color:var(--accent)}
+
+/* Rate curve panel — no readout row: every number is already on a slider
+   or in the welfare table, and the row ate the height the chart needs. */
+.curve{flex:1 1 auto;min-height:180px;display:flex;flex-direction:column}
+/* flex-basis 0: the chart must NOT push the rail taller than the diagram card —
+   it takes whatever height is left and scales into it. */
+.cwrap{flex:1 1 0;min-height:96px;display:flex;align-items:center;justify-content:center}
+.csvg{width:100%;height:100%;display:block;cursor:crosshair}
+.chint{margin-top:7px;text-align:center;font-size:14px;font-family:var(--ui);color:var(--textMut);min-height:17px;line-height:1.4}
+</style>
+</head>
+<body>
+<div id="app" class="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script>
+const h=React.createElement,{useState,useMemo}=React;
+
+const DINT=10,SINT=0.5,GAP=DINT-SINT;   // GAP = choke-price gap; trade stops at t = GAP
+const SMIN=-4;                          // most negative policy rate (deepest subsidy)
+const TSTEP=0.25;
+
+function econ(tax,slopeD,slopeS){
+  const dInt=DINT,sInt=SINT;
+  const qStar=(dInt-sInt)/(slopeD+slopeS);
+  const pStar=dInt-slopeD*qStar;
+
+  const qt=Math.max(0,(dInt-sInt-tax)/(slopeD+slopeS));
+  const pb=dInt-slopeD*qt;
+  const ps=sInt+slopeS*qt;
+
+  const csOld=.5*(dInt-pStar)*qStar, csNew=.5*(dInt-pb)*qt;
+  const psOld=.5*(pStar-sInt)*qStar, psNew=.5*(ps-sInt)*qt;
+
+  const taxRev=tax>=0?tax*qt:0;
+  const govCost=tax<0?Math.abs(tax)*qt:0;
+  const dwl=.5*Math.abs(tax)*Math.abs(qStar-qt);
+
+  const consumerIncidence=Math.abs(pb-pStar), producerIncidence=Math.abs(pStar-ps);
+  const totalIncidence=consumerIncidence+producerIncidence;
+  const consPct=totalIncidence>0?consumerIncidence/totalIncidence*100:50;
+  const prodPct=totalIncidence>0?producerIncidence/totalIncidence*100:50;
+
+  return {dInt,sInt,slopeD,slopeS,tax,qStar,pStar,qt,pb,ps,csOld,csNew,psOld,psNew,taxRev,govCost,dwl,consumerIncidence,producerIncidence,consPct,prodPct};
+}
+
+/* One point of every rate curve at policy rate s (tax if s>0, subsidy if s<0).
+   pb(s) - ps(s) = s  =>  consumer share + producer share = |s|·Q(s) exactly,
+   so the two stacked bands always add up to the whole revenue/outlay curve. */
+function curveAt(s,slopeD,slopeS){
+  const kk=slopeD+slopeS;
+  const q=Math.max(0,(GAP-s)/kk);
+  const R=Math.abs(s)*q;
+  return {q,R,cons:(slopeD/kk)*R,prod:(slopeS/kk)*R,dwl:.5*s*s/kk};
+}
+
+/* ── D-S diagram geometry (wide margins leave room for axis labels) ── */
+const W=620,H=450,ML=78,MR=34,MT=40,MB=68;
+const CW=W-ML-MR,CH=H-MT-MB;
+const tx=q=>ML+(q/10)*CW, ty=p=>MT+CH-(p/11)*CH;
+
+/* ── Rate-curve geometry: one shared viewBox, one shared x axis ── */
+const CVW=400,CVH=190,CML=86,CMR=18,CMT=20,CMB=54;
+const CPW=CVW-CML-CMR, CPH=CVH-CMT-CMB;
+const NS=120;
+
+const fmt=n=>n.toFixed(1), pct=n=>Math.round(n);
+const fmtDiff=d=>Math.abs(d)<0.05?"0.0":(d>0?"+":"")+fmt(d);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* tb  = which welfare-table rows/columns are on stage for this step
+   cv  = how far the rate curve is revealed: none < curve < bands < peak < full */
+const STEPS=[
+  {id:"base",title:"Free-Market Equilibrium",a:[],sp:false,post:false,cv:"none",tb:{rows:[],cols:1},
+   d:"Supply and Demand intersect at E\u2081, giving the free-market price P\u2081 and quantity Q\u2081. Use the sliders to adjust elasticity."},
+  {id:"cs",title:"Consumer Surplus",a:["cs"],sp:false,post:false,cv:"none",tb:{rows:["CS"],cols:1},
+   d:"Consumer surplus (blue) is the area below D and above the price paid. It represents the buyer's gain."},
+  {id:"ps",title:"Producer Surplus",a:["ps"],sp:false,post:false,cv:"none",tb:{rows:["CS","PS"],cols:1},
+   d:"Producer surplus (red) is the area above S and below the price received. It represents the seller's gain."},
+  {id:"tax",title:"Imposing a Policy",a:[],sp:true,post:true,cv:"curve",tb:{rows:["CS","PS","GOV"],cols:3},
+   d:"A per-unit tax shifts S up to S\u2032, reducing quantity to Q\u2082. A subsidy shifts S down, increasing quantity beyond the efficient level."},
+  {id:"inci",title:"Incidence & Elasticity",a:["taxC","taxP"],sp:true,post:true,cv:"bands",tb:{rows:["CS","PS","GOV"],cols:3},
+   d:"The purple area is the consumer share; pink is the producer share. The same split is stacked inside the revenue curve."},
+  {id:"dwl",title:"Deadweight Loss",a:["taxC","taxP","dwl"],sp:true,post:true,cv:"peak",tb:{rows:["CS","PS","GOV"],cols:3},
+   d:"The gray area is DWL. It represents the loss in total welfare because the policy moves quantity away from Q\u2081."},
+  {id:"all",title:"Complete Picture",a:["cs","ps","taxC","taxP","dwl"],sp:true,post:true,cv:"full",tb:{rows:["CS","PS","GOV"],cols:3,total:true},
+   d:"Check the Welfare Table to see how \u0394CS + \u0394PS + Gov Balance equals -DWL."},
+];
+
+const AC={
+  cs:{f:"rgba(37,99,235,0.12)",s:"rgba(37,99,235,0.4)"},
+  ps:{f:"rgba(220,38,38,0.12)",s:"rgba(220,38,38,0.35)"},
+  taxC:{f:"rgba(124,58,237,0.18)",s:"rgba(124,58,237,0.45)"},
+  taxP:{f:"rgba(219,39,119,0.18)",s:"rgba(219,39,119,0.45)"},
+  dwl:{f:"rgba(107,114,128,0.3)",s:"rgba(107,114,128,0.6)"},
+};
+const BAND={
+  cons:{f:"rgba(124,58,237,0.34)",s:"rgba(124,58,237,0.65)"},
+  prod:{f:"rgba(219,39,119,0.34)",s:"rgba(219,39,119,0.65)"},
+};
+const toD=pts=>pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
+const bandD=(up,lo)=>toD(up)+" "+lo.slice().reverse().map(p=>"L"+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")+" Z";
+/* white halo so a label stays readable on top of gridlines and curves */
+const halo={stroke:"#fff",strokeWidth:4,paintOrder:"stroke"};
+
+function App(){
+  const [tax,setTax]=useState(2);
+  const [pedVal,setPedVal]=useState(1);
+  const [pesVal,setPesVal]=useState(1);
+  const [mode,setMode]=useState("walkthrough");   // teaching mode is the default
+  const [step,setStep]=useState(0);
+  const [vis,setVis]=useState({cs:true,ps:true,taxC:true,taxP:true,dwl:true});
+  const [ctab,setCtab]=useState("rev");
+  const [hovS,setHovS]=useState(null);
+
+  const slopeD=useMemo(()=>1/pedVal,[pedVal]);
+  const slopeS=useMemo(()=>1/pesVal,[pesVal]);
+  const ec=useMemo(()=>econ(tax,slopeD,slopeS),[tax,slopeD,slopeS]);
+
+  const dL=q=>ec.dInt-ec.slopeD*q, sL=q=>ec.sInt+ec.slopeS*q, spL=q=>ec.sInt+ec.tax+ec.slopeS*q;
+
+  const st=mode==="walkthrough"?STEPS[step]:null;
+  const act=st
+    ? st.a.reduce((a,k)=>({...a,[k]:true}),{cs:false,ps:false,taxC:false,taxP:false,dwl:false})
+    : vis;
+  const showSp=st?!!st.sp:true;
+  /* post = has the policy been introduced yet? Before it, every area/marker
+     must be built on the FREE-MARKET point (Q1, P1), never on Q2 / P2. */
+  const post=st?!!st.post:true;
+  const showPost=post&&tax!==0;
+
+  /* ── progressive reveal of the right-hand rail while walking through ── */
+  const tb=st?st.tb:{rows:["CS","PS","GOV"],cols:3,total:true};
+  const cvStage=st?st.cv:"full";
+  const cvOn=cvStage!=="none";
+  const cvBands=cvStage==="bands"||cvStage==="peak"||cvStage==="full";
+  const cvPeak=cvStage==="peak"||cvStage==="full";
+  const fullCols=tb.cols===3;
+  const showCS=tb.rows.indexOf("CS")>=0, showPS=tb.rows.indexOf("PS")>=0, showGov=tb.rows.indexOf("GOV")>=0;
+  const showTotal=!!tb.total;
+
+  const toggle=k=>setVis(p=>({...p,[k]:!p[k]}));
+  const next=()=>setStep(s=>Math.min(s+1,STEPS.length-1));
+  const prev=()=>setStep(s=>Math.max(s-1,0));
+
+  const dEnd=Math.min(10,ec.dInt/ec.slopeD);
+  const sEnd=Math.min(10,(11-ec.sInt)/ec.slopeS);
+  const spEnd=Math.min(10,(11-ec.sInt-ec.tax)/ec.slopeS);
+
+  const poly=pts=>pts.map((p,i)=>(i===0?"M":"L")+p[0]+","+p[1]).join(" ")+"Z";
+  const areas=(()=>{
+    const q=post?ec.qt:ec.qStar;
+    const pc=post?ec.pb:ec.pStar;
+    const pp=post?ec.ps:ec.pStar;
+    return {
+      cs:poly([[tx(0),ty(ec.dInt)],[tx(q),ty(pc)],[tx(0),ty(pc)]]),
+      ps:poly([[tx(0),ty(ec.sInt)],[tx(q),ty(pp)],[tx(0),ty(pp)]]),
+      taxC:poly([[tx(0),ty(ec.pb)],[tx(ec.qt),ty(ec.pb)],[tx(ec.qt),ty(ec.pStar)],[tx(0),ty(ec.pStar)]]),
+      taxP:poly([[tx(0),ty(ec.pStar)],[tx(ec.qt),ty(ec.pStar)],[tx(ec.qt),ty(ec.ps)],[tx(0),ty(ec.ps)]]),
+      dwl:poly([[tx(ec.qt),ty(ec.ps)],[tx(ec.qStar),ty(ec.pStar)],[tx(ec.qt),ty(ec.pb)]]),
+    };
+  })();
+
+  /* ── rate-curve domain: tax side or subsidy side, whichever is active ── */
+  const isTax=tax>=0;
+  const domMin=isTax?0:SMIN, domMax=isTax?GAP:0;
+  const sx=s=>CML+((s-domMin)/(domMax-domMin))*CPW;
+  const kk=slopeD+slopeS;
+  const consPctLbl=pct(slopeD/kk*100), prodPctLbl=pct(slopeS/kk*100);
+
+  let maxR=0,maxD=0;
+  for(let i=0;i<=NS;i++){
+    const c=curveAt(domMin+(domMax-domMin)*i/NS,slopeD,slopeS);
+    if(c.R>maxR)maxR=c.R; if(c.dwl>maxD)maxD=c.dwl;
+  }
+  const isRev=ctab==="rev";
+  const yTop=(isRev?maxR:maxD)*1.08||1;
+  const sy=v=>CMT+CPH-(v/yTop)*CPH, y0=CMT+CPH;
+
+  const gTop=[],gMid=[],gDwl=[];
+  for(let i=0;i<=NS;i++){
+    const s=domMin+(domMax-domMin)*i/NS, c=curveAt(s,slopeD,slopeS);
+    gTop.push([sx(s),sy(c.R)]); gMid.push([sx(s),sy(c.prod)]); gDwl.push([sx(s),sy(c.dwl)]);
+  }
+  const consBand=bandD(gTop,gMid), prodBand=bandD(gMid,[[sx(domMin),sy(0)],[sx(domMax),sy(0)]]);
+  const dwlFill=toD(gDwl)+" L"+sx(domMax).toFixed(1)+","+y0+" L"+sx(domMin).toFixed(1)+","+y0+" Z";
+
+  const tPeak=GAP/2, rPeak=curveAt(tPeak,slopeD,slopeS).R;
+
+  /* read-out follows the probe when hovering, otherwise the live policy */
+  const readS=hovS!=null?hovS:tax;
+  const rc=curveAt(readS,slopeD,slopeS);
+  const curR=curveAt(tax,slopeD,slopeS);
+
+  const sFromEvent=ev=>{
+    const r=ev.currentTarget.getBoundingClientRect();
+    const vx=(ev.clientX-r.left)/r.width*CVW;
+    return clamp(domMin+(vx-CML)/CPW*(domMax-domMin),domMin,domMax);
+  };
+  const onMove=ev=>setHovS(sFromEvent(ev));
+  const onLeave=()=>setHovS(null);
+  const onClick=ev=>setTax(Math.round(sFromEvent(ev)/TSTEP)*TSTEP);
+
+  const diffCS=ec.csNew-ec.csOld, diffPS=ec.psNew-ec.psOld;
+  const govBalance=tax>=0?ec.taxRev:-ec.govCost;
+  const totalOld=ec.csOld+ec.psOld;
+  const totalNew=ec.csNew+ec.psNew+govBalance;
+  const diffTotal=totalNew-totalOld;
+
+  const ticks=[domMin,(domMin+domMax)/2,domMax];
+  const guide=(x1,y1,x2,y2,c)=>h("line",{x1,y1,x2,y2,stroke:c,strokeWidth:1.2,strokeDasharray:"5 4"});
+
+  /* ── equilibrium 1 (free market) and 2 (after the policy) ── */
+  const q1=ec.qStar, p1=ec.pStar, q2=ec.qt, p2=ec.pb;
+
+  return h("div",{className:"root"},
+    h("div",{className:"hdr"},
+      h("h1",null,"Tax & Subsidy Incidence"),
+      h("p",null,"Market welfare on the left; on the right, the welfare table, a rate curve (revenue or deadweight loss) and the controls.")
+    ),
+
+    h("div",{className:"mtog"},
+      h("button",{className:"mbtn"+(mode==="walkthrough"?" on":""),onClick:()=>setMode("walkthrough")},"\uD83C\uDF93 Walkthrough"),
+      h("button",{className:"mbtn"+(mode==="explore"?" on":""),onClick:()=>setMode("explore")},"\uD83D\uDD2C Explore")
+    ),
+
+    h("div",{className:"main"},
+      /* ── left: the market diagram ── */
+      h("div",{className:"cc"},
+        mode==="walkthrough"&&h("div",{className:"wbar"},
+          h("button",{className:"wb p",disabled:step===0,onClick:prev},"\u2190 Prev"),
+          h("div",{className:"mid"},
+            h("div",{className:"sn"},"Step "+(step+1)+" / "+STEPS.length),
+            h("div",{className:"st"},STEPS[step].title)
+          ),
+          h("button",{className:"wb n",disabled:step===STEPS.length-1,onClick:next},"Next \u2192")
+        ),
+
+        h("div",{className:"chartbox"},
+          h("svg",{viewBox:"0 0 "+W+" "+H,preserveAspectRatio:"xMidYMid meet"},
+            ...[2,4,6,8,10].map(p=>h("line",{key:"gy"+p,x1:ML,y1:ty(p),x2:W-MR,y2:ty(p),stroke:"rgba(0,0,0,0.04)"})),
+            h("line",{x1:ML,y1:MT-4,x2:ML,y2:H-MB,stroke:"#b0ada6",strokeWidth:1.5}),
+            h("line",{x1:ML,y1:H-MB,x2:W-MR+4,y2:H-MB,stroke:"#b0ada6",strokeWidth:1.5}),
+
+            /* axis titles + end ticks */
+            h("text",{x:20,y:MT+CH/2,transform:"rotate(-90 20 "+(MT+CH/2)+")",textAnchor:"middle",fill:"#6b6560",fontSize:20,fontWeight:600,fontFamily:"Segoe UI,Microsoft YaHei,Arial,sans-serif"},"Price"),
+            h("text",{x:ML+CW/2,y:H-8,textAnchor:"middle",fill:"#6b6560",fontSize:20,fontWeight:600,fontFamily:"Segoe UI,Microsoft YaHei,Arial,sans-serif"},"Quantity"),
+            h("text",{x:ML-10,y:ty(10)+6,textAnchor:"end",fill:"#9e9890",fontSize:16,fontFamily:"Segoe UI,Microsoft YaHei,Arial,sans-serif"},"10"),
+            h("text",{x:ML-10,y:ty(0)+6,textAnchor:"end",fill:"#9e9890",fontSize:16,fontFamily:"Segoe UI,Microsoft YaHei,Arial,sans-serif"},"0"),
+            h("text",{x:tx(0),y:H-MB+25,textAnchor:"middle",fill:"#9e9890",fontSize:16,fontFamily:"Segoe UI,Microsoft YaHei,Arial,sans-serif"},"0"),
+            h("text",{x:tx(10),y:H-MB+25,textAnchor:"end",fill:"#9e9890",fontSize:16,fontFamily:"Segoe UI,Microsoft YaHei,Arial,sans-serif"},"10"),
+
+            ...["cs","ps","taxC","taxP","dwl"].map(k=>
+              h("path",{key:k,d:areas[k],fill:act[k]?AC[k].f:"transparent",stroke:act[k]?AC[k].s:"transparent"})
+            ),
+
+            h("line",{x1:tx(0.1),y1:ty(dL(0.1)),x2:tx(Math.min(dEnd,12)),y2:ty(dL(Math.min(dEnd,12))),stroke:"#2563eb",strokeWidth:2.5}),
+            h("line",{x1:tx(0),y1:ty(sL(0)),x2:tx(Math.min(sEnd,12)),y2:ty(sL(Math.min(sEnd,12))),stroke:"#dc2626",strokeWidth:2.5}),
+            showSp&&tax!==0&&spEnd>0&&h("line",{x1:tx(0),y1:ty(spL(0)),x2:tx(Math.min(spEnd,12)),y2:ty(spL(Math.min(spEnd,12))),stroke:"#ef4444",strokeWidth:2.5,strokeDasharray:"8 4"}),
+
+            /* equilibrium 1: dashed guides out to both axes */
+            guide(tx(q1),ty(p1),tx(q1),H-MB,"#9e9890"),
+            guide(ML,ty(p1),tx(q1),ty(p1),"#9e9890"),
+            /* equilibrium 2: same, plus the producer price inside the wedge */
+            showPost&&guide(tx(q2),ty(p2),tx(q2),H-MB,"#7c3aed"),
+            showPost&&guide(ML,ty(p2),tx(q2),ty(p2),"#7c3aed"),
+            showPost&&guide(ML,ty(ec.ps),tx(q2),ty(ec.ps),"#db2777"),
+
+            h("text",{x:ML-10,y:ty(p1)+6,textAnchor:"end",fill:"#1a1a1a",fontSize:18,fontWeight:700,fontFamily:"Segoe UI,Microsoft YaHei,Arial,sans-serif",...halo},"P\u2081"),
+            h("text",{x:tx(q1),y:H-MB+25,textAnchor:"middle",fill:"#1a1a1a",fontSize:18,fontWeight:700,fontFamily:"Segoe UI,Microsoft YaHei,Arial,sans-serif",...halo},"Q\u2081"),
+            showPost&&h("text",{x:ML-10,y:ty(p2)+6,textAnchor:"end",fill:"#7c3aed",fontSize:18,fontWeight:700,fontFamily:"Segoe UI,Microsoft YaHei,Arial,sans-serif",...halo},"P\u2082"),
+            showPost&&h("text",{x:tx(q2),y:H-MB+25,textAnchor:"middle",fill:"#7c3aed",fontSize:18,fontWeight:700,fontFamily:"Segoe UI,Microsoft YaHei,Arial,sans-serif",...halo},"Q\u2082"),
+
+            h("circle",{cx:tx(q1),cy:ty(p1),r:5,fill:"#1a1a1a"}),
+            showPost&&h("circle",{cx:tx(q2),cy:ty(ec.pb),r:5,fill:"#7c3aed"}),
+            showPost&&h("circle",{cx:tx(q2),cy:ty(ec.ps),r:5,fill:"#db2777"})
+          )
+        ),
+
+        mode==="explore"&&h("div",{className:"togs"},
+          ...[["cs","CS","#2563eb"],["ps","PS","#dc2626"],["taxC",tax>=0?"Tax: Cons":"Ben: Cons","#7c3aed"],["taxP",tax>=0?"Tax: Prod":"Ben: Prod","#db2777"],["dwl","DWL","#6b7280"]].map(([k,l,c])=>
+            h("button",{key:k,className:"tb",style:{border:"1.5px solid "+(vis[k]?c:"#e8e5e0"),background:vis[k]?c+"10":"transparent"},onClick:()=>toggle(k)},
+              h("span",{className:"d",style:{background:c}}),h("span",null,l)
+            )
+          )
+        ),
+
+        h("div",{className:"remember"},h("strong",null,"Rule: "),"Relatively inelastic side bears more burden / receives more benefit — the same split you see stacked in the revenue curve.")
+      ),
+
+      /* ── right: analysis rail ── */
+      h("div",{className:"rail"},
+        /* no "Explanation" tag — the step bar above it already names the step */
+        mode==="walkthrough"&&h("div",{className:"expl"},
+          h("p",null,STEPS[step].d)
+        ),
+
+        h("div",{className:"pc"},
+          h("div",{className:"ptag"},"Welfare Analysis"),
+          h("table",{className:"wtbl"},
+            h("thead",null,h("tr",null,h("th",null,""),h("th",null,"Free"),
+              fullCols&&h("th",null,"Policy"), fullCols&&h("th",null,"\u0394"))),
+            h("tbody",null,
+              showCS&&h("tr",null,h("td",{style:{color:"#2563eb"}},"CS"),h("td",null,fmt(ec.csOld)),
+                fullCols&&h("td",null,fmt(ec.csNew)),
+                fullCols&&h("td",{style:{color:diffCS>0?"#059669":diffCS<0?"#ef4444":"inherit"}},fmtDiff(diffCS))),
+              showPS&&h("tr",null,h("td",{style:{color:"#dc2626"}},"PS"),h("td",null,fmt(ec.psOld)),
+                fullCols&&h("td",null,fmt(ec.psNew)),
+                fullCols&&h("td",{style:{color:diffPS>0?"#059669":diffPS<0?"#ef4444":"inherit"}},fmtDiff(diffPS))),
+              showGov&&h("tr",null,h("td",{style:{color:tax>=0?"#059669":"#ea580c"}},tax>=0?"GovRev":"GovExp"),h("td",null,"0.0"),
+                fullCols&&h("td",null,fmt(govBalance)),
+                fullCols&&h("td",{style:{color:govBalance>0?"#059669":govBalance<0?"#ef4444":"inherit"}},fmtDiff(govBalance))),
+              showTotal&&h("tr",{className:"total-row"},h("td",null,"Total"),h("td",null,fmt(totalOld)),
+                fullCols&&h("td",null,fmt(totalNew)),
+                fullCols&&h("td",{style:{color:diffTotal<0?"#ef4444":"inherit"}},fmtDiff(diffTotal))),
+              tb.rows.length===0&&h("tr",null,h("td",{colSpan:2,style:{color:"var(--textMut)"}},"\u2014"))
+            )
+          )
+        ),
+
+        /* one rate curve at a time: revenue (stacked by who pays) or DWL.
+           In walkthrough mode the panel only appears once the policy step is
+           reached, and its parts appear step by step. */
+        cvOn&&h("div",{className:"pc curve"},
+          h("div",{className:"phead"},
+            h("div",{className:"tabs"},
+              h("button",{className:"tab"+(isRev?" on":""),onClick:()=>setCtab("rev")},isTax?"Revenue":"Outlay"),
+              h("button",{className:"tab"+(isRev?"":" on"),onClick:()=>setCtab("dwl")},"DWL")
+            ),
+            isRev&&cvBands&&h("span",{className:"plegend"},
+              h("span",null,h("i",{style:{background:"#7c3aed"}}),"Cons "+consPctLbl+"%"),
+              h("span",null,h("i",{style:{background:"#db2777"}}),"Prod "+prodPctLbl+"%")
+            ),
+            !isRev&&h("span",{className:"plegend"},h("span",null,h("i",{style:{background:"#6b7280"}}),"DWL(s)"))
+          ),
+          h("div",{className:"cwrap"},
+            h("svg",{className:"csvg",viewBox:"0 0 "+CVW+" "+CVH,onMouseMove:onMove,onMouseLeave:onLeave,onClick:onClick},
+              h("line",{x1:CML,y1:CMT-8,x2:CML,y2:y0,stroke:"#b0ada6",strokeWidth:1.2}),
+              h("line",{x1:CML,y1:y0,x2:CML+CPW+4,y2:y0,stroke:"#b0ada6",strokeWidth:1.2}),
+              h("text",{x:22,y:CMT+CPH/2,transform:"rotate(-90 22 "+(CMT+CPH/2)+")",textAnchor:"middle",fill:"#6b6560",fontSize:18,fontWeight:600,fontFamily:"Segoe UI,Microsoft YaHei,Arial,sans-serif"},isRev?(isTax?"Revenue":"Outlay"):"DWL"),
+              h("text",{x:CML+CPW,y:CVH-6,textAnchor:"end",fill:"#6b6560",fontSize:17,fontWeight:600,fontFamily:"Segoe UI,Microsoft YaHei,Arial,sans-serif"},"rate s"),
+
+              isRev&&cvPeak&&h("rect",{x:isTax?sx(tPeak):CML,y:CMT,width:isTax?sx(GAP)-sx(tPeak):CPW,height:y0-CMT,fill:isTax?"rgba(239,68,68,0.05)":"rgba(234,88,12,0.05)"}),
+
+              isRev&&cvBands&&h("path",{d:prodBand,fill:BAND.prod.f,stroke:"none"}),
+              isRev&&cvBands&&h("path",{d:consBand,fill:BAND.cons.f,stroke:"none"}),
+              isRev&&h("path",{d:toD(gTop),fill:"none",stroke:"#7c3aed",strokeWidth:2.4}),
+              isRev&&cvBands&&h("path",{d:toD(gMid),fill:"none",stroke:"rgba(255,255,255,0.75)",strokeWidth:1.2}),
+              !isRev&&h("path",{d:dwlFill,fill:"rgba(107,114,128,0.22)"}),
+              !isRev&&h("path",{d:toD(gDwl),fill:"none",stroke:"#6b7280",strokeWidth:2.4}),
+
+              /* top-of-scale value */
+              h("text",{x:CML-9,y:sy(isRev?maxR:maxD)+6,textAnchor:"end",fill:"#9e9890",fontSize:17,fontFamily:"Segoe UI,Microsoft YaHei,Arial,sans-serif"},fmt(isRev?maxR:maxD)),
+
+              /* peak marker — revenue tab, tax side, once DWL/peak is on stage */
+              isRev&&isTax&&cvPeak&&h("line",{x1:CML,y1:sy(rPeak),x2:CML+CPW,y2:sy(rPeak),stroke:"#e8e5e0",strokeWidth:1,strokeDasharray:"3 3"}),
+              isRev&&isTax&&cvPeak&&h("circle",{cx:sx(tPeak),cy:sy(rPeak),r:4,fill:"#fff",stroke:"#059669",strokeWidth:2.4}),
+
+              ...ticks.map((s,i)=>h("text",{key:"tk"+i,x:sx(s),y:y0+24,
+                textAnchor:i===2?"end":"middle",
+                fill:isRev&&isTax&&cvPeak&&i===1?"#059669":"#9e9890",fontSize:18,fontWeight:isRev&&isTax&&cvPeak&&i===1?700:500,fontFamily:"Segoe UI,Microsoft YaHei,Arial,sans-serif"},
+                isRev&&isTax&&cvPeak&&i===1?"t*":fmt(s))),
+
+              hovS!=null&&h("line",{x1:sx(hovS),y1:CMT-8,x2:sx(hovS),y2:y0,stroke:"#9e9890",strokeWidth:1,strokeDasharray:"2 3"}),
+              hovS!=null&&h("circle",{cx:sx(hovS),cy:sy(isRev?rc.R:rc.dwl),r:3.4,fill:"#9e9890"}),
+              h("line",{x1:sx(tax),y1:sy(isRev?curR.R:curR.dwl),x2:sx(tax),y2:y0,stroke:"#7c3aed",strokeWidth:1.4,strokeDasharray:"4 3"}),
+              h("circle",{cx:sx(tax),cy:sy(isRev?curR.R:curR.dwl),r:5,fill:"#7c3aed"})
+            )
+          ),
+          h("div",{className:"chint"},
+            hovS!=null
+              ? "click to set s = "+fmt(Math.round(hovS/TSTEP)*TSTEP)
+              : isRev
+                ? (isTax ? "revenue peaks at t* — beyond it, trade collapses" : "outlay rises with the subsidy rate")
+                : "DWL grows with s\u00B2 — no peak, no revenue to offset it"
+          )
+        ),
+
+        h("div",{className:"pc ctrls"},
+          h("div",{className:"cgrid"},
+            h("div",{className:"cg tax-ctrl"},
+              h("label",null,h("span",null,tax>0?"Tax":tax<0?"Subsidy":"Policy"),h("span",{className:"v"},(tax>0?"+":"")+fmt(tax))),
+              h("input",{type:"range",min:SMIN,max:GAP,step:TSTEP,value:tax,onChange:ev=>setTax(+ev.target.value)})
+            ),
+            h("div",{className:"cg demand-ctrl"},
+              h("label",null,h("span",null,"PED"),h("span",{className:"v"},fmt(pedVal))),
+              h("input",{type:"range",min:.2,max:3,step:.1,value:pedVal,onChange:ev=>setPedVal(+ev.target.value)})
+            ),
+            h("div",{className:"cg supply-ctrl"},
+              h("label",null,h("span",null,"PES"),h("span",{className:"v"},fmt(pesVal))),
+              h("input",{type:"range",min:.2,max:3,step:.1,value:pesVal,onChange:ev=>setPesVal(+ev.target.value)})
+            )
+          )
+        )
+      )
+    )
+  );
+}
+ReactDOM.render(h(App),document.getElementById("app"));
+</script>
+</body>
+</html>

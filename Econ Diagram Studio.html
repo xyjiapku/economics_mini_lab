@@ -1,0 +1,3706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Econ Diagram Studio — Demand &amp; Supply Diagram Builder</title>
+<style>
+:root{
+  --bg:#f2f1ec; --stage:#dedcd4; --panel:#ffffff; --panel2:#f7f6f3; --rail:#f6f7fa;
+  --line:#dedbd2; --line2:#c7c4b9;
+  --text:#121211; --muted:#4b4943; --muted2:#6b6862;
+  --accent:#1971c2; --accent-bg:#e7f5ff; --accent-line:#a5d8ff;
+  --c-demand:#1c7ed6; --c-supply:#e03131; --c-shade:#0b7285; --c-danger:#c92a2a;
+  --c-macro:#f08c00; --c-axis:#1971c2; --c-pair:#7048e8; --c-eq:#2f9e44;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,"Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--text); font-size:19.5px; overflow:hidden}
+#app{display:grid;grid-template-rows:68px 1fr 36px;height:100%}
+
+header{display:flex;align-items:center;gap:8px;padding:0 12px;
+  background:var(--panel);border-bottom:2px solid var(--accent-line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:21px;white-space:nowrap}
+.brand svg{flex:0 0 auto;display:block}
+.brand span{color:var(--muted);font-weight:400;font-size:18px;margin-left:3px}
+/* six header buttons plus the wordmark no longer fit a 1280 window, so the kind
+   label is the first thing to go - the marked header button still shows the type */
+@media (max-width:1439px){ .brand span{display:none} }
+/* a fixed 250px title box plus six header buttons no longer fits a 1280 window,
+   so the title gives way first (the .spacer collapses before this does) */
+header input#docTitle{flex:0 1 250px;min-width:80px;height:38px;border:1px solid transparent;border-radius:8px;
+  padding:0 11px;font-size:19.5px;background:transparent;color:var(--text);font-family:inherit}
+/* the header button for the diagram you are looking at is marked, so "which chart
+   am I in" is answered at a glance and the two starters never look equivalent */
+header button.here{background:var(--accent-bg);color:var(--accent);font-weight:700;
+  box-shadow:inset 0 0 0 1.5px var(--accent)}
+header button.here svg{color:var(--accent)}
+/* shown at the top of a menu that would replace the diagram with the other kind */
+.switchbar{margin:2px 8px 9px;padding:7px 10px;border-radius:8px;font-size:17.25px;
+  background:#fff4e0;color:#8a6410;line-height:1.4}
+header input#docTitle:hover{border-color:var(--line2)}
+header input#docTitle:focus{outline:none;border-color:var(--accent-line);background:#fff}
+.spacer{flex:1}
+button{font-family:inherit;font-size:18px;font-weight:500;color:var(--text);background:#fff;
+  border:1px solid var(--line2);border-radius:8px;padding:7px 14px;cursor:pointer;white-space:nowrap;
+  display:inline-flex;align-items:center;justify-content:center;gap:7px}
+button:hover{background:var(--panel2);border-color:#a8a59a}
+button:active{background:#f0efeb}
+button:disabled{opacity:.4;cursor:default}
+button.primary{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent);font-weight:700}
+button.primary:hover{background:#d0ebff}
+button svg{width:20px;height:20px;flex:0 0 auto;display:block}
+button .g2{color:var(--ic,currentColor)}
+button.wide{width:100%;display:flex}
+.seg{display:flex}
+.seg button{border-radius:0;margin-left:-1px}
+.seg button:first-child{border-radius:8px 0 0 8px;margin-left:0}
+.seg button:last-child{border-radius:0 8px 8px 0}
+/* three abreast in a 344px panel: the default button padding would overflow */
+.seg.tight button{padding-left:4px;padding-right:4px}
+
+main{display:grid;grid-template-columns:104px 1fr 344px;min-height:0}
+
+#rail{background:var(--rail);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;gap:4px;padding:10px 7px}
+.tool{height:68px;border-radius:11px;border:1px solid transparent;background:transparent;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:15.75px;font-weight:600;color:var(--text);cursor:pointer;gap:4px;padding:0;position:relative;
+  transition:background .12s,color .12s,border-color .12s}
+.tool:hover{background:#eef0f5;border-color:var(--line);color:var(--text)}
+.tool.on{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent);font-weight:700}
+.tool.on::before{content:'';position:absolute;left:-7px;top:12px;bottom:12px;width:4px;
+  border-radius:0 3px 3px 0;background:var(--accent)}
+.tool svg{width:27px;height:27px;flex:0 0 auto;display:block;color:var(--ic,var(--muted));
+  transition:color .12s}
+.tool:hover svg{color:var(--ic,var(--text))}
+.tool.on svg{color:var(--ic,var(--accent))}
+.railsep{height:1px;background:var(--line);margin:6px 6px}
+/* ⚠️ the UA sheet's [hidden]{display:none} loses to .tool{display:flex}, so a
+   "hidden" rail button would keep its 68px slot and stretch the whole rail.
+   The type-aware rail depends on this rule actually hiding things. */
+#rail > [hidden]{display:none}
+
+#stage{position:relative;min-width:0;min-height:0;display:flex;align-items:center;
+  justify-content:center;padding:16px;background:var(--stage);overflow:hidden}
+#canvas{width:100%;height:100%;background:#fff;border:1px solid #dedcd4;
+  border-radius:14px;box-shadow:0 4px 16px rgba(28,36,44,.08),0 1px 3px rgba(28,36,44,.05)}
+#canvas text{user-select:none}
+/* ---------- hover hints ----------
+   The invisible grab shapes carry their paint as presentation attributes, and a
+   CSS rule beats those, so the whole effect is possible with no JS at all.
+   Rule of thumb: only ever GROW the hit geometry. Shrinking it under the cursor
+   makes the element unhover itself and flicker, so the wide grab bands are
+   tinted and their width is deliberately left alone. */
+#canvas [data-lbl]:hover,
+#canvas rect[data-mark]:hover,
+#canvas circle[data-mark]:hover{
+  fill:rgba(25,113,194,.14);stroke:rgba(25,113,194,.6);
+  stroke-width:1.3;stroke-dasharray:6 4}
+#canvas [data-hit]:hover,
+#canvas path[data-mark]:hover,
+#canvas polygon[data-mark]:hover{
+  stroke:rgba(25,113,194,.22);stroke-dasharray:none}
+/* a handle already has a coloured rim, so a colour change alone is invisible -
+   tint its face and thicken the rim instead (both of which GROW the target) */
+#canvas [data-handle]:hover{fill:rgba(25,113,194,.22);stroke:#0b4f8a;stroke-width:3.2}
+/* the inline rename box that opens on a double click */
+.inlineEdit{position:absolute;z-index:60;background:#fff;color:var(--text);
+  border:2px solid var(--accent);border-radius:7px;padding:2px 8px;font-family:inherit;
+  font-weight:700;outline:none;box-shadow:0 6px 18px rgba(0,0,0,.18);min-width:64px}
+
+.pop{position:absolute;z-index:40;background:#fff;border:1px solid var(--line2);
+  border-radius:12px;box-shadow:0 8px 26px rgba(0,0,0,.14);padding:8px;min-width:330px;
+  max-height:calc(100% - 24px);overflow-y:auto}
+.pop h4{margin:3px 8px 8px;font-size:15.75px;font-weight:600;color:var(--muted2);
+  text-transform:uppercase;letter-spacing:.6px}
+.popitem{display:flex;align-items:center;gap:11px;padding:6px 10px;border-radius:9px;cursor:pointer}
+.popitem.on{background:var(--accent-bg);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.popitem.on b{color:var(--accent)}
+.popitem:hover{background:var(--panel2)}
+.popitem .t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.popitem b{font-size:18.75px;font-weight:500}
+.popitem i{font-size:16.5px;color:var(--muted);font-style:normal}
+.popitem .thumb{flex:0 0 auto;border-radius:8px;background:#fbfaf8;border:1px solid var(--line)}
+.popsep{height:1px;background:var(--line);margin:7px 5px}
+.poprow{display:flex;align-items:center;gap:11px;padding:7px 12px;font-size:18px;color:var(--muted)}
+.poprow .seg{flex:1}
+.poprow .seg button{padding:6px 0;flex:1;font-size:17.25px}
+.poprow .seg button.on{background:var(--accent-bg);border-color:var(--accent-line);
+  color:var(--accent);font-weight:600}
+
+#inspector{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;
+  padding:15px 15px 32px}
+#inspector::-webkit-scrollbar{width:11px}
+#inspector::-webkit-scrollbar-thumb{background:#d5d3ca;border-radius:6px}
+.sec{margin-bottom:21px}
+.sec>h3{margin:0 0 12px;font-size:15.75px;font-weight:800;color:var(--text);
+  text-transform:uppercase;letter-spacing:.7px;display:flex;align-items:center;gap:9px}
+.sec>h3::before{content:'';width:5px;height:20px;border-radius:2px;flex:0 0 auto;
+  background:var(--bar,var(--accent))}
+.sec>h3 em{font-style:normal;font-weight:600;color:var(--muted);text-transform:none;
+  letter-spacing:0;font-size:16.5px;margin-left:auto}
+.row{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+.row>label{flex:0 0 88px;font-size:17.25px;color:var(--muted)}
+.row input[type=text],.row input[type=number],.row select{flex:1;min-width:0;height:37px;
+  border:1px solid var(--line2);border-radius:8px;padding:0 10px;font-family:inherit;
+  font-size:18px;color:var(--text);background:#fff}
+.row input:focus,.row select:focus{outline:none;border-color:var(--accent-line)}
+/* min-width:0 matters: without it a range input keeps its ~129px intrinsic width
+   and pushes everything after it out of the panel */
+.row input[type=range]{flex:1 1 0;min-width:0;accent-color:var(--accent)}
+.chk{display:flex;align-items:center;gap:10px;font-size:18px;color:var(--text);
+  padding:6px 0;cursor:pointer;user-select:none}
+.chk input{accent-color:var(--accent);width:20px;height:20px;cursor:pointer}
+.sw{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:13px}
+.sw b{height:34px;border-radius:8px;cursor:pointer;position:relative;
+  background:#fff;border:1px solid var(--line2)}
+.sw b::after{content:'';position:absolute;left:7px;right:7px;top:50%;margin-top:-2px;
+  height:4px;border-radius:2px;background:currentColor}
+.sw b:hover{border-color:#a9a69b}
+.sw b.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg)}
+.empty{font-size:18px;color:var(--muted);line-height:1.6}
+.hint{font-size:17.25px;color:var(--muted);line-height:1.55;background:var(--accent-bg);
+  border:1px solid var(--accent-line);border-radius:9px;padding:9px 12px;margin-top:11px}
+.hint b{font-weight:700;color:var(--accent)}
+.sub{font-size:17.25px;color:var(--muted);margin:-2px 0 11px;line-height:1.5}
+.kv{display:flex;justify-content:space-between;gap:11px;font-size:17.25px;padding:5px 0;color:var(--muted)}
+.kv b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.row .num{flex:0 0 66px;text-align:right;font-variant-numeric:tabular-nums;font-size:18px;
+  font-weight:600;color:var(--accent)}
+details.more{border-top:1px solid var(--line);padding-top:6px;margin-bottom:21px}
+details.more>summary{font-size:15.75px;font-weight:800;color:var(--text);
+  text-transform:uppercase;letter-spacing:.7px;cursor:pointer;list-style:none;
+  padding:7px 0 7px 12px;outline:none;border-left:5px solid var(--bar,var(--line2));
+  border-radius:0 4px 4px 0}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary::before{content:'\25B8';display:inline-block;width:18px;color:var(--bar,var(--muted))}
+details.more[open]>summary::before{content:'\25BE'}
+details.more[open]>summary{background:var(--panel2)}
+details.more>summary:hover{color:var(--accent)}
+
+footer{display:flex;align-items:center;gap:18px;padding:0 16px;background:var(--panel2);
+  border-top:1px solid var(--line);font-size:17.25px;color:var(--muted)}
+footer .spacer{flex:1}
+footer #credit{color:var(--muted2)}
+footer .st{font-variant-numeric:tabular-nums}
+footer #stEq{color:var(--accent);font-weight:600}
+
+#toast{position:fixed;left:50%;bottom:56px;transform:translateX(-50%) translateY(8px);
+  background:#2b2b28;color:#fff;padding:11px 18px;border-radius:10px;font-size:18.75px;
+  opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:99;max-width:70vw}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- guided tour ---------- */
+#tourBlock{position:fixed;inset:0;z-index:215}
+.tour-lit{position:relative;z-index:210;border-radius:9px;
+  box-shadow:0 0 0 3px var(--accent),0 0 0 9999px rgba(14,14,12,.55)}
+#tourCard{position:fixed;z-index:220;width:470px;background:#fff;border-radius:15px;
+  box-shadow:0 16px 48px rgba(0,0,0,.3),0 2px 8px rgba(0,0,0,.15);
+  padding:20px 22px 18px;border-top:5px solid var(--accent)}
+#tourCard h4{margin:0 0 10px;font-size:21.75px;font-weight:800;color:var(--text);
+  display:flex;align-items:baseline;gap:10px}
+#tourCard h4 span{margin-left:auto;font-size:16.5px;font-weight:700;color:var(--accent);
+  font-variant-numeric:tabular-nums}
+#tourCard p{margin:0 0 18px;font-size:18.75px;line-height:1.62;color:var(--muted)}
+#tourCard b{color:var(--text);font-weight:700}
+#tourCard .tf{display:flex;align-items:center;gap:10px}
+#tourCard .dots{display:flex;gap:5px;flex:1}
+#tourCard .dots i{width:8px;height:8px;border-radius:50%;background:var(--line2);display:block;
+  transition:width .15s,background .15s}
+#tourCard .dots i.on{background:var(--accent);width:22px;border-radius:3px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 22 22" width="30" height="30" fill="none" stroke-linecap="round">
+        <path d="M3.2 3 V19 H19.6" stroke="#93a2ad" stroke-width="1.9"/>
+        <path d="M6.2 7.2 L12 15.8" stroke="#1c7ed6" stroke-width="2.4"/>
+        <path d="M7.2 15.8 L13 7.2" stroke="#e03131" stroke-width="2.4"/>
+      </svg>
+      Econ Diagram Studio<span id="brandSub">Demand &amp; supply market</span>
+    </div>
+    <input id="docTitle" type="text" placeholder="Untitled diagram" spellcheck="false">
+    <div class="spacer"></div>
+    <button id="btnUndo" title="Undo (Ctrl+Z)">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7.5 5.5 H12 A4.4 4.4 0 0 1 12 14.3 H6"/>
+        <path d="M10 2.5 L7 5.5 L10 8.5"/></svg>
+      Undo</button>
+    <button id="btnRedo" title="Redo (Ctrl+Shift+Z)">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12.5 5.5 H8 A4.4 4.4 0 0 0 8 14.3 H14"/>
+        <path d="M10 2.5 L13 5.5 L10 8.5"/></svg>
+      Redo</button>
+    <button id="btnGuide" title="Show the guided tour">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+        <circle cx="10" cy="10" r="7.4"/>
+        <path d="M7.9 7.7 A2.2 2.2 0 1 1 10 10.7 V12"/>
+        <circle cx="10" cy="14.8" r="0.9" fill="currentColor" stroke="none"/></svg>
+      Guide</button>
+    <button id="btnTemplates" title="Start a market diagram">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3.5 3.5 V16.5 H16.5"/>
+        <path d="M5.5 13 L8.5 9.5 L11 12 L15 6.5"/></svg>
+      Markets</button>
+    <button id="btnPPC" title="Start a production possibility diagram">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 16.5 V3.5"/><path d="M4 16.5 H17"/>
+        <path d="M5.5 5 Q12.5 5.6 16 15.5"/></svg>
+      PPC</button>
+    <button id="btnExportPng" class="primary" title="Export an image">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 3 V12.5"/><path d="M6.3 9.2 L10 13 L13.7 9.2"/>
+        <path d="M4 15.5 H16"/></svg>
+      Export</button>
+  </header>
+  <main>
+    <aside id="rail">
+      <button class="tool on" data-for="both" data-tool="select" title="Select and reshape curves">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">
+          <path d="M6 3 L6 15.5 L9.2 12.4 L11.3 16.6 L13.1 15.7 L11 11.6 L15.2 11.4 Z" fill="currentColor" stroke-width="1.1"/></svg>
+        Select</button>
+      <div class="railsep" data-for="both"></div>
+      <button class="tool" data-for="market" data-tool="addD" style="--ic:var(--c-demand)" title="Add a Demand parallel to the current one">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M3.5 2.5 V15.5 H17"/><path d="M5 5.5 L12 12"/><path d="M16 3.2 V7.2 M14 5.2 H18"/></svg>
+        Demand</button>
+      <button class="tool" data-for="market" data-tool="addS" style="--ic:var(--c-supply)" title="Add a Supply parallel to the current one">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M3.5 2.5 V15.5 H17"/><path d="M5 12 L12 5.5"/><path d="M16 3.2 V7.2 M14 5.2 H18"/></svg>
+        Supply</button>
+      <div class="railsep" data-for="market"></div>
+      <button class="tool" data-for="ppc" data-tool="point" style="--ic:#c92a2a" title="Mark a point: on the frontier, inside it, or outside it">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M3.5 2.5 V15.5 H17"/><circle cx="10.5" cy="8" r="2.4" fill="currentColor" stroke="none"/></svg>
+        Point</button>
+      <button class="tool" data-for="ppc" data-tool="arrow" style="--ic:#0b7280" title="Draw an arrow: growth, or the move along the frontier">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3.5 15.5 L16 3"/><path d="M11 3 H16 V8"/></svg>
+        Arrow</button>
+      <div class="railsep" data-for="ppc"></div>
+      <button class="tool" data-for="both" data-tool="text" style="--ic:#0b7285" title="Add a text label">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <path d="M4.5 4.5 H15.5"/><path d="M10 4.5 V15.5"/></svg>
+        Text</button>
+      <button class="tool" data-for="market" data-tool="region" style="--ic:var(--c-shade)" title="Shade a surplus area">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <path d="M3.5 3.5 H16.5 V16.5 H3.5 Z"/><path d="M3.5 16.5 L16.5 3.5"/>
+          <path d="M3.5 10.5 V16.5 H9.5 Z" fill="currentColor" opacity=".38" stroke="none"/></svg>
+        Shade</button>
+      <button class="tool" data-for="both" data-tool="more" title="More tools">
+        <svg viewBox="0 0 20 20" fill="currentColor">
+          <circle cx="5" cy="10" r="1.6"/><circle cx="10" cy="10" r="1.6"/><circle cx="15" cy="10" r="1.6"/></svg>
+        More</button>
+      <div class="railsep" data-for="both"></div>
+      <button class="tool" data-for="both" data-tool="erase" style="--ic:var(--c-danger)" title="Delete a curve, point or label">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M4 6 H16"/><path d="M7.5 6 V16 H12.5 V6"/><path d="M8 3.5 H12"/></svg>
+        Erase</button>
+    </aside>
+    <section id="stage">
+      <svg id="canvas" viewBox="0 0 960 720" preserveAspectRatio="xMidYMid meet"
+           xmlns="http://www.w3.org/2000/svg"></svg>
+    </section>
+    <aside id="inspector"></aside>
+  </main>
+  <footer>
+    <span id="stHint">Ready.</span>
+    <span class="spacer"></span>
+    <span class="st" id="stEq"></span>
+    <span class="st" id="stCoords"></span>
+    <span id="credit">&copy; 2026 Dr. Jia</span>
+  </footer>
+</div>
+<div id="toast"></div>
+<input type="file" id="fileOpen" accept=".json,application/json" hidden>
+
+<script>
+'use strict';
+(function(){
+
+var VB = {w:960, h:720};
+var PAD = {l:104, r:64, t:56, b:106};
+var PLOT = {x0:PAD.l, x1:VB.w-PAD.r, y0:PAD.t, y1:VB.h-PAD.b};
+var CW = PLOT.x1-PLOT.x0, CH = PLOT.y1-PLOT.y0;
+var OFF = 34;
+
+function X(q){ return PLOT.x0 + (q/100)*CW; }
+function Y(p){ return PLOT.y1 - (p/100)*CH; }
+function invX(x){ return (x-PLOT.x0)/CW*100; }
+function invY(y){ return (PLOT.y1-y)/CH*100; }
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function r2(v){ return Math.round(v*100)/100; }
+
+var FONT = "'Segoe UI',system-ui,-apple-system,'Microsoft YaHei',sans-serif";
+var PALETTE = ['#1c7ed6','#e03131','#7048e8','#f08c00','#2f9e44','#0c8599','#495057','#c2255c'];
+var ROLE_COLOR = {D:'#1c7ed6', S:'#e03131', AD:'#f08c00', AS:'#e03131', LRAS:'#2f9e44',
+                  PPC:'#7048e8', X:'#495057'};
+var ROLE_NAME = {D:'Demand', S:'Supply', AD:'Aggregate demand', AS:'Aggregate supply',
+                 LRAS:'Long-run AS', PPC:'Production possibility', X:'Other'};
+/* The three PPC shapes are one implicit curve with different exponents:
+   n = 1 is the straight chord, n > 1 bows away from the origin (increasing
+   opportunity cost) and n < 1 sags toward it (decreasing opportunity cost). */
+var PPC_N = {outward: 2.2, straight: 1, inward: 0.55};
+/* most "special" markets are just D & S with different axis names.
+   `kind` keeps the two worlds apart: a market preset is never offered on a
+   frontier, and a goods preset is never offered on a market. */
+var AXIS_PRESETS = [
+  {n:'Goods market',      y:'Price',          x:'Quantity',                 kind:'market'},
+  {n:'Labour market',     y:'Wage rate',      x:'Quantity of labour',       kind:'market'},
+  {n:'Loanable funds',    y:'Interest rate',  x:'Quantity of loanable funds', kind:'market'},
+  {n:'Money market',      y:'Interest rate',  x:'Quantity of money',        kind:'market'},
+  {n:'Foreign exchange',  y:'Exchange rate',  x:'Quantity of currency',     kind:'market'},
+  {n:'Reserve market',    y:'Interest rate',  x:'Quantity of reserves',     kind:'market'},
+  {n:'Macro (AD\u2013AS)',y:'Price level',    x:'Real GDP',                 kind:'market'},
+  {n:'Price & output',    y:'Price',          x:'Real output',              kind:'market'},
+  {n:'Two goods',         y:'Good Y',         x:'Good X',                   kind:'ppc'},
+  /* the classic textbook pair: more capital goods today buys growth tomorrow */
+  {n:'Capital / consumer',y:'Consumer goods', x:'Capital goods',            kind:'ppc'}
+];
+function axisPresetsFor(kind){ return AXIS_PRESETS.filter(function(p){ return p.kind === kind; }); }
+function axisPresetIndex(){
+  var list = axisPresetsFor(diagramKind());
+  for(var i=0;i<list.length;i++){
+    if(list[i].y === S.axes.yLabel && list[i].x === S.axes.xLabel) return i;
+  }
+  return -1;
+}
+/* which preset list the dropdown is currently indexed against */
+function currentAxisPresets(){ return axisPresetsFor(diagramKind()); }
+/* `for` marks which diagram a shape belongs to. `smooth` deliberately has none:
+   a hand-drawn curve makes sense in either chart. */
+var SHAPES = {  linear:    {label:'Straight line',       desc:'Any slope - the default D or S',    role:'D',  for:'market'},
+  hline:     {label:'Perfectly elastic',   desc:'Horizontal (price fixed)',          role:'S',  for:'market'},
+  vline:     {label:'Perfectly inelastic', desc:'Vertical (quantity fixed)',         role:'S',  for:'market'},
+  kink:      {label:'Kinked (2 segments)', desc:'Slope then flat, or flat then slope', role:'D', for:'market'},
+  kink3:     {label:'Kinked (3 segments)', desc:'Flat, then sloped, then flat',     role:'D',  for:'market'},
+  kinkedAS:  {label:'AS kinked (IGCSE)',   desc:'Flat, short bend, then vertical',   role:'AS', for:'market'},
+  hyperbola: {label:'Curved AD',           desc:'Rectangular hyperbola',             role:'AD', for:'market'},
+  /* the frontier shape family; which of the three bows it uses is the Curve shape
+     control on the panel. `for` marks which diagram the shape belongs to. */
+  ppc:       {label:'Frontier',            desc:'Production possibility curve',      role:'PPC', for:'ppc'},
+  smooth:    {label:'Free-form curve',     desc:'Drag any number of points',         role:'X'}
+};
+/* the Type dropdown must never offer a market shape to a frontier, or vice versa */
+function shapesFor(kind){
+  return Object.keys(SHAPES).filter(function(k){ return !SHAPES[k].for || SHAPES[k].for === kind; });
+}
+/* which roles (the "Side" dropdown) make sense for this kind of diagram */
+function rolesFor(kind){
+  return Object.keys(ROLE_NAME).filter(function(r){
+    if(kind === 'ppc') return r === 'PPC';
+    return r !== 'PPC';
+  });
+}
+function defaultShape(kind){
+  switch(kind){
+    case 'linear':    return {q0:6, p0:92, q1:84, p1:12};
+    case 'hline':     return {p:35, q0:0, q1:100};
+    case 'vline':     return {q:70, p0:0, p1:100};
+    case 'kink':      return {q0:6, p0:16, qk:50, pk:3, q1:96, p1:3};
+    case 'kink3':     return {q0:2, pA:86, q1:22, q2:60, pB:20, q3:98};
+    case 'hyperbola': return {k:1000, q0:10, q1:98};
+    /* PPC: (x/a)^n + (y/b)^n = 1, so a and b are the two axis intercepts and
+       n is the shape: 1 straight, >1 bows outward, <1 sags inward */
+    case 'ppc':       return {a:90, b:90, n:PPC_N.outward};
+    /* IGCSE AS: a long flat stretch, a SHORT bend, then a long vertical */
+    case 'kinkedAS':  return {p0:20, q1:45, q2:66, p2:58, pMax:100, gamma:2.0};
+    case 'smooth':    return {pts:[{x:12,y:16},{x:42,y:48},{x:72,y:66},{x:92,y:76}]};
+  }
+}
+
+/* role-aware default geometry: adding a Supply must NOT land on top of the Demand */
+function defaultGeom(kind, role){
+  if(kind==='linear'){
+    if(role==='S')            return {q0:12, p0:10, q1:88, p1:82};
+    if(role==='D')            return {q0:6,  p0:92, q1:84, p1:12};
+    if(role==='AS')           return {q0:16, p0:16, q1:82, p1:88};
+    if(role==='AD')           return {q0:6,  p0:96, q1:90, p1:12};
+  }
+  if(kind==='kink'){
+    if(role==='S' || role==='AS') return {q0:0,  p0:8, qk:42, pk:8, q1:92, p1:86};
+    return {q0:6, p0:16, qk:50, pk:3, q1:96, p1:3};
+  }
+  if(kind==='vline'  && role==='LRAS') return {q:72, p0:0,  p1:96};
+  if(kind==='hline'  && role==='D')    return {p:52, q0:0,  q1:100};
+  /* a hand-drawn frontier must start out falling, not rising like a supply curve */
+  if(kind==='smooth' && role==='PPC')  return {pts:[{x:6,y:88},{x:32,y:80},{x:58,y:62},{x:80,y:32}]};
+  return defaultShape(kind);
+}
+var _uid = 0;
+function uid(pre){ return (pre||'x') + (++_uid) + Math.random().toString(36).slice(2,6); }
+function blankState(){
+  return {
+    title:'',
+    /* What KIND of diagram this is. A PPC is not a market with odd curves in it,
+       it is a different chart, so the type is first-class state: it decides which
+       tools the rail offers, which shapes the Type dropdown lists, which axis
+       presets apply, and whether there is an equilibrium at all. */
+    kind:'market',
+    axes:{xLabel:'Quantity', yLabel:'Price', ticks:false, grid:false},
+    curves:[], marks:[], eqHistory:[],
+    activeD:null, activeS:null, arrowPair:null, sel:null, ext:null,
+    labelOff:{},        /* key -> screen-space {dx,dy} once a label has been dragged by hand */
+    labelText:{},       /* key -> replacement wording once a label has been renamed */
+    opts:{guides:true, shiftArrow:true, deltaBadges:false, showHistory:true, labelPQ:true},
+    shiftStep:10
+  };
+}
+/* the P / Q change pill is addressable like any other label */
+var BADGE_KEY = 'badge';
+/* screen-space top-left of the change pill, refreshed by buildItems, or null when hidden */
+var badgePos = null;
+/* every label can be renamed. The override lives in state, so a curve called "Coffee"
+   keeps its name through undo, template switches and export. */
+function labelText(key, auto){
+  var m = S.labelText, v = m ? m[key] : null;
+  return (v != null && v !== '') ? v : auto;
+}
+var S = blankState();
+var undoStack = [], redoStack = [];
+var tool = 'select', pending = null, drag = null, lastEq = null;
+var popoverEl = null, inspectorKey = '';
+/* a rebuild would slam every disclosure shut, which reads as "the button did nothing" */
+var openDetails = {};
+function det(k, label, bar){
+  return '<details class="more" data-k="'+k+'"'+(openDetails[k]?' open':'')+
+    '><summary'+(bar?' style="--bar:'+bar+'"':'')+'>'+label+'</summary>';
+}
+
+/* ---------- sampling ---------- */
+function catmullRom(pts, seg){
+  if(!pts || pts.length<2) return (pts||[]).slice();
+  var P = [pts[0]].concat(pts, [pts[pts.length-1]]), out = [];
+  for(var i=1;i<P.length-2;i++){
+    var p0=P[i-1], p1=P[i], p2=P[i+1], p3=P[i+2];
+    for(var j=0;j<seg;j++){
+      var t=j/seg, t2=t*t, t3=t2*t;
+      out.push({
+        x:0.5*((2*p1.x)+(-p0.x+p2.x)*t+(2*p0.x-5*p1.x+4*p2.x-p3.x)*t2+(-p0.x+3*p1.x-3*p2.x+p3.x)*t3),
+        y:0.5*((2*p1.y)+(-p0.y+p2.y)*t+(2*p0.y-5*p1.y+4*p2.y-p3.y)*t2+(-p0.y+3*p1.y-3*p2.y+p3.y)*t3)
+      });
+    }
+  }
+  out.push(P[P.length-2]);
+  return out;
+}
+function sampleCurve(c){
+  var p = c.p, i, out, n, q, tt, qa, qb;
+  switch(c.shape){
+    case 'linear': return [{x:p.q0,y:p.p0},{x:p.q1,y:p.p1}];
+    case 'hline':  return [{x:p.q0,y:p.p},{x:p.q1,y:p.p}];
+    case 'vline':  return [{x:p.q,y:p.p0},{x:p.q,y:p.p1}];
+    case 'kink':   return [{x:p.q0,y:p.p0},{x:p.qk,y:p.pk},{x:p.q1,y:p.p1}];
+    case 'kink3':  return [{x:p.q0,y:p.pA},{x:p.q1,y:p.pA},{x:p.q2,y:p.pB},{x:p.q3,y:p.pB}];
+    case 'hyperbola':
+      out=[]; n=170; qa=Math.max(1,p.q0); qb=Math.max(qa+1,p.q1);
+      for(i=0;i<=n;i++){ q = qa + (qb-qa)*i/n; out.push({x:q, y:p.k/q}); }
+      return out;
+    case 'kinkedAS':
+      out=[{x:0,y:p.p0},{x:p.q1,y:p.p0}]; n=150;
+      for(i=1;i<=n;i++){
+        tt=i/n;
+        out.push({x:p.q1+(p.q2-p.q1)*tt, y:p.p0+(p.p2-p.p0)*Math.pow(tt,p.gamma)});
+      }
+      out.push({x:p.q2,y:p.pMax});
+      return out;
+    /* the PPC runs from the Y intercept (0,b) down to the X intercept (a,0),
+       bowed away from the origin. Sampled from the implicit superellipse so the
+       curvature handle can retune `n` and the shape stays exact. */
+    case 'ppc':
+      out=[]; n=170;
+      /* n below 1 is allowed on purpose - that is the inward-bowed variant */
+      qa = Math.max(6, p.a || 90); tt = clamp(p.n || PPC_N.outward, 0.3, 9);
+      qb = Math.max(6, p.b || 90);
+      for(i=0;i<=n;i++){
+        q = i/n;
+        out.push({x: q*qa,
+                  y: qb * Math.pow(Math.max(0, 1 - Math.pow(q, tt)), 1/tt)});
+      }
+      return out;
+    case 'smooth': return catmullRom(p.pts, 26);
+  }
+  return [];
+}
+/* how hard a PPC bows, as the y reached at half of the X intercept. Inverted by
+   the curvature handle so dragging that handle feels like bending the curve. */
+/* ---------- PPC bow ----------
+   Signed bow: how far the midpoint sits above the straight chord, as a fraction of
+   the Y intercept. 0 = straight, positive = outward, negative = inward. Symmetric
+   enough that the slider reads the same either side of zero. */
+function ppcBow(p){
+  var n = clamp(p.n || PPC_N.outward, 0.3, 9);
+  return Math.pow(1 - Math.pow(0.5, n), 1/n) - 0.5;
+}
+/* invert it by bisection in log space, because n spans 0.3 ... 9 */
+function ppcBowToN(bow){
+  var target = clamp(0.5 + (bow || 0), 0.02, 0.9955);
+  var lo = 0.3, hi = 9, i, mid, v;
+  for(i=0;i<48;i++){
+    mid = Math.sqrt(lo*hi);
+    v = Math.pow(1 - Math.pow(0.5, mid), 1/mid);
+    if(v < target) lo = mid; else hi = mid;
+  }
+  return Math.round(((lo+hi)/2)*1000)/1000;
+}
+/* which opportunity-cost story the curve is telling */
+function ppcRegime(p){
+  var b = ppcBow(p);
+  if(b > 0.04) return 'rises';
+  if(b < -0.04) return 'falls';
+  return 'flat';
+}
+/* what each shape means, in opportunity-cost language - the only reason a PPC is
+   ever drawn in three different shapes */
+var PPC_REGIME_NOTE = {
+  rises:'Bowed outward \u2014 moving right costs ever more of the other good, '+
+        'so the opportunity cost rises. The standard case.',
+  flat: 'Straight \u2014 constant opportunity cost all the way along the frontier, '+
+        'so each extra unit of one good costs the same amount of the other.',
+  falls:'Bowed inward \u2014 moving right costs less and less of the other good, so the '+
+        'opportunity cost falls. Rare, but the contrast makes the standard case stick.'
+};
+function isPPC(c){ return !!c && (c.shape==='ppc' || c.role==='PPC'); }
+function handles(c){
+  var p = c.p, qm;
+  switch(c.shape){
+    case 'linear': return [{k:'q0p0',x:p.q0,y:p.p0},{k:'q1p1',x:p.q1,y:p.p1}];
+    case 'kink':   return [{k:'q0p0',x:p.q0,y:p.p0},{k:'qkpk',x:p.qk,y:p.pk},{k:'q1p1',x:p.q1,y:p.p1}];
+    case 'kink3':  return [{k:'P0',x:p.q0,y:p.pA},{k:'P1',x:p.q1,y:p.pA},
+                           {k:'P2',x:p.q2,y:p.pB},{k:'P3',x:p.q3,y:p.pB}];
+    case 'hline':  return [{k:'p',x:50,y:p.p},{k:'q0',x:p.q0,y:p.p},{k:'q1',x:p.q1,y:p.p}];
+    case 'vline':  return [{k:'q',x:p.q,y:50},{k:'p0',x:p.q,y:p.p0},{k:'p1',x:p.q,y:p.p1}];
+    case 'hyperbola':
+      qm=(p.q0+p.q1)/2;
+      return [{k:'k',x:qm,y:p.k/qm},{k:'q0',x:p.q0,y:p.k/p.q0},{k:'q1',x:p.q1,y:p.k/p.q1}];
+    case 'kinkedAS': return [{k:'p0',x:14,y:p.p0},{k:'q1',x:p.q1,y:p.p0},
+                             {k:'bend',x:(p.q1+p.q2)/2,y:p.p0+(p.p2-p.p0)*Math.pow(0.5,p.gamma)},
+                             {k:'q2',x:p.q2,y:p.p2}];
+    /* two intercepts plus one curvature grip sitting on the curve at half of X */
+    case 'ppc':    return [{k:'a',x:p.a,y:0}, {k:'b',x:0,y:p.b},
+                           {k:'n',x:p.a*0.5,y:p.b*ppcBow(p)}];
+    case 'smooth': return p.pts.map(function(pt,i){ return {k:'pt'+i,x:pt.x,y:pt.y}; });
+  }
+  return [];
+}
+function moveHandle(c,hk,mx,my){
+  var p = c.p, i, tm, want, qq;
+  mx = clamp(mx,0,100); my = clamp(my,0,100);
+  switch(c.shape){
+    case 'linear':
+      if(hk==='q0p0'){ p.q0=mx; p.p0=my; } else { p.q1=mx; p.p1=my; }
+      break;
+    case 'kink':
+      if(hk==='q0p0'){ p.q0=mx; p.p0=my; }
+      else if(hk==='qkpk'){ p.qk=mx; p.pk=my; }
+      else { p.q1=mx; p.p1=my; }
+      break;
+    case 'kink3':
+      if(hk==='P0'){ p.q0=Math.min(mx, p.q1-4); p.pA=my; p.q1=Math.max(p.q1,p.q0+4); }
+      else if(hk==='P1'){ p.q1=clamp(mx, p.q0+4, p.q2-4); p.pA=my; }
+      else if(hk==='P2'){ p.q2=clamp(mx, p.q1+4, p.q3-4); p.pB=my; }
+      else { p.q3=Math.max(mx, p.q2+4); p.pB=my; }
+      break;
+    case 'hline':
+      if(hk==='p') p.p = my;
+      else if(hk==='q0') p.q0 = Math.min(mx, p.q1-6);
+      else p.q1 = Math.max(mx, p.q0+6);
+      break;
+    case 'vline':
+      if(hk==='q') p.q = mx;
+      else if(hk==='p0') p.p0 = Math.min(my, p.p1-6);
+      else p.p1 = Math.max(my, p.p0+6);
+      break;
+    case 'hyperbola':
+      if(hk==='k'){ qq=clamp(mx,5,100); p.k = clamp(my,2,100)*qq; }
+      else if(hk==='q0'){ p.q0 = clamp(mx,2,p.q1-6); }
+      else { p.q1 = clamp(mx,p.q0+6,100); }
+      break;
+    case 'ppc':
+      /* a and b are the two intercepts; the third grip bends the curve without
+         moving the intercepts, which is exactly the constant-cost question */
+      if(hk==='a'){ p.a = clamp(mx, 10, 100); }
+      else if(hk==='b'){ p.b = clamp(my, 10, 100); }
+      else { p.n = ppcBowToN(my / Math.max(10, p.b) - 0.5); }   /* signed bow */
+      break;
+    case 'kinkedAS':
+      if(hk==='p0') p.p0 = my;
+      else if(hk==='q1') p.q1 = clamp(mx,2,p.q2-6);
+      else if(hk==='q2'){ p.q2 = clamp(mx,p.q1+6,100); p.p2 = my; }
+      else if(hk==='bend'){
+        tm = (mx - p.q1)/(p.q2-p.q1);
+        if(tm>0.08 && tm<0.92 && my > p.p0+0.5){
+          want = clamp((my-p.p0)/(p.p2-p.p0), 0.01, 2.5);
+          p.gamma = clamp(Math.log(want)/Math.log(tm), 1.05, 6);
+        }
+      }
+      break;
+    case 'smooth':
+      i = parseInt(hk.slice(2),10);
+      if(p.pts[i]){ p.pts[i].x=mx; p.pts[i].y=my; }
+      break;
+  }
+}
+
+/* ---------- intersections ---------- */
+function segInt(a,b,c,d){
+  var r1=a.x, r2v=a.y, s1=b.x-a.x, s2=b.y-a.y;
+  var t1=c.x, t2=c.y, u1=d.x-c.x, u2=d.y-c.y;
+  var den = s1*u2 - s2*u1;
+  if(Math.abs(den) < 1e-12) return null;
+  var t = ((t1-r1)*u2 - (t2-r2v)*u1)/den;
+  var u = ((t1-r1)*s2 - (t2-r2v)*s1)/den;
+  if(t < -1e-9 || t > 1+1e-9 || u < -1e-9 || u > 1+1e-9) return null;
+  return {x: r1+s1*t, y: r2v+s2*t};
+}
+function polyInt(A,B){
+  var raw=[], res=[], i, j, pt, m, k, dup;
+  for(i=0;i<A.length-1;i++)
+    for(j=0;j<B.length-1;j++){
+      pt = segInt(A[i],A[i+1],B[j],B[j+1]);
+      if(pt) raw.push(pt);
+    }
+  for(k=0;k<raw.length;k++){
+    m = raw[k]; dup = false;
+    for(i=0;i<res.length;i++) if(Math.abs(res[i].x-m.x)<0.4 && Math.abs(res[i].y-m.y)<0.4){ dup=true; break; }
+    if(!dup) res.push(m);
+  }
+  return res;
+}
+function xAtY(poly, yy){
+  for(var i=0;i<poly.length-1;i++){
+    var a=poly[i], b=poly[i+1];
+    if((a.y-yy)*(b.y-yy) <= 0 && Math.abs(b.y-a.y) > 1e-9){
+      var x = a.x + ((yy-a.y)/(b.y-a.y))*(b.x-a.x);
+      if(x>=0 && x<=100) return x;
+    }
+  }
+  return null;
+}
+function yAtX(poly, xx){
+  for(var i=0;i<poly.length-1;i++){
+    var a=poly[i], b=poly[i+1];
+    if((a.x-xx)*(b.x-xx) <= 0 && Math.abs(b.x-a.x) > 1e-9){
+      return a.y + ((xx-a.x)/(b.x-a.x))*(b.y-a.y);
+    }
+  }
+  return null;
+}
+/* same, but extends the end segments when the curve does not reach that far.
+   Surplus areas are measured from Q = 0, and most curves start further right. */
+function yAtXAny(poly, xx){
+  var y = yAtX(poly, xx);
+  if(y != null) return y;
+  if(!poly || poly.length < 2) return null;
+  var a, b;
+  if(xx <= poly[0].x){ a = poly[0]; b = poly[1]; }
+  else if(xx >= poly[poly.length-1].x){ a = poly[poly.length-2]; b = poly[poly.length-1]; }
+  else return null;
+  if(Math.abs(b.x - a.x) < 1e-9) return null;   /* vertical: nothing to extrapolate */
+  return a.y + ((xx-a.x)/(b.x-a.x))*(b.y-a.y);
+}
+/* the stretch of a polyline between two quantities, walked from qA to qB */
+function segFrom(pts, qA, qB){
+  var lo = Math.min(qA,qB), hi = Math.max(qA,qB), out = [], i;
+  var yLo = yAtXAny(pts, lo), yHi = yAtXAny(pts, hi);
+  if(yLo != null) out.push({x:lo, y:yLo});
+  for(i=0;i<pts.length;i++) if(pts[i].x > lo && pts[i].x < hi) out.push(pts[i]);
+  if(yHi != null) out.push({x:hi, y:yHi});
+  if(qB < qA) out.reverse();
+  return out;
+}
+/* consumer / producer surplus as a closed ring, for a given equilibrium */
+function surplusRing(kind, dCurve, sCurve, eq){
+  if(!eq) return null;
+  var qe = eq.x, pe = eq.y, mid;
+  if(kind === 'cs'){
+    mid = segFrom(sampleCurve(dCurve), 0, qe);
+    if(mid.length < 2) return null;
+    return [{x:0,y:pe}].concat(mid).concat([{x:qe,y:pe}]);
+  }
+  mid = segFrom(sampleCurve(sCurve), qe, 0);
+  if(mid.length < 2) return null;
+  return [{x:0,y:pe},{x:qe,y:pe}].concat(mid);
+}
+/* the deadweight-loss ring between the social curve and the private curve */
+function dwlRing(socialPts, otherPts, qMarket, qOpt){
+  if(qMarket == null || qOpt == null || Math.abs(qOpt-qMarket) < 0.5) return null;
+  var ring = segFrom(socialPts, qMarket, qOpt).concat(segFrom(otherPts, qOpt, qMarket));
+  return ring.length >= 3 ? ring : null;
+}
+function curveById(id){ for(var i=0;i<S.curves.length;i++) if(S.curves[i].id===id) return S.curves[i]; return null; }
+function markById(id){ for(var i=0;i<S.marks.length;i++) if(S.marks[i].id===id) return S.marks[i]; return null; }
+
+function activePair(){
+  var d = curveById(S.activeD), s = curveById(S.activeS);
+  /* second line of defence: whatever put a PPC in the active slot, it must never
+     be intersected with the other axis */
+  if(d && d.role==='PPC') d = null;
+  if(s && s.role==='PPC') s = null;
+  return {d:(d&&d.visible)?d:null, s:(s&&s.visible)?s:null};
+}
+function liveEq(){
+  var pr = activePair(), i, p;
+  if(!pr.d || !pr.s){ lastEq=null; return null; }
+  var pts = polyInt(sampleCurve(pr.d), sampleCurve(pr.s)), keep = [];
+  for(i=0;i<pts.length;i++){
+    p = pts[i];
+    if(p.x>=-0.01 && p.x<=100.01 && p.y>=-0.01 && p.y<=100.01) keep.push(p);
+  }
+  if(!keep.length){ lastEq=null; return null; }
+  var ref = lastEq || {x:50,y:50}, pick = keep[0], bd = Infinity;
+  for(i=0;i<keep.length;i++){
+    var dd = (keep[i].x-ref.x)*(keep[i].x-ref.x) + (keep[i].y-ref.y)*(keep[i].y-ref.y);
+    if(dd<bd){ bd=dd; pick=keep[i]; }
+  }
+  lastEq = {x:pick.x, y:pick.y};
+  return pick;
+}
+function liveEqLabel(){ return S.eqHistory.length ? ('E'+(S.eqHistory.length+1)) : 'E'; }
+function renumberEq(){ for(var i=0;i<S.eqHistory.length;i++) S.eqHistory[i].label = 'E'+(i+1); }
+function pushEquilibrium(eq){
+  if(!eq) return null;
+  S.eqHistory.push({id:uid('e'), label:'', x:eq.x, y:eq.y});
+  renumberEq();
+  return S.eqHistory[S.eqHistory.length-1];
+}
+
+/* ---------- curve helpers ---------- */
+function nextLabel(role){
+  var found = false, max = 0, i, c, m, n;
+  for(i=0;i<S.curves.length;i++){
+    c = S.curves[i];
+    if(c.role !== role) continue;
+    found = true;
+    m = /^([A-Za-z]*)(\d*)$/.exec(c.label);
+    if(!m) continue;
+    n = m[2] ? parseInt(m[2],10) : 0;
+    if(n > max) max = n;
+  }
+  if(!found) return role;          /* first curve of this role keeps the bare label */
+  return role + (max + 1);         /* second one becomes D1, third D2 ... */
+}
+/* numbering for a shifted copy: keep the base's own prefix, so AD becomes AD1 (not D1) */
+function nextLabelLike(baseLabel, role){
+  var m0 = /^([A-Za-z]+)(\d*)$/.exec(String(baseLabel));
+  var prefix = m0 ? m0[1] : String(baseLabel);
+  var found = false, max = 0, i, c, mm, n;
+  for(i=0;i<S.curves.length;i++){
+    c = S.curves[i];
+    if(c.role !== role) continue;
+    found = true;
+    mm = /^([A-Za-z]+)(\d*)$/.exec(c.label);
+    if(!mm || mm[1] !== prefix) continue;
+    n = mm[2] ? parseInt(mm[2],10) : 0;
+    if(n > max) max = n;
+  }
+  if(!found) return prefix;
+  return prefix + (max + 1);
+}
+function addCurve(kind, opts){
+  opts = opts || {};
+  var role = opts.role || SHAPES[kind].role;
+  var c = {
+    id: uid('c'), shape: kind, role: role,
+    label: opts.label || nextLabel(role),
+    color: opts.color || ROLE_COLOR[role] || '#495057',
+    width: 3, dash: !!opts.dash, visible: true,
+    sign: (role==='S' || role==='AS' || role==='LRAS') ? 1 : -1,
+    p: Object.assign(defaultGeom(kind, role), opts.p || {})
+  };
+  if(kind==='smooth'){
+    var src = (opts.p && opts.p.pts) ? opts.p.pts : defaultShape('smooth').pts;
+    c.p.pts = src.map(function(o){ return {x:o.x,y:o.y}; });
+  }
+  S.curves.push(c);
+  return c;
+}
+function translateCurve(c, dq, dp){
+  var p = c.p, i;
+  switch(c.shape){
+    case 'linear': p.q0+=dq; p.p0+=dp; p.q1+=dq; p.p1+=dp; break;
+    case 'kink':   p.q0+=dq; p.p0+=dp; p.qk+=dq; p.pk+=dp; p.q1+=dq; p.p1+=dp; break;
+    case 'kink3':  p.q0+=dq; p.q1+=dq; p.q2+=dq; p.q3+=dq; p.pA+=dp; p.pB+=dp; break;
+    case 'hline':  p.q0+=dq; p.q1+=dq; p.p+=dp; break;
+    case 'vline':  p.q+=dq; p.p0+=dp; p.p1+=dp; break;
+    case 'hyperbola': p.k = Math.max(2, p.k + (dq/100)*p.k*2); break;
+    case 'kinkedAS': p.q1+=dq; p.q2+=dq; p.p0+=dp; p.p2+=dp;
+                     p.pMax = clamp(p.pMax+dp, Math.max(10,p.p2+4), 100); break;
+    /* moving a PPC means growing capacity on both axes - that is the whole point */
+    case 'ppc':    p.a = clamp(p.a + dq, 8, 100); p.b = clamp(p.b + dp, 8, 100); break;
+    case 'smooth':
+      for(i=0;i<p.pts.length;i++){ p.pts[i].x+=dq; p.pts[i].y+=dp; }
+      break;
+  }
+}
+function cloneShift(base, dq, dp){
+  var lbl = nextLabelLike(base.label, base.role);   /* resolve BEFORE pushing the copy */
+  var c = {
+    id: uid('c'), shape: base.shape, role: base.role,
+    label: lbl, color: base.color, width: base.width, dash: base.dash,
+    visible: true, baseId: base.id, p: JSON.parse(JSON.stringify(base.p))
+  };
+  S.curves.push(c);
+  translateCurve(c, dq, dp);
+  return c;
+}
+function setActiveCurve(c){
+  /* a PPC is nobody's demand - letting it become activeD would pair it with the
+     supply and invent an equilibrium on the frontier */
+  if(c.role==='S'||c.role==='AS'||c.role==='LRAS') S.activeS = c.id;
+  else if(c.role!=='X' && c.role!=='PPC') S.activeD = c.id;
+}
+
+/* =====================================================================
+   direct shape editing: midpoint, rotation, one-click conversions
+   ===================================================================== */
+function curveMid(c){
+  var p = c.p, pts;
+  if(c.shape==='linear') return {x:(p.q0+p.q1)/2, y:(p.p0+p.p1)/2};
+  if(c.shape==='kink')   return {x:p.qk, y:p.pk};   /* the corner itself is the natural pivot */
+  if(c.shape==='kink3')  return {x:(p.q1+p.q2)/2, y:(p.pA+p.pB)/2};
+  if(c.shape==='hline')  return {x:(p.q0+p.q1)/2, y:p.p};
+  if(c.shape==='vline')  return {x:p.q, y:(p.p0+p.p1)/2};
+  pts = sampleCurve(c);
+  if(!pts.length) return null;
+  return pts[Math.floor((pts.length-1)/2)];
+}
+function rotatable(c){ return c.shape !== 'kinkedAS' && c.shape !== 'kink' && c.shape !== 'kink3'; }
+function angleCapable(c){ return c.shape==='linear' || c.shape==='hline' || c.shape==='vline'; }
+/* the curve's visual angle in degrees: + = rising to the right (supply), - = falling (demand) */
+function curveAngle(c){
+  var pts = sampleCurve(c);
+  if(pts.length < 2) return 0;
+  var a = pts[0], b = pts[pts.length-1];
+  return -Math.atan2(Y(b.y)-Y(a.y), X(b.x)-X(a.x)) * 180/Math.PI;
+}
+/* the slider runs from flat (left) to upright (right); the direction is kept separately
+   so that dragging only ever changes steepness, never flips a demand into a supply */
+function curveSign(c){
+  var a = curveAngle(c);
+  /* a vertical line has no meaningful direction, so fall back to what was remembered
+     (otherwise passing through "upright" would flip a demand into a supply) */
+  if(Math.abs(a) < 85 && Math.abs(a) > 0.5) return a > 0 ? 1 : -1;
+  if(c.sign) return c.sign;
+  return (c.role==='S' || c.role==='AS' || c.role==='LRAS') ? 1 : -1;
+}
+function curveSteep(c){ return Math.abs(curveAngle(c)); }
+/* set an absolute angle, keeping the midpoint and the on-screen length */
+function setCurveAngle(c, deg){
+  if(!angleCapable(c)) return;
+  var mid = curveMid(c), pts = sampleCurve(c);
+  var a = pts[0], b = pts[pts.length-1];
+  var L = Math.max(70, Math.sqrt(Math.pow(X(b.x)-X(a.x),2) + Math.pow(Y(b.y)-Y(a.y),2))) / 2;
+  var rad = deg * Math.PI/180;
+  var cx = X(mid.x), cy = Y(mid.y);
+  var dx = Math.cos(rad)*L, dy = -Math.sin(rad)*L;   /* screen y grows downward */
+  c.shape = 'linear';
+  c.p = { q0: invX(cx-dx), p0: invY(cy-dy), q1: invX(cx+dx), p1: invY(cy+dy) };
+  if(Math.abs(deg) > 0.5 && Math.abs(deg) < 85) c.sign = deg > 0 ? 1 : -1;
+}
+/* slider handler: 0 = perfectly elastic, 90 = perfectly inelastic */
+function applySteep(c, v){
+  var sgn = curveSign(c);
+  if(v <= 1)      convertShape(c, 'hline');
+  else if(v >= 89) convertShape(c, 'vline');
+  else             setCurveAngle(c, sgn * v);
+  return sgn;
+}
+/* rotate about (cx,cy) in MATH coords, but by a SCREEN-space angle so dragging feels right */
+function rotateCurveScreen(c, cx, cy, ang){
+  var cs = Math.cos(ang), sn = Math.sin(ang), i, r;
+  function rot(q, p){
+    var sx = X(q) - X(cx), sy = Y(p) - Y(cy);
+    return {x: invX(X(cx) + sx*cs - sy*sn), y: invY(Y(cy) + sx*sn + sy*cs)};
+  }
+  if(c.shape==='linear'){
+    r = rot(c.p.q0, c.p.p0); c.p.q0=r.x; c.p.p0=r.y;
+    r = rot(c.p.q1, c.p.p1); c.p.q1=r.x; c.p.p1=r.y;
+  } else if(c.shape==='kink'){
+    r = rot(c.p.q0, c.p.p0); c.p.q0=r.x; c.p.p0=r.y;
+    r = rot(c.p.qk, c.p.pk); c.p.qk=r.x; c.p.pk=r.y;
+    r = rot(c.p.q1, c.p.p1); c.p.q1=r.x; c.p.p1=r.y;
+  } else if(c.shape==='kink3'){
+    r = rot(c.p.q0, c.p.pA); c.p.q0=r.x; c.p.pA=r.y;
+    r = rot(c.p.q1, c.p.pA); c.p.q1=r.x; c.p.pA=r.y;
+    r = rot(c.p.q2, c.p.pB); c.p.q2=r.x; c.p.pB=r.y;
+    r = rot(c.p.q3, c.p.pB); c.p.q3=r.x; c.p.pB=r.y;
+  } else if(c.shape==='hline'){
+    var h0=c.p.q0, h1=c.p.q1, hp=c.p.p;
+    c.shape='linear'; c.p={q0:h0,p0:hp,q1:h1,p1:hp};
+    rotateCurveScreen(c, cx, cy, ang);
+  } else if(c.shape==='vline'){
+    var vq=c.p.q, v0=c.p.p0, v1=c.p.p1;
+    c.shape='linear'; c.p={q0:vq,p0:v0,q1:vq,p1:v1};
+    rotateCurveScreen(c, cx, cy, ang);
+  } else if(c.shape==='smooth'){
+    for(i=0;i<c.p.pts.length;i++){
+      r = rot(c.p.pts[i].x, c.p.pts[i].y);
+      c.p.pts[i].x=r.x; c.p.pts[i].y=r.y;
+    }
+  } else if(c.shape==='hyperbola'){
+    var pts = sampleCurve(c), np = [];
+    for(i=0;i<9;i++){
+      var pt = pts[Math.round(i*(pts.length-1)/8)];
+      r = rot(pt.x, pt.y);
+      np.push({x:r.x, y:r.y});
+    }
+    c.shape = 'smooth'; c.p = {pts:np};
+  }
+}
+/* switch shape, deriving the new geometry from where the curve currently sits */
+function convertShape(c, kind){
+  var mid = curveMid(c) || {x:50, y:50};
+  var pts = sampleCurve(c);
+  var down = pts.length>1 && pts[0].y > pts[pts.length-1].y;
+  var wasPPC = (c.role === 'PPC');
+  /* a PPC is a chart of its own: while it is one it must not stay paired to the
+     other axis, or the pair would sprout an equilibrium point nobody asked for.
+     Entering is handled here; leaving is handled once, after the shape is built,
+     so that every route back out (the quick buttons included) restores the role. */
+  if(kind === 'ppc'){
+    c.role = 'PPC'; c.shape = 'ppc'; c.sign = 1;
+    if(c.color === ROLE_COLOR.D || c.color === ROLE_COLOR.S) c.color = ROLE_COLOR.PPC;
+    if(S.activeD === c.id) S.activeD = null;
+    if(S.activeS === c.id) S.activeS = null;
+    if(S.arrowPair && (S.arrowPair.a === c.id || S.arrowPair.b === c.id)) S.arrowPair = null;
+    c.p = defaultShape('ppc');
+    return;
+  }
+  if(kind==='hline'){
+    c.shape='hline'; c.p = {p:clamp(mid.y,2,98), q0:0, q1:100};
+  } else if(kind==='vline'){
+    c.shape='vline'; c.p = {q:clamp(mid.x,2,98), p0:0, p1:100};
+  } else if(kind==='slopeDown' || kind==='slopeUp'){
+    var up = (kind==='slopeUp');
+    c.shape='linear'; c.sign = up ? 1 : -1;
+    c.p = {q0:8, p0:clamp(mid.y + (up?-38:38), 1, 99),
+           q1:92, p1:clamp(mid.y + (up? 38:-38), 1, 99)};
+  } else if(kind==='linear'){
+    c.shape='linear'; c.sign = down ? -1 : 1;
+    c.p = down ? {q0:8, p0:clamp(mid.y+38,1,99), q1:92, p1:clamp(mid.y-38,1,99)}
+               : {q0:8, p0:clamp(mid.y-38,1,99), q1:92, p1:clamp(mid.y+38,1,99)};
+  } else {
+    c.shape = kind;
+    c.p = defaultGeom(kind, c.role);
+    if(kind==='smooth') c.p.pts = defaultGeom('smooth', c.role).pts.map(function(o){ return {x:o.x,y:o.y}; });
+  }
+  if(wasPPC){
+    if(isPPCDiagram()){
+      /* still a frontier canvas: whatever the shape became, it stays a frontier
+         curve. Only switching the whole diagram turns it into a market curve. */
+      c.role = 'PPC';
+      if(c.color !== ROLE_COLOR.PPC) c.color = ROLE_COLOR.PPC;
+    } else {
+      /* the diagram is a market, so the curve has to be adopted by the pair or it
+         would sit on the canvas doing nothing at all */
+      var want = (kind === 'slopeUp') ? 'S'
+               : (kind === 'slopeDown') ? 'D'
+               : (SHAPES[kind] && SHAPES[kind].role !== 'PPC') ? SHAPES[kind].role
+               : (down ? 'D' : 'S');
+      c.role = want;
+      if(c.color === ROLE_COLOR.PPC) c.color = ROLE_COLOR[want] || '#495057';
+      c.sign = (want === 'S' || want === 'AS' || want === 'LRAS') ? 1 : -1;
+      if(want === 'S' || want === 'AS' || want === 'LRAS') S.activeS = c.id;
+      else S.activeD = c.id;
+    }
+  }
+}
+
+/* ---------- save, open, and the local draft ----------
+   A diagram is worth keeping: you build it at home and show it next lesson, or on
+   a different computer. So it round-trips through a plain .json file, and the last
+   state is also kept in the browser so a refresh does not cost you the work. */
+var FILE_APP = 'Econ Diagram Studio', FILE_VER = 1;
+var DRAFT_KEY = 'econDiagramStudio.draft';
+function diagramFile(){
+  return {app: FILE_APP, version: FILE_VER, saved: new Date().toISOString(), diagram: S};
+}
+function suggestName(){
+  var t = String(S.title || '').trim().replace(/[\\/:*?"<>|]+/g, '-').slice(0, 60);
+  if(!t) t = (diagramKind() === 'ppc' ? 'PPC diagram' : 'Market diagram');
+  return t + '.json';
+}
+function saveDiagram(){
+  var a = document.createElement('a'), url = null;
+  try{
+    url = URL.createObjectURL(new Blob([JSON.stringify(diagramFile(), null, 2)],
+                                       {type:'application/json'}));
+  }catch(e){ toast('This browser will not let the file be saved.'); return false; }
+  a.href = url; a.download = suggestName();
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+  toast('Saved as ' + a.download);
+  return true;
+}
+/* Deliberately forgiving: accepts the wrapper or a bare state, and fills in every
+   field the file does not carry, so a diagram saved by an older build still opens
+   instead of throwing. */
+function adoptState(raw){
+  var d = (raw && raw.diagram) ? raw.diagram : raw;
+  if(!d || typeof d !== 'object' || !Array.isArray(d.curves)) throw new Error('not a diagram');
+  var st = blankState();
+  st.kind = (d.kind === 'ppc') ? 'ppc' : 'market';
+  if(typeof d.title === 'string') st.title = d.title;
+  if(d.axes && typeof d.axes === 'object'){
+    st.axes = {xLabel: strOr(d.axes.xLabel, st.axes.xLabel),
+               yLabel: strOr(d.axes.yLabel, st.axes.yLabel),
+               ticks: !!d.axes.ticks, grid: !!d.axes.grid};
+  }
+  if(d.opts && typeof d.opts === 'object') st.opts = Object.assign(st.opts, d.opts);
+  if(typeof d.shiftStep === 'number') st.shiftStep = clamp(d.shiftStep, 2, 40);
+  st.curves = d.curves.filter(function(c){ return c && typeof c === 'object' && c.id && c.p; })
+                      .map(function(c){ return JSON.parse(JSON.stringify(c)); });
+  st.marks = Array.isArray(d.marks) ? JSON.parse(JSON.stringify(d.marks)) : [];
+  st.eqHistory = Array.isArray(d.eqHistory) ? JSON.parse(JSON.stringify(d.eqHistory)) : [];
+  st.labelOff = (d.labelOff && typeof d.labelOff === 'object') ? d.labelOff : {};
+  st.labelText = (d.labelText && typeof d.labelText === 'object') ? d.labelText : {};
+  st.ext = d.ext || null;
+  var ids = {};
+  st.curves.forEach(function(c){ ids[c.id] = 1; });
+  ['activeD','activeS'].forEach(function(k){
+    if(typeof d[k] === 'string' && ids[d[k]]) st[k] = d[k];
+  });
+  if(d.arrowPair && ids[d.arrowPair.a] && ids[d.arrowPair.b]){
+    st.arrowPair = {a: d.arrowPair.a, b: d.arrowPair.b};
+  }
+  /* a frontier curve makes it a frontier whatever the file claimed */
+  if(st.curves.some(function(c){ return c.role === 'PPC'; })) st.kind = 'ppc';
+  st.sel = null;
+  return st;
+}
+function strOr(v, dflt){ return (typeof v === 'string' && v) ? v : dflt; }
+function loadDiagramText(txt, label){
+  var raw;
+  try{ raw = JSON.parse(txt); }
+  catch(e){ toast('That file is not readable as JSON.'); return false; }
+  var st;
+  try{ st = adoptState(raw); }catch(e){ toast('That file is not a diagram from this studio.'); return false; }
+  pushUndo();
+  S = st; lastEq = null;
+  syncTitle(); syncKind(); syncRail(); render(); renderInspector(true); updateUndoBtns();
+  saveDraft();
+  toast((label ? label + ' opened.' : 'Diagram opened.'));
+  return true;
+}
+function openDiagramFile(){
+  var inp = document.getElementById('fileOpen');
+  if(!inp) return;
+  inp.value = '';               /* picking the same file twice must still fire */
+  inp.click();
+}
+/* `?fresh=1` starts from a clean sheet and leaves the stored draft alone. Screenshot
+   and probe harnesses load the file dozens of times and reuse their browser profile,
+   so without this a leftover draft would change what they think they are testing. */
+function draftsOffFor(q){ return /[?&]fresh=1(&|$)/.test(String(q || '')); }
+function draftsOff(){ return draftsOffFor(location.search); }
+function saveDraft(){
+  if(draftsOff()) return;
+  try{ localStorage.setItem(DRAFT_KEY, JSON.stringify(diagramFile())); }catch(e){}
+}
+function loadDraft(){
+  try{
+    var t = localStorage.getItem(DRAFT_KEY);
+    return t ? JSON.parse(t) : null;
+  }catch(e){ return null; }
+}
+function clearDraft(){ try{ localStorage.removeItem(DRAFT_KEY); }catch(e){} }
+/* render() is the one place every change funnels through, so the draft is written
+   from there - but coalesced, because a drag calls render() on every frame */
+var draftTimer = null;
+function touchDraft(){
+  if(draftTimer) return;
+  draftTimer = setTimeout(function(){ draftTimer = null; saveDraft(); }, 900);
+}
+
+/* ---------- undo ---------- */
+function snapshot(){ return JSON.stringify(S); }
+function pushUndo(){
+  undoStack.push(snapshot());
+  if(undoStack.length > 150) undoStack.shift();
+  redoStack.length = 0;
+  updateUndoBtns();
+}
+function commitDrag(){
+  if(drag && !drag.committed){
+    undoStack.push(drag.pre);
+    if(undoStack.length > 150) undoStack.shift();
+    redoStack.length = 0;
+    drag.committed = true;
+    updateUndoBtns();
+  }
+}
+function restore(str){
+  S = JSON.parse(str);
+  lastEq = null; syncTitle();
+  /* an undo can cross a diagram-type switch, so the header and the rail have to
+     come back with it - otherwise the tools on screen belong to the other chart */
+  syncKind(); syncRail();
+  render(); renderInspector(true); updateUndoBtns();
+}
+function doUndo(){ if(!undoStack.length) return; redoStack.push(snapshot()); restore(undoStack.pop()); }
+function doRedo(){ if(!redoStack.length) return; undoStack.push(snapshot()); restore(redoStack.pop()); }
+function updateUndoBtns(){
+  document.getElementById('btnUndo').disabled = !undoStack.length;
+  document.getElementById('btnRedo').disabled = !redoStack.length;
+}
+
+/* ---------- item list ---------- */
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function arrowHead(p1,p2,size){
+  var dx=p2.x-p1.x, dy=p2.y-p1.y, L=Math.sqrt(dx*dx+dy*dy);
+  if(L<1e-6) return null;
+  var ux=dx/L, uy=dy/L, s=size||11;
+  var bx=p2.x-ux*s, by=p2.y-uy*s, px=-uy*s*0.46, py=ux*s*0.46;
+  return [{x:p2.x,y:p2.y},{x:bx+px,y:by+py},{x:bx-px,y:by-py}];
+}
+function pathItem(pts, stroke, w, dash, extra){
+  var o = {t:'path', pts:pts, stroke:stroke, w:w, dash:dash||null, cap:'round', join:'round'};
+  if(extra) for(var k in extra) o[k]=extra[k];
+  return o;
+}
+function labelItem(x,y,s,size,color,anchor,weight,halo){
+  return {t:'text', x:x, y:y, s:s, size:size||28, color:color||'#252523',
+          weight:weight||600, anchor:anchor||'start', halo:halo!==false};
+}
+function labelPos(pts){
+  var best = pts[0];
+  for(var i=0;i<pts.length;i++){
+    var pt = pts[i];
+    if(pt.y > best.y+1e-9 || (Math.abs(pt.y-best.y)<1e-9 && pt.x>best.x)) best = pt;
+  }
+  return {x: clamp(best.x+3,1,97), y: clamp(best.y+3.5,3,96)};
+}
+/* a label anchored at its start would run off the right edge of the plot,
+   so flip the anchor for anything close to the boundary */
+function curveLabel(pts, text, color){
+  var lp = labelPos(pts);
+  var est = String(text).length * 28 * 0.62;
+  var x = X(lp.x);
+  var anchor = (x + est > PLOT.x1 - 4) ? 'end' : 'start';
+  return labelItem(x, Y(lp.y), text, 28, color, anchor, 700, true);
+}
+function dot(x,y,r,fill,stroke,sw,dash){
+  return {t:'circle', x:x, y:y, r:r, fill:fill, stroke:stroke||null, w:sw||0, dash:dash||null};
+}
+/* approximate text boxes, used to keep floating labels from landing on each other */
+function textBoxOf(o){
+  var w = String(o.s).length * o.size * 0.62;
+  var x0 = o.anchor==='middle' ? o.x - w/2 : (o.anchor==='end' ? o.x - w : o.x);
+  return {x0:x0, x1:x0+w, y0:o.y - o.size*0.80, y1:o.y + o.size*0.22};
+}
+function collectTextBoxes(items){
+  var out = [];
+  for(var i=0;i<items.length;i++) if(items[i] && items[i].t==='text') out.push(textBoxOf(items[i]));
+  return out;
+}
+function boxClash(boxes, b){
+  for(var i=0;i<boxes.length;i++){
+    var a = boxes[i];
+    if(Math.min(a.x1,b.x1) - Math.max(a.x0,b.x0) > 2 &&
+       Math.min(a.y1,b.y1) - Math.max(a.y0,b.y0) > 2) return true;
+  }
+  return false;
+}
+/* put a label down, nudging it until it no longer sits on top of another label.
+   `key` makes it addressable: if the user has dragged it by hand we keep their position
+   and stop dodging, so a manual move always wins. */
+function placeLabel(placed, it, x, y, text, size, color, anchor, weight, offs, key){
+  var est = String(text).length * size * 0.62;
+  var ha = anchor || 'start';
+  var off = (key && S.labelOff && S.labelOff[key]) || null;
+  function boxOf(px, py){
+    var bx = ha==='middle' ? px - est/2 : (ha==='end' ? px - est : px);
+    return {x0:bx, x1:bx+est, y0:py - size*0.80, y1:py + size*0.22};
+  }
+  function emit(px, py){
+    var item = labelItem(px, py, text, size, color, ha, weight, true);
+    if(key) item.lbl = key;
+    it.push(item);
+    return item;
+  }
+  if(off){
+    var mx = x + off.dx, my = y + off.dy;
+    placed.push(boxOf(mx, my));
+    return emit(mx, my);
+  }
+  offs = offs || [0, -30, 30, -60, 60, -90, 90];
+  for(var k=0;k<offs.length;k++){
+    var yy = y + offs[k];
+    if(!boxClash(placed, boxOf(x, yy))){
+      placed.push(boxOf(x, yy));
+      return emit(x, yy);
+    }
+  }
+  placed.push(boxOf(x, y));
+  return emit(x, y);
+}
+function buildItems(forExport){
+  var it = [], i, j, v, c, m, pts, lp, p1, p2, ax = S.axes;
+  badgePos = null;   /* rebuilt below only when the change pill is actually drawn */
+
+  /* equilibria are needed up front: the tick numbers have to dodge the Q labels */
+  var eqL = liveEq(), eqH = S.eqHistory, showHist = S.opts.showHistory;
+  var eqSeq = [];
+  if(showHist){
+    for(i=0;i<eqH.length;i++) eqSeq.push({n:i+1, x:eqH[i].x, y:eqH[i].y, live:false, age:eqH.length-1-i});
+    if(eqL) eqSeq.push({n:eqH.length+1, x:eqL.x, y:eqL.y, live:true, age:0});
+  }
+  /* axis projections P1/P2 ... and Q1/Q2 ... , nudged apart so they never overlap */
+  var showPQ = S.opts.labelPQ && eqH.length > 0 && eqSeq.length > 1;
+  var pLab = [], qLab = [];
+  if(showPQ){
+    for(i=0;i<eqSeq.length;i++){
+      pLab.push({s:'P'+eqSeq[i].n, y:Y(eqSeq[i].y), live:eqSeq[i].live, age:eqSeq[i].age});
+      qLab.push({s:'Q'+eqSeq[i].n, x:X(eqSeq[i].x), live:eqSeq[i].live, age:eqSeq[i].age});
+    }
+    pLab.sort(function(a,b){ return a.y-b.y; });
+    for(i=1;i<pLab.length;i++) if(pLab[i].y - pLab[i-1].y < 30) pLab[i].y = pLab[i-1].y + 30;
+    qLab.sort(function(a,b){ return a.x-b.x; });
+    for(i=1;i<qLab.length;i++) if(qLab[i].x - qLab[i-1].x < 48) qLab[i].x = qLab[i-1].x + 48;
+  }
+
+  if(ax.grid){
+    /* quarters, so the grid lines up with the 25 / 50 / 75 tick marks */
+    for(v=25; v<100; v+=25){
+      it.push(pathItem([{x:X(v),y:Y(0)},{x:X(v),y:Y(100)}], '#ecebe5', 1, null));
+      it.push(pathItem([{x:X(0),y:Y(v)},{x:X(100),y:Y(v)}], '#ecebe5', 1, null));
+    }
+  }
+  var AC = '#252523';
+  it.push(pathItem([{x:X(0),y:Y(0)},{x:X(100),y:Y(0)}], AC, 1.6, null, {arrow:true, head:12, noClip:true}));
+  it.push(pathItem([{x:X(0),y:Y(0)},{x:X(0),y:Y(100)}], AC, 1.6, null, {arrow:true, head:12, noClip:true}));
+  /* long axis names must not run off the top-left / right edge */
+  /* the axis names are editable and draggable too, so they go through the same
+     labelText / labelOff machinery as everything else */
+  var axYm = labelText('ax:y', ax.yLabel), axXm = labelText('ax:x', ax.xLabel);
+  var offY = (S.labelOff && S.labelOff['ax:y']) || {dx:0, dy:0};
+  var offX = (S.labelOff && S.labelOff['ax:x']) || {dx:0, dy:0};
+  var yw = String(axYm).length * 28 * 0.62;
+  var ylx = clamp(Math.max(X(0)-8, 6 + yw/2) + offY.dx, 4 + yw/2, VB.w - 4 - yw/2);
+  it.push(Object.assign(labelItem(ylx, clamp(Y(100)-18 + offY.dy, 24, VB.h-8), axYm, 28, AC, 'middle', 700, false),
+                       {noClip:true, lbl:'ax:y'}));
+  var xw = String(axXm).length * 28 * 0.62;
+  var xlx = clamp(clamp(X(100)-4, 8 + xw/2, VB.w - 10 - xw/2) + offX.dx, 4 + xw/2, VB.w - 4 - xw/2);
+  it.push(Object.assign(labelItem(xlx, clamp(Y(0)+70 + offX.dy, 24, VB.h-8), axXm, 28, AC, 'middle', 700, false),
+                       {noClip:true, lbl:'ax:x'}));
+  if(ax.ticks){
+    for(v=0; v<=100; v+=25){
+      it.push(Object.assign(pathItem([{x:X(v),y:Y(0)},{x:X(v),y:Y(0)+7}], AC, 1.4, null), {noClip:true}));
+      /* a Q label wins the space under the axis */
+      var hiddenQ = false;
+      for(i=0;i<qLab.length;i++) if(Math.abs(qLab[i].x - X(v)) < 26) hiddenQ = true;
+      if(!hiddenQ){
+        it.push(Object.assign({t:'text', x:X(v), y:Y(0)+32, s:String(v), size:20, color:'#5f5e5a',
+          weight:500, anchor:'middle', halo:false, noClip:true}));
+      }
+      if(v>0){
+        it.push(Object.assign(pathItem([{x:X(0),y:Y(v)},{x:X(0)-7,y:Y(v)}], AC, 1.4, null), {noClip:true}));
+        it.push(Object.assign({t:'text', x:X(0)-14, y:Y(v)+7, s:String(v), size:20, color:'#5f5e5a',
+          weight:500, anchor:'end', halo:false, noClip:true}));
+      }
+    }
+  }
+  if(showPQ){
+    for(i=0;i<pLab.length;i++){
+      var pa = Math.max(0.38, 0.95 - pLab[i].age*0.18);
+      var pc = pLab[i].live ? '#252523' : '#8a887f';
+      it.push(Object.assign(pathItem([{x:X(0)-9,y:pLab[i].y},{x:X(0),y:pLab[i].y}], pc, 2, null), {noClip:true, opacity:pa}));
+      var pk = 'P:'+pLab[i].s, po = (S.labelOff && S.labelOff[pk]) || {dx:0, dy:0};
+      it.push(Object.assign(labelItem(X(0)-58+po.dx, pLab[i].y+8+po.dy, labelText(pk, pLab[i].s), 25, pc, 'end', 700, true),
+                           {noClip:true, opacity:pa, lbl:pk}));
+    }
+    for(i=0;i<qLab.length;i++){
+      var qa = Math.max(0.38, 0.95 - qLab[i].age*0.18);
+      var qc = qLab[i].live ? '#252523' : '#8a887f';
+      it.push(Object.assign(pathItem([{x:qLab[i].x,y:Y(0)},{x:qLab[i].x,y:Y(0)+10}], qc, 2, null), {noClip:true, opacity:qa}));
+      var qk = 'Q:'+qLab[i].s, qo = (S.labelOff && S.labelOff[qk]) || {dx:0, dy:0};
+      it.push(Object.assign(labelItem(qLab[i].x+qo.dx, Y(0)+36+qo.dy, labelText(qk, qLab[i].s), 25, qc, 'middle', 700, true),
+                           {noClip:true, opacity:qa, lbl:qk}));
+    }
+  }
+  if(S.opts.guides){
+    if(showHist){
+      for(i=0;i<eqH.length;i++){
+        var a = Math.max(0.20, 0.60 - (eqH.length-1-i)*0.13);
+        it.push(Object.assign(pathItem([{x:X(0),y:Y(eqH[i].y)},{x:X(eqH[i].x),y:Y(eqH[i].y)}], '#9d9b93', 1.5, '7 5'), {opacity:a}));
+        it.push(Object.assign(pathItem([{x:X(eqH[i].x),y:Y(eqH[i].y)},{x:X(eqH[i].x),y:Y(0)}], '#9d9b93', 1.5, '7 5'), {opacity:a}));
+      }
+    }
+    if(eqL){
+      it.push(pathItem([{x:X(0),y:Y(eqL.y)},{x:X(eqL.x),y:Y(eqL.y)}], '#7d7b74', 1.6, '6 4'));
+      it.push(pathItem([{x:X(eqL.x),y:Y(eqL.y)},{x:X(eqL.x),y:Y(0)}], '#7d7b74', 1.6, '6 4'));
+    }
+  }
+  /* regions (behind curves): explicit polygons plus the ones derived from the curves */
+  for(i=0;i<S.marks.length;i++){
+    m = S.marks[i];
+    if(m.kind!=='region') continue;
+    var rg = regionRing(m);
+    if(!rg || rg.length<3) continue;
+    it.push({t:'poly', pts:rg.map(function(p){ return {x:X(p.x),y:Y(p.y)}; }),
+             fill:m.color, opacity:(m.opacity!=null?m.opacity:0.3),
+             stroke: m.outline ? m.color : null, w:1.4,
+             dash: (m.derive && m.derive.when === 'before') ? '7 5' : null});
+  }
+  /* externality: the deadweight loss is derived live, so dragging a curve updates it */
+  var extInfo = null;
+  if(S.ext){
+    var socC = curveById(S.ext.social), othC = curveById(S.ext.other);
+    if(socC && othC && socC.visible && othC.visible && eqL){
+      var socPts = sampleCurve(socC), othPts = sampleCurve(othC), xpts = [];
+      var cps = polyInt(socPts, othPts);
+      for(i=0;i<cps.length;i++){
+        if(cps[i].x>=-0.01 && cps[i].x<=100.01 && cps[i].y>=-0.01 && cps[i].y<=100.01) xpts.push(cps[i]);
+      }
+      if(xpts.length){
+        var rg2 = dwlRing(socPts, othPts, eqL.x, xpts[0].x);
+        if(rg2){
+          it.push({t:'poly', pts:rg2.map(function(p){ return {x:X(p.x),y:Y(p.y)}; }),
+                   fill:'#e74c3c', opacity:0.28, stroke:null, w:0});
+          extInfo = {opt: xpts[0], ring: rg2};
+        }
+      }
+    }
+  }
+  var placedLabels = collectTextBoxes(it);
+  /* labels the user placed by hand are fixed obstacles: book them first so the
+     automatic ones (curve names, E1/E2, P/Q) dodge them instead of colliding */
+  for(i=0;i<S.marks.length;i++){
+    m = S.marks[i];
+    if(m.kind!=='text') continue;
+    var msz = m.size || 24;
+    var mw = String(m.text).length * msz * 0.62;
+    placedLabels.push({x0:X(m.x), x1:X(m.x)+mw,
+                       y0:Y(m.y) - msz*0.80, y1:Y(m.y) + msz*0.22});
+  }
+  for(i=0;i<S.curves.length;i++){
+    c = S.curves[i];
+    if(!c.visible) continue;
+    pts = sampleCurve(c);
+    if(pts.length<2) continue;
+    /* sampled polylines live in MATH units - project them to the canvas first */
+    it.push(pathItem(pts.map(function(p){ return {x:X(p.x), y:Y(p.y)}; }),
+                     c.color, c.width, c.dash?'13 8':null));
+    var clp = labelPos(pts), cnm = labelText('c:'+c.id, c.label);
+    var canchor = (X(clp.x) + String(cnm).length*28*0.62 > PLOT.x1 - 4) ? 'end' : 'start';
+    placeLabel(placedLabels, it, X(clp.x), Y(clp.y), cnm, 28, c.color, canchor, 700, null, 'c:'+c.id);
+  }
+  if(S.opts.shiftArrow && S.opts.guides && S.arrowPair){
+    var ca = curveById(S.arrowPair.a), cb = curveById(S.arrowPair.b);
+    if(ca && cb && ca.visible && cb.visible){
+      if(ca.shape==='hline' && cb.shape==='hline'){
+        var xv = X(22), ya = Y(ca.p.p), yb = Y(cb.p.p);
+        if(Math.abs(yb-ya) > 5){
+          var sgn = yb>ya ? 1 : -1;
+          it.push(pathItem([{x:xv,y:ya},{x:xv,y:yb-sgn*5}], '#8a6410', 3, null, {arrow:true, head:16}));
+        }
+      } else {
+        var pA = sampleCurve(ca), pB = sampleCurve(cb);
+        if(eqL){
+          /* a market: the arrow shows the change at a level just above the old
+             equilibrium, which is the bit P1/P2 is about */
+          var level = clamp(eqL.y+20, 14, 90);
+          var xa = xAtY(pA, level), xb = xAtY(pB, level);
+          if(xa!=null && xb!=null && Math.abs(xb-xa) > 4){
+            var dir = (xb>xa) ? 1 : -1;
+            it.push(pathItem([{x:X(xa),y:Y(level)},{x:X(xb)-dir*4,y:Y(level)}], '#8a6410', 3, null, {arrow:true, head:16}));
+          }
+        } else {
+          /* No market to anchor to (a pair of frontiers). The arrow has to point
+             along whichever direction actually changed: "more of one good" pushes
+             the frontier sideways while "more of the other" pushes it upward, and a
+             fixed horizontal arrow is simply invisible for the second case. So try
+             both orientations and keep the one with the widest separation. */
+          var topA = 0, topB = 0, z2, best = null, gap;
+          for(z2=0; z2<pA.length; z2++) if(pA[z2].y > topA) topA = pA[z2].y;
+          for(z2=0; z2<pB.length; z2++) if(pB[z2].y > topB) topB = pB[z2].y;
+          var cap = Math.min(topA, topB) * 0.96;
+          /* If only ONE intercept moved then the arrow has to run along that axis:
+             a sideways arrow between two frontiers that differ only in height would
+             be saying "quantity changed", which is the opposite of the truth. */
+          var da = (isPPC(ca) && isPPC(cb)) ? Math.abs(ca.p.a - cb.p.a) : 1;
+          var db = (isPPC(ca) && isPPC(cb)) ? Math.abs(ca.p.b - cb.p.b) : 1;
+          var onlyX = da > 0.5 && db <= 0.5;
+          var onlyY = db > 0.5 && da <= 0.5;
+          if(!onlyY){
+            for(z2=1; z2<=8; z2++){
+              var lev = cap * z2 / 9;
+              var ax = xAtY(pA, lev), bx = xAtY(pB, lev);
+              if(ax==null || bx==null) continue;
+              gap = Math.abs(bx-ax);
+              if(!best || gap > best.gap) best = {gap:gap, horiz:true, a:ax, b:bx, at:lev};
+            }
+          }
+          /* the X intercept is the last sampled point, since these curves end on the axis.
+             The vertical gap is widest right up against the Y axis, so sample the
+             middle of the canvas instead - an arrow pinned to the axis reads as part
+             of the axis and collides with the curve names. */
+          var wcap = Math.min(pA[pA.length-1].x, pB[pB.length-1].x);
+          if(!onlyX){
+            for(z2=0; z2<5; z2++){
+              var xc = wcap * (0.22 + 0.11*z2);
+              var ay = yAtX(pA, xc), by = yAtX(pB, xc);
+              if(ay==null || by==null) continue;
+              gap = Math.abs(by-ay);
+              if(!best || gap > best.gap) best = {gap:gap, horiz:false, a:ay, b:by, at:xc};
+            }
+          }
+          if(best && best.gap > 8){
+            var d2 = (best.b > best.a) ? 1 : -1;
+            if(best.horiz){
+              it.push(pathItem([{x:X(best.a),y:Y(best.at)},{x:X(best.b)-d2*5,y:Y(best.at)}],
+                               '#8a6410', 3, null, {arrow:true, head:16}));
+            } else {
+              /* screen Y runs the other way, so "stop short" means adding */
+              it.push(pathItem([{x:X(best.at),y:Y(best.a)},{x:X(best.at),y:Y(best.b)+d2*5}],
+                               '#8a6410', 3, null, {arrow:true, head:16}));
+            }
+          }
+        }
+      }
+    }
+  }
+  if(showHist){
+    for(i=0;i<eqH.length;i++){
+      var a2 = Math.max(0.30, 0.90 - (eqH.length-1-i)*0.16);
+      it.push(Object.assign(dot(X(eqH[i].x), Y(eqH[i].y), 9, '#ffffff', '#8a887f', 3, '3 3'), {opacity:a2}));
+      placeLabel(placedLabels, it, X(eqH[i].x)+13, Y(eqH[i].y)+23,
+                 labelText(eqH[i].label, eqH[i].label), 25, '#6d6b65',
+                 'start', 600, null, eqH[i].label).opacity = a2;
+    }
+  }
+  if(eqL){
+    it.push(dot(X(eqL.x), Y(eqL.y), 10, '#252523', null, 0, null));
+    placeLabel(placedLabels, it, X(eqL.x)+15, Y(eqL.y)-12,
+               labelText(liveEqLabel(), liveEqLabel()), 26, '#252523', 'start', 700, null, liveEqLabel());
+    if(S.opts.deltaBadges && eqH.length){
+      var prev = eqH[eqH.length-1];
+      var dp = eqL.y-prev.y, dq = eqL.x-prev.x, parts = [];
+      if(Math.abs(dp)>0.4) parts.push('P '+(dp>0?'\u2191':'\u2193'));
+      if(Math.abs(dq)>0.4) parts.push('Q '+(dq>0?'\u2191':'\u2193'));
+      if(parts.length){
+        var str = labelText(BADGE_KEY, parts.join('   '));
+        var bw = str.length*13.5+22, bh = 34;
+        var ax0 = X(eqL.x), ay0 = Y(eqL.y);
+        var bman = (S.labelOff && S.labelOff[BADGE_KEY]) || null;
+        var posB;
+        if(bman){
+          /* hand-placed: it follows the equilibrium and the user's own offset wins */
+          posB = {x: clamp(ax0+bman.dx, X(0)+2, X(100)-bw-4),
+                  y: clamp(ay0+bman.dy, Y(100)+4, Y(0)-bh-4)};
+        } else {
+          /* try a few spots around the new equilibrium and take the first clear one */
+          var boxes = collectTextBoxes(it), chosen = null, fallback = null;
+          var cands = [[22,-54,'start'], [-22,-54,'end'], [22,52,'start'],
+                       [-22,52,'end'], [22,-18,'start'], [-22,-18,'end']];
+          for(var ci=0; ci<cands.length; ci++){
+            var cxx = (cands[ci][2]==='end') ? ax0+cands[ci][0]-bw : ax0+cands[ci][0];
+            var cyy = ay0+cands[ci][1];
+            cxx = clamp(cxx, X(0)+2, X(100)-bw-4);
+            cyy = clamp(cyy, Y(100)+4, Y(0)-bh-4);
+            if(!fallback) fallback = {x:cxx, y:cyy};
+            if(!boxClash(boxes, {x0:cxx, x1:cxx+bw, y0:cyy, y1:cyy+bh})){ chosen = {x:cxx, y:cyy}; break; }
+          }
+          posB = chosen || fallback;
+        }
+        badgePos = {x:posB.x, y:posB.y};
+        it.push({t:'rect', x:posB.x, y:posB.y, w:bw, h:bh, rx:8, fill:'#fff6e0', stroke:'#d9a94a', sw:1.4});
+        /* the whole pill is the grab / edit target, not just the glyphs inside it */
+        it.push({t:'text', x:posB.x+bw/2, y:posB.y+bh/2+8, s:str, size:21, color:'#7a5310',
+                 weight:700, anchor:'middle', halo:false, lbl:BADGE_KEY,
+                 lblBox:{x:posB.x, y:posB.y, w:bw, h:bh}});
+      } else badgePos = null;
+    } else badgePos = null;
+  }
+  /* externality markers: the social optimum and the deadweight loss */
+  if(extInfo && extInfo.opt){
+    it.push(dot(X(extInfo.opt.x), Y(extInfo.opt.y), 9, '#ffffff', '#e74c3c', 3.5, null));
+    placeLabel(placedLabels, it, X(extInfo.opt.x)+14, Y(extInfo.opt.y)-11,
+               labelText('E*', 'E*'), 26, '#c92a2a', 'start', 700, null, 'E*');
+    var cxs = 0, cys = 0, ki;
+    for(ki=0; ki<extInfo.ring.length; ki++){ cxs += extInfo.ring[ki].x; cys += extInfo.ring[ki].y; }
+    cxs /= extInfo.ring.length; cys /= extInfo.ring.length;
+    placeLabel(placedLabels, it, X(cxs), Y(cys)+8, labelText('DWL', 'deadweight loss'), 21,
+               '#a32d2d', 'middle', 700, null, 'DWL');
+  }
+  /* name the automatic surplus areas */
+  for(i=0;i<S.marks.length;i++){
+    m = S.marks[i];
+    if(m.kind !== 'region' || !m.derive) continue;
+    var rg3 = regionRing(m);
+    if(!rg3 || rg3.length < 3) continue;
+    var axs = 0, ays = 0, ka;
+    for(ka=0; ka<rg3.length; ka++){ axs += rg3[ka].x; ays += rg3[ka].y; }
+    axs /= rg3.length; ays /= rg3.length;
+    placeLabel(placedLabels, it, X(axs), Y(ays)+8,
+               labelText('r:'+m.id, (m.derive.what === 'cs' ? 'CS' : 'PS')), 22,
+               (m.derive.what === 'cs' ? '#1864ab' : '#1b7a3f'), 'middle', 700, null, 'r:'+m.id);
+  }
+  for(i=0;i<S.marks.length;i++){
+    m = S.marks[i];
+    if(m.kind==='region') continue;
+    if(m.kind==='point'){
+      it.push(dot(X(m.x), Y(m.y), 9, m.color||'#252523', '#ffffff', 3, null));
+      if(m.showGuides && S.opts.guides){
+        it.push(pathItem([{x:X(0),y:Y(m.y)},{x:X(m.x),y:Y(m.y)}], '#a9a79f', 1.3, '5 4'));
+        it.push(pathItem([{x:X(m.x),y:Y(m.y)},{x:X(m.x),y:Y(0)}], '#a9a79f', 1.3, '5 4'));
+      }
+      if(m.label) placeLabel(placedLabels, it, X(m.x)+15, Y(m.y)-12,
+                             labelText('m:'+m.id, m.label), 25, m.color||'#252523', 'start', 600, null, 'm:'+m.id);
+    }
+    else if(m.kind==='text'){
+      /* a free text box is moved by dragging the mark itself, so it deliberately
+         carries no `lbl` key - a label grab-box here would hijack that drag */
+      it.push({t:'text', x:X(m.x), y:Y(m.y), s:m.text, size:m.size||24, color:m.color||'#252523',
+               weight:m.weight||500, anchor:'start', halo:true});
+    }
+    else if(m.kind==='arrow'){
+      p1={x:X(m.x1),y:Y(m.y1)}; p2={x:X(m.x2),y:Y(m.y2)};
+      it.push(pathItem([p1,p2], m.color||'#252523', 3, null, {arrow:true, head:15}));
+      if(m.label){
+        var alOff = (S.labelOff && S.labelOff['m:'+m.id]) || {dx:0, dy:0};
+        it.push(Object.assign(
+          labelItem((p1.x+p2.x)/2+8+alOff.dx, (p1.y+p2.y)/2-12+alOff.dy,
+                    labelText('m:'+m.id, m.label), 23, m.color||'#252523','start',600,true),
+          {lbl:'m:'+m.id}));
+      }
+    }
+    else if(m.kind==='bracket'){
+      var along = (m.axis==='x'), col = m.color||'#252523';
+      if(along){
+        var q1=X(m.from), q2v=X(m.to), lo=Math.min(q1,q2v), hi=Math.max(q1,q2v);
+        var base=Y(0), tip=base+OFF;
+        it.push(Object.assign(pathItem([{x:lo,y:base},{x:lo,y:tip}], col, 2, null), {noClip:true}));
+        it.push(Object.assign(pathItem([{x:hi,y:base},{x:hi,y:tip}], col, 2, null), {noClip:true}));
+        it.push(Object.assign(pathItem([{x:lo,y:tip},{x:hi,y:tip}], col, 2, null), {noClip:true}));
+        it.push(Object.assign({t:'text', x:(lo+hi)/2, y:tip-12, s:m.label||'', size:23, color:col,
+          weight:700, anchor:'middle', halo:true, noClip:true}));
+      } else {
+        var p1v=Y(m.from), p2v=Y(m.to), lo2=Math.min(p1v,p2v), hi2=Math.max(p1v,p2v);
+        var base2=X(0), tip2=base2-OFF;
+        it.push(Object.assign(pathItem([{x:base2,y:lo2},{x:tip2,y:lo2}], col, 2, null), {noClip:true}));
+        it.push(Object.assign(pathItem([{x:base2,y:hi2},{x:tip2,y:hi2}], col, 2, null), {noClip:true}));
+        it.push(Object.assign(pathItem([{x:tip2,y:lo2},{x:tip2,y:hi2}], col, 2, null), {noClip:true}));
+        it.push(Object.assign({t:'text', x:tip2-9, y:(lo2+hi2)/2+8, s:m.label||'', size:23, color:col,
+          weight:700, anchor:'end', halo:true, noClip:true}));
+      }
+    }
+  }
+  if(!forExport && pending){
+    if(pending.type==='bracket' && pending.from!=null){
+      var bx2 = (pending.axis==='x') ? X(pending.from) : X(0)-OFF;
+      var by2 = (pending.axis==='x') ? Y(0)+OFF : Y(pending.from);
+      it.push({t:'circle', x:bx2, y:by2, r:7, fill:'#ffffff', stroke:'#1971c2', w:2.5, dash:null});
+    }
+    if(pending.type==='region' && pending.pts.length){
+      var rp = pending.pts.map(function(p){ return {x:X(p.x),y:Y(p.y)}; });
+      if(rp.length>=2) it.push(pathItem(rp, '#1971c2', 2, '6 4'));
+      it.push({t:'poly', pts:rp, fill:'#a5d8ff', opacity:0.35, stroke:null, w:0});
+      for(j=0;j<rp.length;j++) it.push({t:'circle', x:rp[j].x, y:rp[j].y, r:6, fill:'#fff', stroke:'#1971c2', w:2.5, dash:null});
+    }
+  }
+  if(!forExport && S.sel && S.sel.type==='curve'){
+    c = curveById(S.sel.id);
+    if(c && c.visible){
+      var hs = handles(c);
+      for(i=0;i<hs.length;i++)
+        it.push({t:'circle', x:X(hs[i].x), y:Y(hs[i].y), r:8, fill:'#ffffff', stroke:'#1971c2',
+                 w:3, dash:null, handle:true, curveId:c.id, hk:hs[i].k});
+    }
+  }
+  return it;
+}
+
+/* ---------- SVG renderer ---------- */
+var svg = document.getElementById('canvas');
+function splitLabel(s){
+  var m = /^(.*?)([0-9]+)$/.exec(String(s));
+  if(m && m[1]) return {base:m[1], sub:m[2]};
+  return {base:String(s), sub:''};
+}
+function textNode(it){
+  var sp = splitLabel(it.s);
+  var style = 'font-family:'+FONT+';font-size:'+it.size+'px;font-weight:'+(it.weight||600)+';';
+  var paint = 'fill="'+it.color+'"';
+  if(it.halo) paint += ' stroke="#ffffff" stroke-width="'+(it.size*0.2).toFixed(1)+
+                       '" paint-order="stroke" stroke-linejoin="round"';
+  var inner = esc(sp.base) +
+    (sp.sub ? '<tspan font-size="'+(it.size*0.7)+'" dy="'+(it.size*0.24).toFixed(1)+'">'+esc(sp.sub)+'</tspan>' : '');
+  return '<text x="'+r2(it.x)+'" y="'+r2(it.y)+'" text-anchor="'+(it.anchor||'start')+
+         '" style="'+style+'" '+paint+'>'+inner+'</text>';
+}
+function itemsToSVG(items){
+  var out = [], i, it, op, d, h, s;
+  for(i=0;i<items.length;i++){
+    it = items[i];
+    if(!it) continue;
+    op = (it.opacity!=null) ? ' opacity="'+it.opacity+'"' : '';
+    if(it.t==='path'){
+      if(!it.pts || it.pts.length<2) continue;
+      d = 'M'+it.pts.map(function(p){ return r2(p.x)+','+r2(p.y); }).join(' L');
+      out.push('<path d="'+d+'" fill="none" stroke="'+it.stroke+'" stroke-width="'+it.w+'"'+
+        (it.dash?' stroke-dasharray="'+it.dash+'"':'')+
+        ' stroke-linecap="'+(it.cap||'butt')+'" stroke-linejoin="'+(it.join||'miter')+'"'+op+'/>');
+      if(it.arrow){
+        h = arrowHead(it.pts[it.pts.length-2], it.pts[it.pts.length-1], it.head||11);
+        if(h) out.push('<polygon points="'+h.map(function(p){ return r2(p.x)+','+r2(p.y); }).join(' ')+'" fill="'+it.stroke+'"'+op+'/>');
+      }
+    }
+    else if(it.t==='poly'){
+      if(!it.pts || it.pts.length<3) continue;
+      out.push('<polygon points="'+it.pts.map(function(p){ return r2(p.x)+','+r2(p.y); }).join(' ')+
+        '" fill="'+it.fill+'" fill-opacity="'+(it.opacity!=null?it.opacity:1)+'"'+
+        (it.stroke?' stroke="'+it.stroke+'" stroke-width="'+it.w+'"':' stroke="none"')+
+        (it.dash?' stroke-dasharray="'+it.dash+'"':'')+'/>');
+    }
+    else if(it.t==='rect'){
+      out.push('<rect x="'+r2(it.x)+'" y="'+r2(it.y)+'" width="'+r2(it.w)+'" height="'+r2(it.h)+
+        '" rx="'+(it.rx||0)+'" fill="'+it.fill+'"'+
+        (it.stroke?' stroke="'+it.stroke+'" stroke-width="'+(it.sw||1)+'"':'')+op+'/>');
+    }
+    else if(it.t==='circle'){
+      s = '<circle cx="'+r2(it.x)+'" cy="'+r2(it.y)+'" r="'+r2(it.r)+'" fill="'+it.fill+'"';
+      if(it.stroke) s += ' stroke="'+it.stroke+'" stroke-width="'+it.w+'"';
+      if(it.dash) s += ' stroke-dasharray="'+it.dash+'"';
+      if(it.handle) s += ' data-handle="1" data-curve="'+it.curveId+'" data-hk="'+it.hk+'" style="cursor:grab"';
+      out.push(s+op+'/>');
+    }
+    else if(it.t==='text') out.push(textNode(it));
+  }
+  return out.join('');
+}
+function hitPathsSVG(items){
+  var out = [], i, c, m, pts, dd, w;
+  /* movable labels sit on top so a label near a curve still wins the click */
+  for(i=0;i<(items||[]).length;i++){
+    var lb = items[i];
+    if(!lb || lb.t !== 'text' || !lb.lbl) continue;
+    var lw = String(lb.s).length * lb.size * 0.62;
+    var lx = lb.anchor==='middle' ? lb.x - lw/2 : (lb.anchor==='end' ? lb.x - lw : lb.x);
+    /* a label that sits inside a drawn box (the P/Q change pill) wants the whole
+       box as its target, not just the glyph run */
+    var gx = lb.lblBox ? lb.lblBox.x : lx - 7;
+    var gy = lb.lblBox ? lb.lblBox.y : lb.y - lb.size*0.85;
+    var gw = lb.lblBox ? lb.lblBox.w : lw + 14;
+    var gh = lb.lblBox ? lb.lblBox.h : lb.size*1.15;
+    out.push('<rect x="'+r2(gx)+'" y="'+r2(gy)+'" width="'+r2(gw)+
+      '" height="'+r2(gh)+'" rx="4" fill="transparent" data-lbl="'+lb.lbl+
+      '" style="cursor:grab"/>');
+  }
+  for(i=0;i<S.curves.length;i++){
+    c = S.curves[i];
+    if(!c.visible) continue;
+    pts = sampleCurve(c);
+    if(pts.length<2) continue;
+    dd = 'M'+pts.map(function(q){ return r2(X(q.x))+','+r2(Y(q.y)); }).join(' L');
+    out.push('<path d="'+dd+'" fill="none" stroke="transparent" stroke-width="18" '+
+      'stroke-linecap="round" stroke-linejoin="round" data-hit="'+c.id+'" style="cursor:move"/>');
+  }
+  for(i=0;i<S.marks.length;i++){
+    m = S.marks[i];
+    if(m.kind==='point'){
+      out.push('<circle cx="'+r2(X(m.x))+'" cy="'+r2(Y(m.y))+'" r="13" fill="transparent" data-mark="'+m.id+'" style="cursor:move"/>');
+    } else if(m.kind==='text'){
+      w = Math.max(28, String(m.text).length*(m.size||24)*0.6);
+      out.push('<rect x="'+r2(X(m.x)-5)+'" y="'+r2(Y(m.y)-(m.size||24))+'" width="'+r2(w)+
+        '" height="'+r2((m.size||24)*1.4)+'" fill="transparent" data-mark="'+m.id+'" style="cursor:move"/>');
+    } else if(m.kind==='arrow'){
+      out.push('<path d="M'+r2(X(m.x1))+','+r2(Y(m.y1))+' L'+r2(X(m.x2))+','+r2(Y(m.y2))+
+        '" stroke="transparent" stroke-width="16" data-mark="'+m.id+'" style="cursor:move"/>');
+    } else if(m.kind==='region'){
+      var rgp = regionRing(m);
+      if(rgp && rgp.length >= 3){
+        out.push('<polygon points="'+rgp.map(function(p){ return r2(X(p.x))+','+r2(Y(p.y)); }).join(' ')+
+          '" fill="transparent" stroke="transparent" stroke-width="12" data-mark="'+m.id+'" style="cursor:pointer"/>');
+      }
+    } else if(m.kind==='bracket'){
+      if(m.axis==='x'){
+        out.push('<rect x="'+r2(X(Math.min(m.from,m.to))-8)+'" y="'+r2(Y(0))+'" width="'+
+          r2(Math.abs(X(m.to)-X(m.from))+16)+'" height="44" fill="transparent" data-mark="'+m.id+'" style="cursor:pointer"/>');
+      } else {
+        out.push('<rect x="'+r2(X(0)-44)+'" y="'+r2(Y(Math.max(m.from,m.to))-8)+'" width="50" height="'+
+          r2(Math.abs(Y(m.from)-Y(m.to))+16)+'" fill="transparent" data-mark="'+m.id+'" style="cursor:pointer"/>');
+      }
+    }
+  }
+  return out.join('');
+}
+function render(){
+  var items = buildItems(false), noClip = [], plot = [], i;
+  for(i=0;i<items.length;i++){
+    if(!items[i]) continue;
+    (items[i].noClip ? noClip : plot).push(items[i]);
+  }
+  svg.innerHTML =
+    '<defs><clipPath id="plotClip"><rect x="'+PLOT.x0+'" y="'+PLOT.y0+'" width="'+CW+'" height="'+CH+'"/></clipPath></defs>'+
+    '<g>'+itemsToSVG(noClip)+'</g>'+
+    '<g clip-path="url(#plotClip)">'+itemsToSVG(plot)+'</g>'+
+    '<g>'+hitPathsSVG(items)+'</g>';
+  refreshHint();
+  var eq = liveEq(), el = document.getElementById('stEq');
+  if(el) el.textContent = eq ? ('Equilibrium   Q ' + r2(eq.x) + '   P ' + r2(eq.y)) : '';
+  touchDraft();          /* every change funnels through here; coalesced inside */
+}
+
+/* ---------- Canvas renderer ---------- */
+function drawText(ctx, it){
+  var sp = splitLabel(it.s), small = it.size*0.7;
+  ctx.font = (it.weight||600)+' '+it.size+'px '+FONT;
+  var wb = ctx.measureText(sp.base).width, ws = 0;
+  if(sp.sub){ ctx.font = (it.weight||600)+' '+small+'px '+FONT; ws = ctx.measureText(sp.sub).width; }
+  var total = wb+ws, x = it.x;
+  if(it.anchor==='middle') x -= total/2;
+  else if(it.anchor==='end') x -= total;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  if(it.halo){
+    ctx.lineWidth = it.size*0.2; ctx.strokeStyle = '#ffffff';
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.font = (it.weight||600)+' '+it.size+'px '+FONT;
+    ctx.strokeText(sp.base, x, it.y);
+    if(sp.sub){ ctx.font=(it.weight||600)+' '+small+'px '+FONT; ctx.strokeText(sp.sub, x+wb, it.y+small*0.34); }
+  }
+  ctx.fillStyle = it.color;
+  ctx.font = (it.weight||600)+' '+it.size+'px '+FONT;
+  ctx.fillText(sp.base, x, it.y);
+  if(sp.sub){
+    ctx.font = (it.weight||600)+' '+small+'px '+FONT;
+    ctx.fillText(sp.sub, x+wb, it.y+small*0.34);
+  }
+}
+function itemsToCanvas(ctx, items){
+  var i, j, it, h, rr;
+  for(i=0;i<items.length;i++){
+    it = items[i];
+    if(!it) continue;
+    ctx.save();
+    ctx.globalAlpha = (it.opacity!=null) ? it.opacity : 1;
+    if(it.t==='path'){
+      if(!it.pts || it.pts.length<2){ ctx.restore(); continue; }
+      ctx.beginPath();
+      ctx.moveTo(it.pts[0].x, it.pts[0].y);
+      for(j=1;j<it.pts.length;j++) ctx.lineTo(it.pts[j].x, it.pts[j].y);
+      ctx.strokeStyle = it.stroke; ctx.lineWidth = it.w;
+      ctx.lineCap = it.cap==='round'?'round':'butt';
+      ctx.lineJoin = it.join==='round'?'round':'miter';
+      if(it.dash) ctx.setLineDash(it.dash.split(/\s+/).map(Number));
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if(it.arrow){
+        h = arrowHead(it.pts[it.pts.length-2], it.pts[it.pts.length-1], it.head||11);
+        if(h){
+          ctx.beginPath();
+          ctx.moveTo(h[0].x,h[0].y); ctx.lineTo(h[1].x,h[1].y); ctx.lineTo(h[2].x,h[2].y);
+          ctx.closePath(); ctx.fillStyle = it.stroke; ctx.fill();
+        }
+      }
+    }
+    else if(it.t==='poly'){
+      if(!it.pts || it.pts.length<3){ ctx.restore(); continue; }
+      ctx.beginPath();
+      ctx.moveTo(it.pts[0].x, it.pts[0].y);
+      for(j=1;j<it.pts.length;j++) ctx.lineTo(it.pts[j].x, it.pts[j].y);
+      ctx.closePath();
+      ctx.fillStyle = it.fill; ctx.fill();
+      if(it.stroke){
+        ctx.strokeStyle = it.stroke; ctx.lineWidth = it.w||1;
+        if(it.dash) ctx.setLineDash(it.dash.split(/\s+/).map(Number));
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+    }
+    else if(it.t==='rect'){
+      rr = it.rx||0;
+      ctx.beginPath();
+      if(ctx.roundRect){ ctx.roundRect(it.x,it.y,it.w,it.h,rr); }
+      else{
+        ctx.moveTo(it.x+rr,it.y); ctx.lineTo(it.x+it.w-rr,it.y);
+        ctx.quadraticCurveTo(it.x+it.w,it.y,it.x+it.w,it.y+rr);
+        ctx.lineTo(it.x+it.w,it.y+it.h-rr);
+        ctx.quadraticCurveTo(it.x+it.w,it.y+it.h,it.x+it.w-rr,it.y+it.h);
+        ctx.lineTo(it.x+rr,it.y+it.h);
+        ctx.quadraticCurveTo(it.x,it.y+it.h,it.x,it.y+it.h-rr);
+        ctx.lineTo(it.x,it.y+rr);
+        ctx.quadraticCurveTo(it.x,it.y,it.x+rr,it.y); ctx.closePath();
+      }
+      ctx.fillStyle = it.fill; ctx.fill();
+      if(it.stroke){ ctx.strokeStyle = it.stroke; ctx.lineWidth = it.sw||1; ctx.stroke(); }
+    }
+    else if(it.t==='circle'){
+      ctx.beginPath();
+      ctx.arc(it.x, it.y, it.r, 0, Math.PI*2);
+      ctx.fillStyle = it.fill; ctx.fill();
+      if(it.stroke){
+        ctx.strokeStyle = it.stroke; ctx.lineWidth = it.w;
+        if(it.dash) ctx.setLineDash(it.dash.split(/\s+/).map(Number));
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+    }
+    else if(it.t==='text') drawText(ctx, it);
+    ctx.restore();
+  }
+}
+function clipCanvasToPlot(ctx, items){
+  var noClip = [], plot = [], i;
+  for(i=0;i<items.length;i++){
+    if(!items[i]) continue;
+    (items[i].noClip ? noClip : plot).push(items[i]);
+  }
+  itemsToCanvas(ctx, noClip);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(PLOT.x0, PLOT.y0, CW, CH); ctx.clip();
+  itemsToCanvas(ctx, plot);
+  ctx.restore();
+}
+function renderToCanvas(scale, transparent, withTitle){
+  var items = buildItems(true);
+  var cv = document.createElement('canvas');
+  cv.width = Math.round(VB.w*scale);
+  cv.height = Math.round(VB.h*scale);
+  var ctx = cv.getContext('2d');
+  ctx.setTransform(scale,0,0,scale,0,0);
+  if(!transparent){ ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,VB.w,VB.h); }
+  if(withTitle && S.title){
+    drawText(ctx, {t:'text', x:VB.w/2, y:40, s:S.title, size:31, color:'#252523',
+                   weight:600, anchor:'middle', halo:false});
+  }
+  clipCanvasToPlot(ctx, items);
+  return cv;
+}
+function buildSVGString(withTitle){
+  var items = buildItems(true), noClip = [], plot = [], i;
+  for(i=0;i<items.length;i++){
+    if(!items[i]) continue;
+    (items[i].noClip ? noClip : plot).push(items[i]);
+  }
+  var defs = '<defs><clipPath id="pc"><rect x="'+PLOT.x0+'" y="'+PLOT.y0+
+             '" width="'+CW+'" height="'+CH+'"/></clipPath></defs>';
+  var titleXml = '';
+  if(withTitle && S.title){
+    titleXml = '<text x="'+(VB.w/2)+'" y="40" text-anchor="middle" style="font-family:'+FONT+
+               ';font-size:31px;font-weight:600" fill="#252523">'+esc(S.title)+'</text>';
+  }
+  return '<?xml version="1.0" encoding="UTF-8"?>\n'+
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+VB.w+' '+VB.h+'" width="'+VB.w+
+    '" height="'+VB.h+'">'+defs+'<rect width="100%" height="100%" fill="#ffffff"/>'+titleXml+
+    itemsToSVG(noClip)+'<g clip-path="url(#pc)">'+itemsToSVG(plot)+'</g></svg>';
+}
+
+/* ---------- export ---------- */
+function safeName(){
+  var base = (S.title || 'econ-diagram').trim().replace(/[\\/:*?"<>|]+/g,'').slice(0,60);
+  return base || 'econ-diagram';
+}
+function download(blob, filename){
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 400);
+}
+function toast(msg){
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function(){ t.classList.remove('on'); }, 2600);
+}
+function exportPNG(scale, transparent, withTitle){
+  var cv = renderToCanvas(scale, transparent, withTitle);
+  cv.toBlob(function(blob){
+    download(blob, safeName()+'.png');
+    toast('PNG saved ('+cv.width+'\u00d7'+cv.height+').');
+  }, 'image/png');
+}
+function exportSVGFile(){
+  download(new Blob([buildSVGString(true)], {type:'image/svg+xml;charset=utf-8'}), safeName()+'.svg');
+  toast('SVG saved \u2014 vector, editable in PowerPoint.');
+}
+function copyPNG(){
+  var cv = renderToCanvas(2, false, false);
+  if(!navigator.clipboard || !window.ClipboardItem){
+    cv.toBlob(function(b){ download(b, safeName()+'.png'); toast('Clipboard unavailable \u2014 PNG downloaded instead.'); });
+    return;
+  }
+  cv.toBlob(function(blob){
+    navigator.clipboard.write([new ClipboardItem({'image/png': blob})]).then(function(){
+      toast('Copied \u2014 now paste into PowerPoint or Word.');
+    }, function(){
+      download(blob, safeName()+'.png');
+      toast('Clipboard blocked here \u2014 PNG downloaded instead.');
+    });
+  }, 'image/png');
+}
+/* ---------- snapping ---------- */
+function snapMath(mx, my){
+  var best = null, bd = Infinity, i, j, pts, pt, dd, c;
+  for(i=0;i<S.curves.length;i++){
+    c = S.curves[i];
+    if(!c.visible) continue;
+    pts = sampleCurve(c);
+    for(j=0;j<pts.length;j++){
+      pt = pts[j];
+      dd = Math.sqrt((X(pt.x)-X(mx))*(X(pt.x)-X(mx)) + (Y(pt.y)-Y(my))*(Y(pt.y)-Y(my)));
+      if(dd < bd){ bd = dd; best = pt; }
+    }
+  }
+  for(i=0;i<S.eqHistory.length;i++){
+    dd = Math.sqrt((X(S.eqHistory[i].x)-X(mx))*(X(S.eqHistory[i].x)-X(mx)) +
+                   (Y(S.eqHistory[i].y)-Y(my))*(Y(S.eqHistory[i].y)-Y(my)));
+    if(dd < bd){ bd = dd; best = {x:S.eqHistory[i].x, y:S.eqHistory[i].y}; }
+  }
+  if(best && bd < 11) return {x:best.x, y:best.y, snapped:true};
+  if(S.axes.grid || S.axes.ticks) return {x: Math.round(mx/5)*5, y: Math.round(my/5)*5, snapped:false};
+  return {x: mx, y: my, snapped:false};
+}
+
+/* ---------- interaction ---------- */
+function toVB(evt){
+  var pt = svg.createSVGPoint();
+  pt.x = evt.clientX; pt.y = evt.clientY;
+  var mtx = svg.getScreenCTM();
+  if(!mtx) return {x:0,y:0};
+  return pt.matrixTransform(mtx.inverse());
+}
+function toMath(evt){
+  var v = toVB(evt);
+  return {x: clamp(invX(v.x),0,100), y: clamp(invY(v.y),0,100)};
+}
+var HINT = {
+  select:'Click a curve to reshape it. Drag any letter (D, S, E1, P1) to move that label, '+
+         'or double-click it to rename it.',
+  more:'Pick a tool from the list.',
+  point:'Click the canvas to drop a point \u2014 it snaps to curves and intersections.',
+  text:'Click where you want the label.',
+  arrow:'Drag from the start of the arrow to its tip.',
+  bracket:'Click two positions on an axis to draw a bracket (\u0394P or \u0394Q).',
+  region:'Click to add corners, then press Enter or double-click to close the shape.',
+  erase:'Click any curve, point or label to delete it.'
+};
+/* the hint names real objects, so it has to know whether this canvas is a market
+   at all. Refreshed from render(), because loading a template changes the answer
+   without going through setTool. */
+function refreshHint(){
+  var t = tool, hint = (typeof HINT !== 'undefined' && HINT[t]) || '';
+  if(t === 'select' && isPPCDiagram()){
+    hint = 'Click the frontier to reshape it. Drag any letter to move that label, ' +
+           'or double-click a letter to rename it.';
+  } else if(t === 'point' && isPPCDiagram()){
+    hint = 'Click to mark a spot \u2014 on the frontier is efficient, inside it is ' +
+           'inefficient, outside it is unattainable.';
+  } else if(t === 'arrow' && isPPCDiagram()){
+    hint = 'Drag from the tail of the arrow to its tip.';
+  }
+  var el = document.getElementById('stHint');
+  if(el && el.textContent !== hint) el.textContent = hint;
+}
+function setTool(t){
+  tool = t; pending = null;
+  var bs = document.querySelectorAll('.tool'), i, matched = false;
+  for(i=0;i<bs.length;i++){
+    var on = (bs[i].dataset.tool === t);
+    if(on) matched = true;
+    bs[i].classList.toggle('on', on);
+  }
+  /* point / arrow / bracket live behind "More", so light that button up instead */
+  if(!matched){
+    for(i=0;i<bs.length;i++) if(bs[i].dataset.tool==='more') bs[i].classList.add('on');
+  }
+  refreshHint();
+  if(t!=='select'){ S.sel = null; renderInspector(); }
+  render();
+}
+function select(sel){ S.sel = sel; render(); renderInspector(); }
+function nextPointLabel(){
+  var used = {}, i;
+  for(i=0;i<S.marks.length;i++) if(S.marks[i].kind==='point') used[S.marks[i].label]=1;
+  for(i=0;i<S.eqHistory.length;i++) used[S.eqHistory[i].label]=1;
+  used.D=1; used.S=1; used.E=1;
+  var seq = ['A','B','C','F','G','H','J','K','L','M','N','P','R','T','U','V','W','X','Y','Z'];
+  for(i=0;i<seq.length;i++) if(!used[seq[i]]) return seq[i];
+  return 'P'+(Object.keys(used).length+1);
+}
+function finishRegion(){
+  if(pending && pending.pts.length>=3){
+    pushUndo();
+    var mk = {id:uid('m'), kind:'region', pts:pending.pts, color:'#4dabf7', opacity:0.3, outline:false};
+    S.marks.push(mk);
+    pending = null;
+    select({type:'mark', id:mk.id});
+    setTool('select');
+    return;
+  }
+  pending = null; render();
+}
+function onDown(ev){
+  var t = ev.target, ds = t.dataset || {}, m = toMath(ev), c, mk, along, val, sp, sq, f;
+  if(tool==='add') return;
+  if(tool==='erase'){
+    if(ds.hit){ c = curveById(ds.hit); if(c) removeCurve(c); return; }
+    if(ds.mark){ mk = markById(ds.mark); if(mk) removeMark(mk); return; }
+    return;
+  }
+  if(tool==='select'){
+    if(ds.handle){
+      drag = {kind:'handle', curveId:ds.curve, hk:ds.hk, pre:snapshot(), committed:false};
+      return;
+    }
+    if(ds.lbl){
+      var lo0 = S.labelOff && S.labelOff[ds.lbl];
+      /* the change pill auto-places itself near the equilibrium, so its base offset
+         has to be measured from where it currently sits - otherwise the first grab
+         would jump the pill across the canvas */
+      if(!lo0 && ds.lbl === BADGE_KEY && badgePos){
+        var eqB = liveEq();
+        lo0 = eqB ? {dx: badgePos.x - X(eqB.x), dy: badgePos.y - Y(eqB.y)} : {dx:0, dy:0};
+      }
+      if(!lo0) lo0 = {dx:0, dy:0};
+      drag = {kind:'label', key:ds.lbl, sx:m.x, sy:m.y,
+              base:{dx:lo0.dx, dy:lo0.dy}, pre:snapshot(), committed:false};
+      return;
+    }
+    if(ds.hit){
+      select({type:'curve', id:ds.hit});
+      drag = {kind:'curve', id:ds.hit, last:m, pre:snapshot(), committed:false};
+      return;
+    }
+    if(ds.mark){
+      var mkSel = markById(ds.mark);
+      select({type:'mark', id:ds.mark});
+      /* a derived area (surplus / DWL) has no geometry of its own to drag */
+      if(mkSel && mkSel.derive) return;
+      drag = {kind:'mark', id:ds.mark, last:m, pre:snapshot(), committed:false};
+      return;
+    }
+    select(null);
+    return;
+  }
+  if(tool==='point'){
+    sp = snapMath(m.x, m.y);
+    pushUndo();
+    mk = {id:uid('m'), kind:'point', x:sp.x, y:sp.y,
+          label:nextPointLabel(), color:'#252523', showGuides:true};
+    S.marks.push(mk);
+    select({type:'mark', id:mk.id});
+    setTool('select');
+    return;
+  }
+  if(tool==='text'){
+    pushUndo();
+    mk = {id:uid('m'), kind:'text', x:m.x, y:m.y, text:'Label', size:24, color:'#252523', weight:500};
+    S.marks.push(mk);
+    select({type:'mark', id:mk.id});
+    setTool('select');
+    return;
+  }
+  if(tool==='arrow'){ drag = {kind:'newarrow', from:m}; render(); return; }
+  if(tool==='bracket'){
+    along = (m.y < m.x) ? 'x' : 'y';
+    val = (along==='x') ? m.x : m.y;
+    if(!pending) pending = {type:'bracket', from:null, axis:along};
+    if(pending.from==null){ pending.from = val; pending.axis = along; render(); return; }
+    pushUndo();
+    S.marks.push({id:uid('m'), kind:'bracket', axis:pending.axis, from:pending.from, to:val,
+      label:(pending.axis==='x' ? '\u0394Q' : '\u0394P'), color:'#252523'});
+    pending = null;
+    setTool('select');
+    return;
+  }
+  if(tool==='region'){
+    if(!pending) pending = {type:'region', pts:[]};
+    sq = snapMath(m.x, m.y);
+    if(pending.pts.length>=3){
+      f = pending.pts[0];
+      if(Math.sqrt((X(f.x)-X(sq.x))*(X(f.x)-X(sq.x)) + (Y(f.y)-Y(sq.y))*(Y(f.y)-Y(sq.y))) < 12){ finishRegion(); return; }
+    }
+    pending.pts.push({x:sq.x, y:sq.y});
+    render();
+    return;
+  }
+}
+function onMove(ev){
+  var v = toVB(ev), mx = invX(v.x), my = invY(v.y);
+  document.getElementById('stCoords').textContent =
+    (mx>=-1 && mx<=101 && my>=-1 && my<=101) ? ('Q '+r2(clamp(mx,0,100))+'   P '+r2(clamp(my,0,100))) : '';
+  if(!drag) return;
+  var m = toMath(ev), c, mk, dx, dy, i;
+  if(drag.kind==='handle'){
+    c = curveById(drag.curveId);
+    if(c){ commitDrag(); moveHandle(c, drag.hk, m.x, m.y); render(); }
+  } else if(drag.kind==='label'){
+    S.labelOff = S.labelOff || {};
+    S.labelOff[drag.key] = {
+      dx: drag.base.dx + (X(m.x) - X(drag.sx)),
+      dy: drag.base.dy + (Y(m.y) - Y(drag.sy))
+    };
+    commitDrag();
+    render();
+  } else if(drag.kind==='curve'){
+    c = curveById(drag.id);
+    if(c){ commitDrag(); translateCurve(c, m.x-drag.last.x, m.y-drag.last.y); drag.last = m; render(); }
+  } else if(drag.kind==='mark'){
+    mk = markById(drag.id);
+    if(mk){
+      commitDrag();
+      dx = m.x-drag.last.x; dy = m.y-drag.last.y;
+      if(mk.kind==='point' || mk.kind==='text'){ mk.x+=dx; mk.y+=dy; }
+      else if(mk.kind==='arrow'){ mk.x1+=dx; mk.x2+=dx; mk.y1+=dy; mk.y2+=dy; }
+      else if(mk.kind==='region'){ for(i=0;i<mk.pts.length;i++){ mk.pts[i].x+=dx; mk.pts[i].y+=dy; } }
+      drag.last = m; render();
+    }
+  } else if(drag.kind==='newarrow'){ render(); }
+}
+function onUp(ev){
+  if(!drag) return;
+  if(drag.kind==='newarrow'){
+    var m = toMath(ev);
+    if(Math.sqrt((m.x-drag.from.x)*(m.x-drag.from.x)+(m.y-drag.from.y)*(m.y-drag.from.y)) > 4){
+      pushUndo();
+      var mk = {id:uid('m'), kind:'arrow', x1:drag.from.x, y1:drag.from.y, x2:m.x, y2:m.y, color:'#252523', label:''};
+      S.marks.push(mk);
+      drag = null;
+      select({type:'mark', id:mk.id});
+      setTool('select');
+      return;
+    }
+  }
+  drag = null;
+  render(); renderInspector(true);
+}
+svg.addEventListener('pointerdown', onDown);
+window.addEventListener('pointermove', onMove);
+window.addEventListener('pointerup', onUp);
+/* ---------- rename a label by double-clicking it ----------
+   The editor is a real <input> parked over the SVG. It is a *sibling* of the SVG,
+   so a repaint can never wipe it mid-typing. */
+var inlineEdit = null;
+/* SVG user units -> client pixels, plus the scale factor, so the overlay can match
+   the drawn type size. jsdom has no getScreenCTM; the fallback keeps tests alive. */
+function svgToScreen(ux, uy){
+  var m = null;
+  try { m = svg.getScreenCTM(); } catch(e){ m = null; }
+  if(!m) return {x:ux, y:uy, s:1};
+  return {x: m.a*ux + m.c*uy + m.e, y: m.b*ux + m.d*uy + m.f, s: Math.abs(m.a) || 1};
+}
+function pushUndoSnapshot(pre){
+  if(!pre || pre === snapshot()) return false;
+  undoStack.push(pre);
+  if(undoStack.length > 150) undoStack.shift();
+  redoStack.length = 0;
+  updateUndoBtns();
+  return true;
+}
+function closeInlineEdit(commit){
+  if(!inlineEdit) return;
+  var ed = inlineEdit;
+  /* cleared first: removing the node can fire blur, and that must not re-enter */
+  inlineEdit = null;
+  var val = String(ed.input.value == null ? '' : ed.input.value).replace(/\s+/g,' ').trim();
+  if(ed.input.parentNode) ed.input.parentNode.removeChild(ed.input);
+  if(commit && ed.onCommit) ed.onCommit(val);
+}
+function beginEdit(o){
+  closeInlineEdit(false);
+  var pos = svgToScreen(o.x, o.y);
+  var w = o.box ? o.box.w*pos.s : Math.max(88, String(o.current).length*o.size*0.62*pos.s + 40);
+  var h = o.box ? o.box.h*pos.s : Math.max(32, o.size*1.55*pos.s);
+  var bx, by;
+  if(o.box){ var bp = svgToScreen(o.box.x, o.box.y); bx = bp.x; by = bp.y; }
+  else {
+    bx = pos.x - 10; by = pos.y - h/2;
+    if(o.anchor === 'middle') bx -= w/2;
+    else if(o.anchor === 'end') bx -= w;
+  }
+  var stage = document.getElementById('stage');
+  var sr = stage.getBoundingClientRect();
+  var inp = document.createElement('input');
+  inp.type = 'text'; inp.className = 'inlineEdit'; inp.value = o.current; inp.spellcheck = false;
+  inp.style.left = Math.round(bx - sr.left) + 'px';
+  inp.style.top = Math.round(by - sr.top) + 'px';
+  inp.style.width = Math.round(w) + 'px';
+  inp.style.height = Math.round(h) + 'px';
+  inp.style.fontSize = Math.round(Math.max(12, o.size*pos.s)) + 'px';
+  inp.style.lineHeight = Math.round(h - 6) + 'px';
+  stage.appendChild(inp);
+  inlineEdit = {input: inp, onCommit: o.onCommit};
+  inp.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); closeInlineEdit(true); }
+    else if(e.key === 'Escape'){ e.preventDefault(); closeInlineEdit(false); }
+  });
+  inp.addEventListener('blur', function(){ closeInlineEdit(true); });
+  inp.addEventListener('dblclick', function(e){ e.stopPropagation(); });
+  if(inp.focus) inp.focus();
+  if(inp.select) inp.select();
+}
+/* rename one of the computed labels - the wording goes into S.labelText and the
+   automatic text is what you get back if the box is emptied */
+function startLabelEdit(key){
+  var items = buildItems(false), i, it = null;
+  for(i=0;i<items.length;i++){ if(items[i] && items[i].lbl === key){ it = items[i]; break; } }
+  if(!it) return;
+  var shown = it.s, pre = snapshot();
+  beginEdit({current: shown, x: it.x, y: it.y, size: it.size, anchor: it.anchor, box: it.lblBox,
+    onCommit: function(v){
+      S.labelText = S.labelText || {};
+      if(v && v !== shown) S.labelText[key] = v;
+      else if(!v) delete S.labelText[key];
+      else return;
+      render(); renderInspector(true);
+      pushUndoSnapshot(pre);
+    }});
+}
+svg.addEventListener('dblclick', function(ev){
+  if(tool==='region'){ finishRegion(); return; }
+  var ds = ev.target.dataset || {};
+  if(ds.lbl){ startLabelEdit(ds.lbl); return; }
+  if(ds.mark){
+    var mk = markById(ds.mark);
+    if(!mk) return;
+    if(mk.kind === 'text'){
+      /* a free text box edits its own field - no override involved */
+      var tpre = snapshot();
+      beginEdit({current: mk.text, x: X(mk.x), y: Y(mk.y), size: mk.size||24, anchor:'start',
+        onCommit: function(v){
+          if(!v || v === mk.text) return;
+          mk.text = v;
+          render(); renderInspector(true);
+          pushUndoSnapshot(tpre);
+        }});
+      return;
+    }
+    if(mk.kind === 'point'){ select({type:'mark', id:mk.id}); focusInspector(); }
+  }
+});
+
+/* ---------- delete ---------- */
+function removeCurve(c){
+  pushUndo();
+  S.curves = S.curves.filter(function(x){ return x.id!==c.id; });
+  if(S.activeD===c.id) S.activeD = null;
+  if(S.activeS===c.id) S.activeS = null;
+  if(S.arrowPair && (S.arrowPair.a===c.id || S.arrowPair.b===c.id)) S.arrowPair = null;
+  if(S.sel && S.sel.id===c.id) S.sel = null;
+  render(); renderInspector(true);
+}
+function removeMark(m){
+  pushUndo();
+  S.marks = S.marks.filter(function(x){ return x.id!==m.id; });
+  if(S.sel && S.sel.id===m.id) S.sel = null;
+  render(); renderInspector(true);
+}
+
+/* ---------- inspector ---------- */
+var inspector = document.getElementById('inspector');
+function focusInspector(){
+  renderInspector(true);
+  var f = inspector.querySelector('input[type=text][data-autofocus]');
+  if(f && f.focus) f.focus();
+}
+function swatches(act, cur){
+  /* shown as a line sample, because what is being picked is a curve colour */
+  return '<div class="sw">'+PALETTE.map(function(col){
+    return '<b data-act="'+act+'" data-col="'+col+'" style="color:'+col+'" class="'+(col===cur?'on':'')+'"></b>';
+  }).join('')+'</div>';
+}
+function curveRows(c){
+  var isElastic = (c.shape==='hline'), deg = curveAngle(c), h = '', frontier = isPPC(c);
+  h += '<div class="sec"><h3 style="--bar:'+c.color+'">' + esc(c.label) +
+       '<em>' + ROLE_NAME[c.role] + '</em></h3>';
+  /* the four market shape shortcuts are meaningless on a frontier - a PPC has no
+     "perfectly elastic" and no "kinked" - so they are simply not offered there */
+  if(!frontier){
+    h += '<div class="row">'+
+           '<button style="flex:1" data-act="shapeQuick" data-kind="slopeDown">&#8600; Down</button>'+
+           '<button style="flex:1" data-act="shapeQuick" data-kind="slopeUp">&#8599; Up</button>'+
+         '</div>';
+    h += '<div class="row">'+
+           '<button style="flex:1" data-act="shapeQuick" data-kind="hline">Horizontal</button>'+
+           '<button style="flex:1" data-act="shapeQuick" data-kind="vline">Vertical</button>'+
+         '</div>';
+  }
+  if(angleCapable(c)){
+    var steep = Math.round(curveSteep(c));
+    h += '<div class="row"><label>Angle</label>'+
+         '<input type="range" min="0" max="90" step="1" data-act="angle" value="'+steep+'" '+
+         'title="left = perfectly elastic, right = perfectly inelastic">'+
+         '<span class="num" data-num="angle">'+(steep<=1 ? 'flat' : (steep>=89 ? 'upright' : steep+'\u00b0'))+'</span></div>';
+  }
+  if(isPPC(c)){
+    /* The shape IS the economics of a PPC, so name the three shapes instead of
+       making anyone think in exponents. The slider is the fine control, and the
+       line under it says which opportunity-cost story is on screen. */
+    var regime = ppcRegime(c.p), bow = Math.round(ppcBow(c.p)*100);
+    h += '<div class="sub">Curve shape</div>';
+    h += '<div class="row"><div class="seg tight" style="flex:1">'+
+           '<button style="flex:1" data-act="ppcShape" data-shape="outward" class="'+(regime==='rises'?'on':'')+'">Outward</button>'+
+           '<button style="flex:1" data-act="ppcShape" data-shape="straight" class="'+(regime==='flat'?'on':'')+'">Straight</button>'+
+           '<button style="flex:1" data-act="ppcShape" data-shape="inward" class="'+(regime==='falls'?'on':'')+'">Inward</button>'+
+         '</div></div>';
+    h += '<div class="row"><label>Bow</label>'+
+         '<input type="range" min="-50" max="50" step="1" data-act="bow" value="'+bow+'" '+
+         'title="left = bowed inward, middle = straight, right = bowed outward">'+
+         '<span class="num" data-num="bow">'+regime+'</span></div>';
+    h += '<div class="sub">'+PPC_REGIME_NOTE[regime]+'</div>';
+  }
+  /* only the shapes that belong to this kind of diagram: a market curve is never
+     offered "Frontier", and a frontier is never offered "Perfectly elastic" */
+  h += '<div class="row"><label>Type</label><select data-act="shape">'+
+       shapesFor(diagramKind()).map(function(k){
+         return '<option value="'+k+'"'+(k===c.shape?' selected':'')+'>'+SHAPES[k].label+'</option>';
+       }).join('')+'</select></div>';
+  h += '<div class="row"><label>Name</label><input type="text" data-act="label" value="'+esc(c.label)+'" spellcheck="false"></div>';
+  if(S.labelOff && S.labelOff['c:'+c.id]){
+    h += '<div class="row"><button class="wide" data-act="resetLabel" data-key="c:'+c.id+
+         '">Reset the label position</button></div>';
+  }
+  if(S.labelText && S.labelText['c:'+c.id]){
+    h += '<div class="row"><button class="wide" data-act="resetText" data-key="c:'+c.id+
+         '">Reset the name to &ldquo;'+esc(c.label)+'&rdquo;</button></div>';
+  }
+  h += swatches('color', c.color);
+  h += '</div>';
+
+  var ppcMode = frontier;
+  if(ppcMode){
+    /* growth is directional: one good, the other good, or both at once. Each is a
+       different story and a different button. Button captions stay as short as
+       +X / +Y / +Both because a real axis name ("Consumer goods") would not fit
+       three abreast in the panel; the line above spells out which is which. */
+    var xn = labelText('ax:x', S.axes.xLabel), yn = labelText('ax:y', S.axes.yLabel);
+    var axisCap = (xn === 'Good X' && yn === 'Good Y')
+      ? 'X is the good along the bottom, Y the one up the side.'
+      : 'X is <b>'+esc(xn)+'</b>, Y is <b>'+esc(yn)+'</b>.';
+    h += '<div class="sec"><h3>Show growth</h3>';
+    h += '<div class="sub">'+axisCap+'</div>';
+    h += '<div class="row">'+
+           '<button style="flex:1" data-act="grow" data-axis="x" data-dir="1">+X</button>'+
+           '<button style="flex:1" data-act="grow" data-axis="y" data-dir="1">+Y</button>'+
+           '<button style="flex:1" data-act="grow" data-axis="both" data-dir="1">+Both</button>'+
+         '</div>';
+    h += '<div class="row">'+
+           '<button style="flex:1" data-act="grow" data-axis="x" data-dir="-1">\u2212X</button>'+
+           '<button style="flex:1" data-act="grow" data-axis="y" data-dir="-1">\u2212Y</button>'+
+           '<button style="flex:1" data-act="grow" data-axis="both" data-dir="-1">\u2212Both</button>'+
+         '</div>';
+    h += '<div class="sub">Each button copies the frontier once and pins the arrow between the '+
+         'old and the new one, so one good can grow on its own or both together. '+
+         'Grab either curve afterwards to fine-tune it.</div>';
+    h += '<div class="row"><button class="wide" data-act="del">Delete this curve</button></div>';
+    h += '</div>';
+  } else {
+    h += '<div class="sec"><h3>Show a change</h3>';
+    h += '<div class="row"><button class="wide primary" data-act="dup" data-mark="1">'+
+         'Duplicate &amp; mark the change</button></div>';
+    h += '<div class="row">'+
+           '<button style="flex:1" data-act="shift" data-dir="-1">'+(isElastic?'\u2193 Down':'\u2190 Shift left')+'</button>'+
+           '<button style="flex:1" data-act="shift" data-dir="1">'+(isElastic?'Up \u2191':'Shift right \u2192')+'</button>'+
+         '</div>';
+    h += '<div class="sub">Both pin the old equilibrium and label P1 Q1 / P2 Q2.</div>';
+    h += '<div class="row"><button class="wide" data-act="del">Delete this curve</button></div>';
+    h += '</div>';
+  }
+
+  h += det('more', 'More options', '#868e96')+
+       '<div class="row"><label>Width</label><input type="range" min="1.5" max="7" step="0.5" data-act="width" value="'+c.width+'"></div>'+
+       '<label class="chk"><input type="checkbox" data-act="dash"'+(c.dash?' checked':'')+'> Dashed line</label>'+
+       '<label class="chk"><input type="checkbox" data-act="visible"'+(c.visible?' checked':'')+'> Visible</label>'+
+       '<div class="row"><label>Side</label><select data-act="role">'+
+         rolesFor(diagramKind()).map(function(k){
+           return '<option value="'+k+'"'+(k===c.role?' selected':'')+'>'+ROLE_NAME[k]+'</option>';
+         }).join('')+'</select></div>'+
+       '<div class="row"><label>Shift step</label><input type="number" data-act="step" min="2" max="40" step="1" value="'+S.shiftStep+'"></div>'+
+       '<div class="row"><button class="wide" data-act="makeprimary">Make this the active curve</button></div>'+
+       '</details>';
+
+  if(c.shape==='kinkedAS'){
+    h += '<div class="sec"><h3>How sharply it bends</h3>'+
+         '<div class="row"><label>Bend</label><input type="range" min="1.1" max="5" step="0.05" data-act="gamma" value="'+c.p.gamma+'">'+
+         '<span class="num" data-num="gamma">'+(+c.p.gamma).toFixed(2)+'</span></div>'+
+         '<div class="hint">Drag the round handles on the canvas to move the corners.</div></div>';
+  } else if(c.shape==='kink' || c.shape==='kink3'){
+    h += '<div class="sec"><div class="hint">Drag the round handles on the canvas to move the corners.</div></div>';
+  }
+  return h;
+}
+function kinkedExtra(c){
+  return '<div class="sec"><h3>Kinked AS</h3>'+
+    '<div class="row"><label>Bend</label><input type="range" min="1.1" max="5" step="0.05" data-act="gamma" value="'+c.p.gamma+'"></div>'+
+    '<div class="hint"><b>Bend</b> sets how sharply the curve turns up \u2014 or drag the middle handle '+
+    'on the canvas. The flat part is spare capacity, the vertical part is full capacity.</div></div>';
+}
+function markRows(m){
+  if(m.kind==='point'){
+    return '<div class="sec"><h3>Point</h3>'+
+      '<div class="row"><label>Label</label><input type="text" data-act="mtext" data-autofocus value="'+esc(m.label||'')+'" spellcheck="false"></div>'+
+      '<label class="chk"><input type="checkbox" data-act="mguide"'+(m.showGuides?' checked':'')+'> Dashed guides to both axes</label>'+
+      swatches('mcolor', m.color)+
+      '<div class="row"><button class="wide primary" data-act="mdelete">Delete point</button></div></div>';
+  }
+  if(m.kind==='text'){
+    return '<div class="sec"><h3>Label</h3>'+
+      '<div class="row"><label>Text</label><input type="text" data-act="mtext" data-autofocus value="'+esc(m.text)+'" spellcheck="false"></div>'+
+      '<div class="row"><label>Size</label><input type="number" data-act="msize" min="14" max="60" step="1" value="'+(m.size||24)+'"></div>'+
+      swatches('mcolor', m.color)+
+      '<div class="row"><button class="wide primary" data-act="mdelete">Delete label</button></div></div>';
+  }
+  if(m.kind==='arrow'){
+    return '<div class="sec"><h3>Arrow</h3>'+
+      '<div class="row"><label>Label</label><input type="text" data-act="mtext" data-autofocus value="'+esc(m.label||'')+'" spellcheck="false"></div>'+
+      swatches('mcolor', m.color)+
+      '<div class="row"><button class="wide primary" data-act="mdelete">Delete arrow</button></div></div>';
+  }
+  if(m.kind==='bracket'){
+    return '<div class="sec"><h3>Bracket</h3>'+
+      '<div class="row"><label>Label</label><input type="text" data-act="mtext" data-autofocus value="'+esc(m.label||'')+'" spellcheck="false"></div>'+
+      '<div class="row"><label>Axis</label><select data-act="maxis">'+
+        '<option value="x"'+(m.axis==='x'?' selected':'')+'>Quantity</option>'+
+        '<option value="y"'+(m.axis==='y'?' selected':'')+'>Price</option></select></div>'+
+      '<div class="row"><label>From</label><input type="number" data-act="mfrom" min="0" max="100" step="1" value="'+r2(m.from)+'"></div>'+
+      '<div class="row"><label>To</label><input type="number" data-act="mto" min="0" max="100" step="1" value="'+r2(m.to)+'"></div>'+
+      '<div class="row"><button class="wide primary" data-act="mdelete">Delete bracket</button></div></div>';
+  }
+  if(m.kind==='region'){
+    var derived = !!m.derive;
+    var what = derived ? (m.derive.what === 'cs' ? 'Consumer surplus' : 'Producer surplus') : 'Free-form area';
+    var when = derived ? (m.derive.when === 'before' ? ' \u00b7 before the change' : ' \u00b7 after the change') : '';
+    return '<div class="sec"><h3 style="--bar:'+m.color+'">Shaded area<em>'+(derived?'auto':'free-form')+'</em></h3>'+
+      (derived ? '<div class="sub">'+what+when+'. It follows the curves, so it stays correct when you drag one.</div>' : '')+
+      swatches('mcolor', m.color)+
+      '<div class="row"><label>Opacity</label><input type="range" min="0.08" max="0.75" step="0.02" data-act="mopacity" value="'+(m.opacity!=null?m.opacity:0.3)+'"></div>'+
+      '<label class="chk"><input type="checkbox" data-act="moutline"'+(m.outline?' checked':'')+'> Outline the area</label>'+
+      '<div class="row"><button class="wide primary" data-act="mdelete">Delete shaded area</button></div></div>';
+  }
+  return '';
+}
+function shadeRows(){
+  var hasBefore = S.eqHistory.length > 0;
+  return '<div class="sec"><h3 style="--bar:var(--c-shade)">Shade an area<em>one click</em></h3>'+
+    '<div class="row">'+
+      '<button style="flex:1" data-act="shade" data-kind="cs" data-when="after">CS (after)</button>'+
+      '<button style="flex:1" data-act="shade" data-kind="ps" data-when="after">PS (after)</button>'+
+    '</div>'+
+    '<div class="row">'+
+      '<button style="flex:1" data-act="shade" data-kind="cs" data-when="before"'+(hasBefore?'':' disabled')+'>CS (before)</button>'+
+      '<button style="flex:1" data-act="shade" data-kind="ps" data-when="before"'+(hasBefore?'':' disabled')+'>PS (before)</button>'+
+    '</div>'+
+    '<div class="sub">CS = consumer surplus, PS = producer surplus. '+(hasBefore
+      ? 'These areas follow the curves, so they stay right when you drag one.'
+      : 'Copy or shift a curve first and the \u201cbefore\u201d areas become available.')+'</div>'+
+    '<div class="row"><button class="wide" data-act="clearShade">Remove all shaded areas</button></div>'+
+  '</div>';
+}
+/* ---------- what kind of diagram is this? ----------
+   A frontier is not a market with unusual curves in it - it is a different chart.
+   The kind is stored, not guessed from the curves, so an empty canvas or a canvas
+   holding nothing but a text label still knows what it is. */
+function diagramKind(){ return S.kind === 'ppc' ? 'ppc' : 'market'; }
+function isPPCDiagram(){ return diagramKind() === 'ppc'; }
+function isMarketDiagram(){ return diagramKind() === 'market'; }
+function globalRows(){
+  var a = S.axes, h = '', mk = isMarketDiagram();
+  /* the preset list belongs to the diagram kind: no "Labour market" on a frontier,
+     and no "Capital / consumer" on a market */
+  h += '<div class="sec"><h3 style="--bar:var(--c-axis)">Axes</h3>'+
+    '<div class="row"><label>Preset</label><select data-act="axisPreset">'+
+      '<option value="-1"'+(axisPresetIndex()<0?' selected':'')+'>Custom\u2026</option>'+
+      currentAxisPresets().map(function(p,i){
+        return '<option value="'+i+'"'+(axisPresetIndex()===i?' selected':'')+'>'+p.n+'</option>';
+      }).join('')+'</select></div>'+
+    '<div class="row"><label>Vertical</label><input type="text" data-act="axY" value="'+esc(a.yLabel)+'" spellcheck="false"></div>'+
+    '<div class="row"><label>Horizontal</label><input type="text" data-act="axX" value="'+esc(a.xLabel)+'" spellcheck="false"></div>'+
+  '</div>';
+  if(!mk){
+    /* a frontier canvas: say what it is, right after the axes, before the display
+       options - parked under a collapsed "Display" header it read as Display content */
+    h += '<div class="sec"><div class="hint" style="background:var(--accent-bg);color:var(--accent)">'+
+         'A production possibility frontier, not a market \u2014 there is nothing to pair '+
+         'and no equilibrium to find. Click the frontier for its shape and growth; drag the '+
+         'two outer grips to change capacity and the middle one to bend it.</div></div>';
+  }
+  h += det('display', 'Display', 'var(--c-shade)')+
+    (mk
+      ? '<label class="chk"><input type="checkbox" data-act="oPQ"'+(S.opts.labelPQ?' checked':'')+'> Label P1 P2 / Q1 Q2 on the axes</label>'+
+        '<label class="chk"><input type="checkbox" data-act="oGuides"'+(S.opts.guides?' checked':'')+'> Guide lines</label>'
+      : '')+
+    '<label class="chk"><input type="checkbox" data-act="oArrow"'+(S.opts.shiftArrow?' checked':'')+'> '+
+      (mk ? 'Shift arrow between the curves' : 'Arrow between the two frontiers')+'</label>'+
+    (mk
+      ? '<label class="chk"><input type="checkbox" data-act="oBadges"'+(S.opts.deltaBadges?' checked':'')+'> P / Q change badge</label>'+
+        '<label class="chk"><input type="checkbox" data-act="oHistory"'+(S.opts.showHistory?' checked':'')+'> Show previous equilibria</label>'
+      : '')+
+    '<label class="chk"><input type="checkbox" data-act="ticks"'+(a.ticks?' checked':'')+'> Number scale (0\u2013100)</label>'+
+    '<label class="chk"><input type="checkbox" data-act="grid"'+(a.grid?' checked':'')+'> Faint grid</label>'+
+    (Object.keys(S.labelOff||{}).length
+      ? '<div class="row"><button class="wide" data-act="resetAllLabels">Reset all label positions</button></div>'
+      : '')+
+    (Object.keys(S.labelText||{}).length
+      ? '<div class="row"><button class="wide" data-act="resetAllText">Reset all label wording</button></div>'
+      : '')+
+  '</details>';
+  if(!mk){ return h; }   /* no market machinery on a frontier canvas */
+  h += det('pair', 'Which curves are paired', 'var(--c-pair)')+
+    '<div class="row"><label>Demand</label><select data-act="pickD"><option value="">\u2014 none \u2014</option>'+
+      S.curves.filter(function(c){ return c.role!=='S' && c.role!=='AS' && c.role!=='LRAS' && c.role!=='PPC'; }).map(function(c){
+        return '<option value="'+c.id+'"'+(c.id===S.activeD?' selected':'')+'>'+esc(c.label)+' \u00b7 '+ROLE_NAME[c.role]+'</option>';
+      }).join('')+'</select></div>'+
+    '<div class="row"><label>Supply</label><select data-act="pickS"><option value="">\u2014 none \u2014</option>'+
+      S.curves.filter(function(c){ return c.role==='S' || c.role==='AS' || c.role==='LRAS'; }).map(function(c){
+        return '<option value="'+c.id+'"'+(c.id===S.activeS?' selected':'')+'>'+esc(c.label)+' \u00b7 '+ROLE_NAME[c.role]+'</option>';
+      }).join('')+'</select></div>'+
+    '<div class="hint">The newest Demand and newest Supply are paired automatically.</div>'+
+  '</details>';
+  h += det('eq', 'Equilibrium points', 'var(--c-eq)');
+  if(S.eqHistory.length){
+    h += S.eqHistory.map(function(e,i){
+      return '<div class="row"><label>'+e.label+'</label>'+
+        '<input type="text" value="Q '+r2(e.x)+'   P '+r2(e.y)+'" readonly style="background:#faf9f7">'+
+        '<button data-act="dropEq" data-i="'+i+'" title="Remove">\u00d7</button></div>';
+    }).join('');
+    h += '<div class="row"><button class="wide" data-act="clearEq">Clear history</button></div>';
+  } else {
+    h += '<div class="empty">Nothing pinned yet \u2014 duplicating a curve pins the previous equilibrium here.</div>';
+  }
+  h += '</details>';
+  h += det('ext', 'Externality', 'var(--c-danger)');
+  if(S.ext){
+    h += '<div class="sub">'+(S.ext.kind === 'cost'
+      ? 'MSC is drawn above the private supply MPC \u2014 the market makes too much, and the red triangle is the deadweight loss.'
+      : 'MSB is drawn above the private demand MPB \u2014 the market makes too little, and the red triangle is the deadweight loss.')+
+      '</div><div class="row"><button class="wide" data-act="extOff">Remove the social curve</button></div>';
+  } else {
+    h += '<div class="sub">Add the social curve to a plain market; the deadweight loss is shaded for you.</div>'+
+      '<div class="row"><button class="wide" data-act="extAdd" data-kind="cost">Add social cost (MSC)</button></div>'+
+      '<div class="row"><button class="wide" data-act="extAdd" data-kind="benefit">Add social benefit (MSB)</button></div>';
+  }
+  h += '</details>';
+  return h;
+}
+function renderInspector(force){
+  /* read the open/closed state back out of the DOM before rebuilding, so a panel
+     refresh (e.g. after removing an equilibrium) never slams the section shut */
+  if(inspector){
+    var ds = inspector.querySelectorAll('details[data-k]');
+    for(var di=0; di<ds.length; di++) openDetails[ds[di].dataset.k] = ds[di].open;
+  }
+  var sc = (S.sel && S.sel.type==='curve') ? curveById(S.sel.id) : null;
+  var key = JSON.stringify([S.sel?S.sel.type:'', S.sel?S.sel.id:'', S.curves.length, S.marks.length,
+    S.activeD, S.activeS, S.eqHistory.length, sc?sc.shape:'', sc?sc.dash:'', sc?sc.visible:'',
+    sc?sc.width:'', sc?sc.color:'', S.axes.ticks, S.axes.grid, S.opts.guides, S.opts.showHistory,
+    S.opts.shiftArrow, S.opts.deltaBadges, S.opts.labelPQ, tool, !!S.ext,
+    S.axes.yLabel, S.axes.xLabel, Object.keys(S.labelOff||{}).length]);
+  if(!force && key===inspectorKey) return;
+  inspectorKey = key;
+  var html = '';
+  if(!S.curves.length && !S.marks.length){
+    html += '<div class="sec"><div class="empty">Empty canvas.<br>Use <b>Curve</b> on the left rail, or <b>Templates</b> in the header.</div></div>';
+  }
+  if(S.sel){
+    var o = (S.sel.type==='curve') ? curveById(S.sel.id) : markById(S.sel.id);
+    if(o) html += (S.sel.type==='curve' ? curveRows(o) : markRows(o));
+    else S.sel = null;
+  }
+  /* keep the panel short: canvas-wide options only when nothing is selected */
+  if(!S.sel){
+    if(tool === 'region') html += shadeRows();
+    html += globalRows();
+  } else {
+    /* The panel stays focused on the selected object, but hiding the axes and
+       display options outright meant clicking a curve to change its colour also
+       cost you the ability to see the axis names. They stay, folded away. */
+    html += det('canvas', 'Axes &amp; display', 'var(--c-axis)') + globalRows() + '</details>';
+    html += '<div class="sec"><div class="empty">'+
+      'Click empty space to clear the selection.'+
+      '</div></div>';
+  }
+  inspector.innerHTML = html;
+}
+inspector.addEventListener('toggle', function(ev){
+  var d = ev.target;
+  if(d && d.tagName === 'DETAILS' && d.dataset.k) openDetails[d.dataset.k] = d.open;
+}, true);
+inspector.addEventListener('input', function(ev){
+  var t = ev.target, act = t.dataset.act;
+  if(!act) return;
+  if(act==='step'){ S.shiftStep = clamp(+t.value||10, 2, 40); return; }
+  if(act==='axX'){ S.axes.xLabel = t.value; render(); return; }
+  if(act==='axY'){ S.axes.yLabel = t.value; render(); return; }
+  var o = S.sel ? (S.sel.type==='curve' ? curveById(S.sel.id) : markById(S.sel.id)) : null;
+  if(!o) return;
+  if(act==='label'){ o.label = t.value; render(); return; }
+  if(act==='mtext'){ if(o.kind==='text') o.text = t.value; else o.label = t.value; render(); return; }
+  if(act==='msize'){ o.size = +t.value; render(); return; }
+  if(act==='mopacity'){ o.opacity = +t.value; render(); return; }
+  if(act==='mfrom'){ o.from = +t.value; render(); return; }
+  if(act==='mto'){ o.to = +t.value; render(); return; }
+  if(act==='width'){ o.width = +t.value; render(); return; }
+  if(act==='angle'){
+    var v = +t.value, sgn = applySteep(o, v);
+    lastEq = null; render();
+    var an = inspector.querySelector('[data-num="angle"]');
+    if(an) an.textContent = (v<=1 ? 'flat' : (v>=89 ? 'upright' : v+'\u00b0'));
+    /* crossing an end snaps the shape, so the row (and the Down/Up sense) must refresh */
+    if(v<=1 || v>=89) renderInspector(true);
+    return;
+  }
+  if(act==='gamma'){
+    o.p.gamma = +t.value; render();
+    var gn = inspector.querySelector('[data-num="gamma"]');
+    if(gn) gn.textContent = (+t.value).toFixed(2);
+    return;
+  }
+  if(act==='bow'){
+    /* signed: -50 is bowed inward, 0 straight, +50 bowed outward */
+    o.p.n = ppcBowToN((+t.value)/100);
+    render();
+    var bn = inspector.querySelector('[data-num="bow"]');
+    var rg = ppcRegime(o.p);
+    if(bn) bn.textContent = rg;
+    /* crossing the straight line flips which of the three shape buttons is lit */
+    var lit = inspector.querySelector('[data-act="ppcShape"][data-shape="'+
+      (rg==='rises'?'outward':(rg==='falls'?'inward':'straight'))+'"]');
+    if(lit && !lit.classList.contains('on')) renderInspector(true);
+    return;
+  }
+});
+inspector.addEventListener('change', function(ev){
+  var t = ev.target, act = t.dataset.act;
+  if(!act) return;
+  var o = S.sel ? (S.sel.type==='curve' ? curveById(S.sel.id) : markById(S.sel.id)) : null;
+  if(act==='shape' && o){
+    pushUndo();
+    convertShape(o, t.value);
+    lastEq = null;
+    render(); renderInspector(true); return;
+  }
+  if(act==='role' && o){
+    pushUndo();
+    o.role = t.value;
+    o.color = ROLE_COLOR[t.value] || o.color;
+    if(t.value!=='X') setActiveCurve(o);
+    render(); renderInspector(true); return;
+  }
+  if(act==='axisPreset'){
+    /* the index is into the list this diagram kind was shown */
+    var pi = +t.value, pl = currentAxisPresets();
+    if(pi >= 0 && pl[pi]){ S.axes.yLabel = pl[pi].y; S.axes.xLabel = pl[pi].x; }
+    render(); renderInspector(true); return;
+  }
+  if(act==='maxis' && o){ pushUndo(); o.axis = t.value; render(); renderInspector(true); return; }
+  if(act==='pickD'){ S.activeD = t.value || null; lastEq = null; render(); renderInspector(true); return; }
+  if(act==='pickS'){ S.activeS = t.value || null; lastEq = null; render(); renderInspector(true); return; }
+  if(act==='ticks'){ S.axes.ticks = t.checked; render(); renderInspector(true); return; }
+  if(act==='grid'){ S.axes.grid = t.checked; render(); renderInspector(true); return; }
+  if(act==='oGuides'){ S.opts.guides = t.checked; render(); renderInspector(true); return; }
+  if(act==='oPQ'){ S.opts.labelPQ = t.checked; render(); renderInspector(true); return; }
+  if(act==='oHistory'){ S.opts.showHistory = t.checked; render(); renderInspector(true); return; }
+  if(act==='oArrow'){ S.opts.shiftArrow = t.checked; render(); renderInspector(true); return; }
+  if(act==='oBadges'){ S.opts.deltaBadges = t.checked; render(); renderInspector(true); return; }
+  if(act==='dash' && o){ pushUndo(); o.dash = t.checked; render(); renderInspector(true); return; }
+  if(act==='visible' && o){ pushUndo(); o.visible = t.checked; render(); renderInspector(true); return; }
+  if(act==='mguide' && o){ o.showGuides = t.checked; render(); return; }
+  if(act==='moutline' && o){ o.outline = t.checked; render(); return; }
+});
+inspector.addEventListener('click', function(ev){
+  var b = ev.target.closest ? ev.target.closest('[data-act]') : null;
+  if(!b) return;
+  var act = b.dataset.act;
+  var o = S.sel ? (S.sel.type==='curve' ? curveById(S.sel.id) : markById(S.sel.id)) : null;
+  if(act==='resetLabel'){
+    pushUndo(); delete S.labelOff[b.dataset.key];
+    render(); renderInspector(true); return;
+  }
+  if(act==='resetAllLabels'){
+    pushUndo(); S.labelOff = {};
+    render(); renderInspector(true);
+    toast('All labels are back where the program puts them.');
+    return;
+  }
+  if(act==='resetText'){
+    pushUndo(); delete S.labelText[b.dataset.key];
+    render(); renderInspector(true); return;
+  }
+  if(act==='ppcShape' && o){
+    var nn = PPC_N[b.dataset.shape];
+    if(nn){ pushUndo(); o.p.n = nn; lastEq = null; render(); renderInspector(true); }
+    return;
+  }
+  if(act==='grow' && o){
+    pushUndo();
+    growCurve(o, b.dataset.axis, +b.dataset.dir);
+    return;
+  }
+  if(act==='resetAllText'){
+    pushUndo(); S.labelText = {};
+    render(); renderInspector(true);
+    toast('Every label is back to its automatic wording.');
+    return;
+  }
+  if(act==='shade'){ shadeSurplus(b.dataset.kind, b.dataset.when); return; }
+  if(act==='clearShade'){ clearShading(); return; }
+  if(act==='extAdd'){ addExternality(b.dataset.kind); return; }
+  if(act==='extOff'){ clearExternality(); return; }
+  if(act==='color' && o){ pushUndo(); o.color = b.dataset.col; render(); renderInspector(true); return; }
+  if(act==='shapeQuick' && o){
+    pushUndo();
+    convertShape(o, b.dataset.kind);
+    lastEq = null;
+    render(); renderInspector(true); return;
+  }
+  if(act==='mcolor' && o){ pushUndo(); o.color = b.dataset.col; render(); renderInspector(true); return; }
+  if(act==='del' && o){ removeCurve(o); return; }
+  if(act==='mdelete' && o){ removeMark(o); return; }
+  if(act==='dup' && o){
+    duplicateCurve(o);
+    toast('Copied as ' + o.label + '\u2081 \u2014 drag it and E2, P2, Q2 follow.');
+    return;
+  }
+  if(act==='makeprimary' && o){ pushUndo(); setActiveCurve(o); lastEq = null; render(); renderInspector(true); return; }
+  if(act==='dropEq'){ pushUndo(); S.eqHistory.splice(+b.dataset.i,1); renumberEq(); render(); renderInspector(true); return; }
+  if(act==='clearEq'){ pushUndo(); S.eqHistory = []; render(); renderInspector(true); return; }
+  if(act==='shift' && o){ shiftCurveBy(o, +b.dataset.dir); return; }
+});
+/* ---------- popovers ---------- */
+function closePop(){ if(popoverEl){ popoverEl.remove(); popoverEl = null; } }
+function openPop(html, anchorEl, width){
+  closePop();
+  var host = document.getElementById('stage');
+  var p = document.createElement('div');
+  p.className = 'pop';
+  p.innerHTML = html;
+  if(width) p.style.width = width+'px';
+  host.appendChild(p);
+  var r = anchorEl.getBoundingClientRect(), hr = host.getBoundingClientRect();
+  var w = p.offsetWidth || width || 240;
+  var topPx = Math.max(6, (r.bottom - hr.top) + 6);
+  p.style.left = clamp(r.left - hr.left, 8, Math.max(8, hr.width - w - 8)) + 'px';
+  p.style.top  = topPx + 'px';
+  /* cap the height against the popover's OWN top, not the whole stage: otherwise
+     the tail of a long menu is clipped by the stage and becomes unreachable */
+  p.style.maxHeight = Math.max(180, hr.height - topPx - 10) + 'px';
+  popoverEl = p;
+  return p;
+}
+function curveMenu(){ return ''; }
+function tplThumb(kind){
+  var s = '<svg class="thumb" viewBox="0 0 48 34" width="64" height="46" fill="none" '+
+          'stroke-linecap="round" stroke-linejoin="round">'+
+          '<path d="M4.5 3 V30 H46.5" stroke="#c9c6bd" stroke-width="1.3"/>';
+  if(kind==='adasLinear'){
+    s += '<path d="M7.5 7 L41 25" stroke="#f08c00" stroke-width="2"/>'+
+         '<path d="M9 27 L39 8" stroke="#e03131" stroke-width="2"/>'+
+         '<path d="M32.5 6 V29" stroke="#2f9e44" stroke-width="2"/>';
+  } else if(kind==='adasIGCSE'){
+    s += '<path d="M7.5 7 L41 25" stroke="#f08c00" stroke-width="2"/>'+
+         '<path d="M5.5 27 H22 Q30 27 33 15 L33 5" stroke="#e03131" stroke-width="2"/>';
+  } else if(kind==='extCost'){
+    s += '<path d="M7.5 8 L41 25" stroke="#1c7ed6" stroke-width="2"/>'+
+         '<path d="M10 27 L39 9" stroke="#e03131" stroke-width="2"/>'+
+         '<path d="M10 21 L39 3" stroke="#c2255c" stroke-width="2"/>'+
+         '<path d="M23 13 L32 20 L22 17 Z" fill="#e74c3c" opacity=".55" stroke="none"/>';
+  } else if(kind==='extBenefit'){
+    s += '<path d="M6 9 L33 26" stroke="#1c7ed6" stroke-width="2"/>'+
+         '<path d="M10 27 L39 9" stroke="#e03131" stroke-width="2"/>'+
+         '<path d="M7.5 8 L41 24" stroke="#c2255c" stroke-width="2"/>'+
+         '<path d="M26 21 L36 12 L34 23 Z" fill="#e74c3c" opacity=".55" stroke="none"/>';
+  } else if(kind==='__newds'){
+    s += '<path d="M7.5 7 L41 25" stroke="#1c7ed6" stroke-width="2"/>'+
+         '<path d="M9 27 L39 8" stroke="#e03131" stroke-width="2"/>';
+  } else if(kind==='ppc'){
+    /* a bowed frontier, plus a dot inside it for the inefficient case */
+    s += '<path d="M9.5 5 Q40 7 43.5 27.5" stroke="#7048e8" stroke-width="2"/>'+
+         '<circle cx="21" cy="20" r="1.9" fill="#7048e8" stroke="none"/>';
+  } else if(kind==='ppcConstant'){
+    s += '<path d="M9.5 5 L43.5 27.5" stroke="#7048e8" stroke-width="2"/>';
+  } else if(kind==='ppcGrowth'){
+    s += '<path d="M16 15 Q34 16 36 28" stroke="#7048e8" stroke-width="2"/>'+
+         '<path d="M7 5 Q40 7 44 28" stroke="#7048e8" stroke-width="2" stroke-dasharray="4 3"/>'+
+         '<path d="M24 21 L33 12" stroke="#8a6410" stroke-width="1.8"/>'+
+         '<polygon points="33,12 30,13.6 31.6,15.4" fill="#8a6410" stroke="none"/>';
+  } else if(kind==='reservesLimited'){
+    s += '<path d="M5.5 9 H20 L44 27" stroke="#1c7ed6" stroke-width="2"/>'+
+         '<path d="M33 5 V30" stroke="#e03131" stroke-width="2"/>';
+  } else {
+    s += '<path d="M5.5 8 H17 L29 27 H45" stroke="#1c7ed6" stroke-width="2"/>'+
+         '<path d="M36 5 V30" stroke="#e03131" stroke-width="2"/>';
+  }
+  return s + '</svg>';
+}
+/* The market menu is markets only. A frontier is a different chart, so it has its
+   own button and its own list - never a section inside this one. */
+function templateMenu(){
+  var html = '';
+  if(isPPCDiagram()){
+    html += '<div class="switchbar">This replaces the frontier with a market diagram.</div>';
+  }
+  html += '<h4>Special markets</h4>';
+  ['adasLinear','adasIGCSE','reserves','reservesLimited'].forEach(function(k){
+    html += tplRow(k);
+  });
+  html += '<div class="popsep"></div><h4>Externality</h4>';
+  ['extCost','extBenefit'].forEach(function(k){ html += tplRow(k); });
+  html += '<div class="popsep"></div>';
+  html += '<div class="popitem" data-tpl="__newds">'+tplThumb('__newds')+
+          '<span class="t"><b>Plain Demand &amp; Supply</b>'+
+          '<i>Start over with a basic market</i></span></div>';
+  return html;
+}
+function tplRow(k){
+  return '<div class="popitem" data-tpl="'+k+'">'+tplThumb(k)+
+         '<span class="t"><b>'+TEMPLATES[k].name+'</b><i>'+TEMPLATES[k].desc+'</i></span></div>';
+}
+/* the frontier menu: shape starters, then the two axis pairs */
+function ppcMenu(){
+  var html = '';
+  if(!isPPCDiagram()){
+    html += '<div class="switchbar">This replaces the market with a frontier.</div>';
+  }
+  html += '<h4>Shape of the frontier</h4>';
+  ['ppc','ppcConstant','ppcGrowth'].forEach(function(k){ html += tplRow(k); });
+  html += '<div class="popsep"></div><h4>Axis labels</h4>';
+  axisPresetsFor('ppc').forEach(function(p){
+    var on = isPPCDiagram() && S.axes.xLabel === p.x && S.axes.yLabel === p.y;
+    html += '<div class="popitem'+(on ? ' on' : '')+'" data-ppcaxis="'+p.x+'">'+
+            '<span class="t"><b>'+p.n+'</b><i>'+p.y+' / '+p.x+'</i></span></div>';
+  });
+  return html;
+}
+function exportMenu(){
+  var st = exportMenu.s || (exportMenu.s = {scale:3, transparent:false, title:false});
+  return '<h4>Export</h4>'+
+    '<div class="poprow"><span>Scale</span><div class="seg">'+
+      [1,2,3,4].map(function(v){
+        return '<button data-scale="'+v+'" class="'+(st.scale===v?'on':'')+'">'+v+'\u00d7</button>';
+      }).join('')+'</div></div>'+
+    '<div class="poprow"><span>Background</span><div class="seg">'+
+      '<button data-bg="w" class="'+(st.transparent?'':'on')+'">White</button>'+
+      '<button data-bg="t" class="'+(st.transparent?'on':'')+'">Transparent</button></div></div>'+
+    '<div class="poprow"><span>Title</span><div class="seg">'+
+      '<button data-title="0" class="'+(!st.title?'on':'')+'">Off</button>'+
+      '<button data-title="1" class="'+(st.title?'on':'')+'">On</button></div></div>'+
+    '<div class="popsep"></div>'+
+    '<div class="poprow"><span class="pixels">'+VB.w*st.scale+'\u00d7'+VB.h*st.scale+' px</span>'+
+      '<button data-do="png" class="primary">PNG</button></div>'+
+    '<div class="poprow"><span>Paste straight into PowerPoint</span>'+
+      '<button data-do="copy">Copy</button></div>'+
+    '<div class="poprow"><span>Editable vector</span>'+
+      '<button data-do="svg">SVG</button></div>'+
+    '<div class="popsep"></div><h4>Diagram file</h4>'+
+    '<div class="poprow"><span>Keep it, or send it to another computer</span>'+
+      '<button data-do="save">Save .json</button></div>'+
+    '<div class="poprow"><span>Reopen a saved diagram</span>'+
+      '<button data-do="open">Open\u2026</button></div>';
+}
+function moreMenu(){
+  /* Point and Arrow have their own rail buttons on a frontier, so listing them
+     here again would just be clutter. Bracket stays useful in both charts. */
+  var ppc = isPPCDiagram();
+  return '<h4>More tools</h4>'+
+    (ppc ? '' :
+      '<div class="popitem" data-tool2="point"><span class="t"><b>Point</b>'+
+        '<i>Mark a dot on a curve or intersection</i></span></div>'+
+      '<div class="popitem" data-tool2="arrow"><span class="t"><b>Arrow</b>'+
+        '<i>Draw an arrow</i></span></div>')+
+    '<div class="popitem" data-tool2="bracket"><span class="t"><b>Bracket</b>'+
+      '<i>Bracket a gap along an axis</i></span></div>';
+}
+document.addEventListener('click', function(ev){
+  if(!popoverEl) return;
+  if(popoverEl.contains(ev.target)) return;
+  if(ev.target.closest && (ev.target.closest('[data-tool="more"]') ||
+     ev.target.closest('#btnTemplates') || ev.target.closest('#btnExportPng'))) return;
+  closePop();
+});
+document.addEventListener('click', function(ev){
+  var p = popoverEl;
+  if(!p) return;
+  var add = ev.target.closest ? ev.target.closest('[data-add]') : null;
+  if(add) return;
+  var tpl = ev.target.closest ? ev.target.closest('[data-tpl]') : null;
+  if(tpl){
+    closePop();
+    if(tpl.dataset.tpl === '__newds'){ pushUndo(); newMarket(true); }
+    else applyTemplate(tpl.dataset.tpl);
+    return;
+  }
+  var pax = ev.target.closest ? ev.target.closest('[data-ppcaxis]') : null;
+  if(pax){ closePop(); setPPCAxes(pax.dataset.ppcaxis); return; }
+  var sc = ev.target.closest ? ev.target.closest('[data-scale]') : null;
+  if(sc){
+    var all = p.querySelectorAll('[data-scale]');
+    for(var i=0;i<all.length;i++) all[i].classList.toggle('on', all[i]===sc);
+    exportMenu.s.scale = +sc.dataset.scale;
+    var px = p.querySelector('.pixels');
+    if(px) px.textContent = VB.w*exportMenu.s.scale+'\u00d7'+VB.h*exportMenu.s.scale+' px';
+    return;
+  }
+  var bg = ev.target.closest ? ev.target.closest('[data-bg]') : null;
+  if(bg){
+    var all2 = p.querySelectorAll('[data-bg]');
+    for(var j=0;j<all2.length;j++) all2[j].classList.toggle('on', all2[j]===bg);
+    exportMenu.s.transparent = (bg.dataset.bg==='t');
+    return;
+  }
+  var ti = ev.target.closest ? ev.target.closest('[data-title]') : null;
+  if(ti){
+    var all3 = p.querySelectorAll('[data-title]');
+    for(var k2=0;k2<all3.length;k2++) all3[k2].classList.toggle('on', all3[k2]===ti);
+    exportMenu.s.title = (ti.dataset.title==='1');
+    return;
+  }
+  var doo = ev.target.closest ? ev.target.closest('[data-do]') : null;
+  if(doo){
+    var s = exportMenu.s, act2 = doo.dataset.do;
+    closePop();
+    if(act2==='png')  exportPNG(s.scale, s.transparent, s.title);
+    if(act2==='copy') copyPNG();
+    if(act2==='svg')  exportSVGFile();
+    if(act2==='save') saveDiagram();
+    if(act2==='open') openDiagramFile();
+    return;
+  }
+  var t2 = ev.target.closest ? ev.target.closest('[data-tool2]') : null;
+  if(t2){ closePop(); setTool(t2.dataset.tool2); return; }
+});
+
+/* ---------- templates: one per special MARKET, never per curve shape ---------- */
+function newMarket(keepTitle){
+  var t = keepTitle ? S.title : '';
+  var opts = JSON.parse(JSON.stringify(S.opts));
+  var step = S.shiftStep;
+  S = blankState();
+  S.kind = 'market';                       /* this is the market starter, by definition */
+  S.title = t; S.opts = opts; S.shiftStep = step;
+  S.axes = {xLabel:'Quantity', yLabel:'Price', ticks:false, grid:false};
+  var d = addCurve('linear', {role:'D', p:{q0:6, p0:92, q1:84, p1:12}});
+  var s = addCurve('linear', {role:'S', p:{q0:12, p0:10, q1:88, p1:82}});
+  S.activeD = d.id; S.activeS = s.id;
+  lastEq = null;
+  syncTitle(); syncKind(); syncRail(); render(); renderInspector(true);
+}
+/* a frontier starter: same wrapper as newMarket, opposite kind.
+   mode is 'outward' | 'straight' | 'inward' | 'growth'. */
+function newPPC(mode, axisKey){
+  /* starting a frontier throws the market away, so it has to be undoable - unlike
+     newMarket(false), which only ever runs at boot or behind an explicit pushUndo */
+  pushUndo();
+  var t = S.title, opts = JSON.parse(JSON.stringify(S.opts)), step = S.shiftStep;
+  S = blankState();
+  S.kind = 'ppc';
+  S.title = t; S.opts = opts; S.shiftStep = step;
+  var pr = axisPresetsFor('ppc').filter(function(p){ return p.x === axisKey; })[0] || axisPresetsFor('ppc')[0];
+  S.axes = {xLabel:pr.x, yLabel:pr.y, ticks:true, grid:false};
+  var bow = (mode === 'straight') ? PPC_N.straight
+          : (mode === 'inward')   ? PPC_N.inward : PPC_N.outward;
+  if(mode === 'growth'){
+    /* the growth starter is a pair: the frontier, and the frontier moved out */
+    var base = addCurve('ppc', {role:'PPC', label:'PPC', color:ROLE_COLOR.PPC,
+                                p:{a:56, b:56, n:PPC_N.outward}});
+    var out = cloneShift(base, 26, 26);
+    out.dash = true;
+    base.label = 'PPC'; out.label = 'PPC1';
+    S.arrowPair = {a: base.id, b: out.id};
+    S.marks.push({id:uid('m'), kind:'text', x:42, y:60, text:'economic growth',
+                  size:22, color:ROLE_COLOR.PPC, weight:500});
+  } else {
+    addCurve('ppc', {role:'PPC', label:'PPC', color:ROLE_COLOR.PPC, p:{a:88, b:88, n:bow}});
+  }
+  lastEq = null; S.sel = null;
+  syncTitle(); syncKind(); syncRail(); render(); renderInspector(true);
+}
+/* add a copy that stays PARALLEL to the current curve of that side */
+function addParallel(role){
+  var base = (role==='D') ? curveById(S.activeD) : curveById(S.activeS);
+  if(base && isPPC(base)) base = null;          /* a frontier is not a demand or a supply */
+  pushUndo();
+  var eq = liveEq(), fresh;
+  if(base && base.visible){
+    if(eq) pushEquilibrium(eq);
+    fresh = cloneShift(base, 0, 0);
+    if(fresh.shape==='hline') translateCurve(fresh, 0, -8);   /* elastic line slides down */
+    else translateCurve(fresh, S.shiftStep, 0);               /* everything else slides right */
+    S.arrowPair = {a: base.id, b: fresh.id};
+  } else {
+    fresh = addCurve('linear', {role: role});
+  }
+  if(role==='D') S.activeD = fresh.id; else S.activeS = fresh.id;
+  lastEq = null;
+  select({type:'curve', id:fresh.id});
+  toast('Added ' + fresh.label + ' \u2014 parallel to ' + (base ? base.label : role) +
+        '. Both equilibria are marked.');
+  return fresh;
+}
+/* move a curve by one step. The first press of a fresh curve creates the parallel copy
+   and pins the ORIGINAL equilibrium; later presses just keep moving the same copy, so
+   the diagram never accumulates a trail of equilibria. */
+/* one "shift" means different things: a PPC grows on both axes at once, while an
+   elastic line slides down and everything else slides sideways */
+function nudgeCurve(c, dir){
+  if(isPPC(c))                growCurve(c, 'both', dir);
+  else if(c.shape==='hline')  translateCurve(c, 0, dir*8);
+  else                        translateCurve(c, dir*S.shiftStep, 0);
+}
+/* ---------- growth on one axis or on both ----------
+   "More capital goods", "more consumer goods" and "more of everything" are three
+   different stories, and a PPC is exactly where that distinction gets taught. */
+function growCurve(c, axis, dir){
+  var step = S.shiftStep;
+  var dq = (axis === 'y') ? 0 : dir*step;      /* the X intercept */
+  var dp = (axis === 'x') ? 0 : dir*step;      /* the Y intercept */
+  var eq = liveEq();
+  var base = c.baseId ? curveById(c.baseId) : null;
+  if(base && base.visible){
+    translateCurve(c, dq, dp);
+    S.arrowPair = {a: base.id, b: c.id};
+  } else {
+    var fresh = cloneShift(c, 0, 0);
+    translateCurve(fresh, dq, dp);
+    if(eq) pushEquilibrium(eq);
+    S.arrowPair = {a: c.id, b: fresh.id};
+    setActiveCurve(fresh);
+    select({type:'curve', id: fresh.id});
+  }
+  lastEq = null;
+  render(); renderInspector(true);
+  return S.arrowPair.b;
+}
+function shiftCurveBy(c, dir){
+  pushUndo();
+  var eq = liveEq();
+  var base = c.baseId ? curveById(c.baseId) : null;
+  if(base && base.visible){
+    nudgeCurve(c, dir);
+    S.arrowPair = {a:base.id, b:c.id};
+  } else {
+    var fresh = cloneShift(c, 0, 0);
+    nudgeCurve(fresh, dir);
+    if(eq) pushEquilibrium(eq);
+    S.arrowPair = {a:c.id, b:fresh.id};
+    setActiveCurve(fresh);
+    select({type:'curve', id:fresh.id});
+  }
+  lastEq = null;
+  render(); renderInspector(true);
+  return S.arrowPair.b;
+}
+/* ---------- one-click shading: derived, so it follows the curves ---------- */
+function regionRing(m){
+  if(!m.derive) return m.pts;
+  var pr = activePair();
+  if(!pr.d || !pr.s) return null;
+  var eq = (m.derive.when === 'before') ? S.eqHistory[0] : liveEq();
+  if(!eq) return null;
+  return surplusRing(m.derive.what, pr.d, pr.s, eq);
+}
+function shadeSurplus(what, when){
+  var pr = activePair();
+  if(!pr.d || !pr.s){ toast('This needs both a demand and a supply.'); return; }
+  if(when === 'before' && !S.eqHistory.length){
+    toast('Shift or copy a curve first \u2014 there is no earlier equilibrium yet.');
+    return;
+  }
+  var chk = surplusRing(what, pr.d, pr.s,
+                        (when === 'before' ? S.eqHistory[0] : liveEq()));
+  if(!chk || chk.length < 3){ toast('That area cannot be built from these curves.'); return; }
+  pushUndo();
+  S.marks.push({
+    id: uid('m'), kind:'region',
+    derive: {what: what, when: when},
+    color: (what === 'cs' ? '#3498db' : '#27ae60'),
+    opacity: (when === 'before' ? 0.14 : 0.34),
+    outline: true
+  });
+  render(); renderInspector(true);
+  toast((what === 'cs' ? 'Consumer' : 'Producer') + ' surplus shaded (' + when + ').');
+}
+function clearShading(){
+  var n = S.marks.filter(function(m){ return m.kind === 'region'; }).length;
+  if(!n){ toast('Nothing is shaded.'); return; }
+  pushUndo();
+  S.marks = S.marks.filter(function(m){ return m.kind !== 'region'; });
+  if(S.sel && S.sel.type === 'mark' && !markById(S.sel.id)) S.sel = null;
+  render(); renderInspector(true);
+  toast('Removed ' + n + ' shaded area' + (n > 1 ? 's' : '') + '.');
+}
+
+/* ---------- externality ---------- */
+function buildExternality(kind){
+  var pr = activePair();
+  if(!pr.d || !pr.s) return null;
+  var soc;
+  if(kind === 'cost'){
+    /* a negative production externality puts social cost ABOVE the private supply */
+    soc = cloneShift(pr.s, 0, 0);
+    soc.label = 'MSC'; soc.color = '#c2255c'; soc.role = 'X'; soc.baseId = null;
+    translateCurve(soc, 0, 22);
+    S.ext = {kind:'cost', social: soc.id, other: pr.d.id};
+  } else {
+    /* a positive consumption externality puts social benefit ABOVE the private demand */
+    soc = cloneShift(pr.d, 0, 0);
+    soc.label = 'MSB'; soc.color = '#c2255c'; soc.role = 'X'; soc.baseId = null;
+    translateCurve(soc, 0, 16);
+    S.ext = {kind:'benefit', social: soc.id, other: pr.s.id};
+  }
+  return S.ext;
+}
+function addExternality(kind){
+  if(!activePair().d || !activePair().s){ toast('This needs a private demand and a private supply.'); return; }
+  pushUndo();
+  buildExternality(kind);
+  lastEq = null;
+  render(); renderInspector(true);
+  toast('Social curve added \u2014 the deadweight loss is shaded automatically.');
+}
+function clearExternality(){
+  if(!S.ext) return;
+  pushUndo();
+  var gone = S.ext.social;
+  S.curves = S.curves.filter(function(c){ return c.id !== gone; });
+  S.ext = null;
+  if(S.sel && S.sel.id === gone) S.sel = null;
+  render(); renderInspector(true);
+}
+/* copy a curve and immediately set up the before/after: the copy becomes the active
+   curve, the old equilibrium is pinned, and the two are linked by the shift arrow */
+function duplicateCurve(c){
+  pushUndo();
+  var eq = liveEq();
+  var copy = cloneShift(c, 0, 0);
+  /* copying a frontier means "show me growth", not a sideways slide */
+  if(isPPC(c)) translateCurve(copy, S.shiftStep, S.shiftStep);
+  if(eq) pushEquilibrium(eq);
+  S.arrowPair = {a:c.id, b:copy.id};
+  setActiveCurve(copy);
+  lastEq = null;
+  select({type:'curve', id:copy.id});
+  renderInspector(true);
+  return copy;
+}
+function baseTemplate(){
+  var st = blankState();
+  st.kind = S.kind;                 /* a template from the market menu stays a market */
+  st.axes = JSON.parse(JSON.stringify(S.axes));
+  st.opts = JSON.parse(JSON.stringify(S.opts));
+  st.shiftStep = S.shiftStep;
+  st.title = S.title;
+  return st;
+}
+function applyTemplate(key){
+  var t = TEMPLATES[key];
+  if(!t) return;
+  /* a frontier starter is not a market variant: it hands over to newPPC() */
+  if(t.starter){
+    var wasMarket = diagramKind() === 'market';
+    newPPC(t.starter, t.axis);
+    toast(t.name + ' loaded' + switchNote(wasMarket) + ' Drag anything to adjust.');
+    return;
+  }
+  var changing = (t.kind || 'market') !== diagramKind();
+  pushUndo();
+  S = baseTemplate();
+  S.kind = t.kind || 'market';
+  if(t.opts) S.opts = Object.assign(S.opts, t.opts);
+  if(t.axes) S.axes = JSON.parse(JSON.stringify(t.axes));
+  t.fn();
+  lastEq = null;
+  syncTitle(); syncKind(); syncRail(); render(); renderInspector(true);
+  toast(t.name + ' loaded' + switchNote(changing) + ' Drag anything to adjust.');
+}
+function switchNote(changed){
+  return changed ? (S.kind === 'ppc'
+    ? ' \u2014 switched to a production possibility frontier.'
+    : ' \u2014 switched to a market diagram.') : '';
+}
+/* switching the axis pair of a frontier without rebuilding it */
+function setPPCAxes(key){
+  var pr = axisPresetsFor('ppc').filter(function(p){ return p.x === key; })[0];
+  if(!pr) return;
+  if(isPPCDiagram()){
+    pushUndo();
+    S.axes.xLabel = pr.x; S.axes.yLabel = pr.y; S.axes.ticks = true;
+    lastEq = null;
+    render(); renderInspector(true);
+  } else {
+    newPPC('outward', key);           /* axis choice doubles as "start a frontier" */
+  }
+}
+function firstEq(d, s){
+  var pts = polyInt(sampleCurve(d), sampleCurve(s));
+  return pts.length ? pts[0] : null;
+}
+var TEMPLATES = {
+  adasLinear:{
+    name:'AD\u2013AS (AP / IB)',
+    desc:'AD, upward SRAS and vertical LRAS',
+    axes:{xLabel:'Real GDP', yLabel:'Price level'},
+    fn:function(){
+      var ad = addCurve('linear',{role:'AD', label:'AD', color:'#f08c00',
+        p:{q0:8, p0:94, q1:88, p1:10}});
+      var sras = addCurve('linear',{role:'S', label:'SRAS', color:'#e03131',
+        p:{q0:16, p0:16, q1:82, p1:88}});
+      addCurve('vline',{role:'LRAS', p:{q:72, p0:0, p1:96}});
+      S.activeD = ad.id; S.activeS = sras.id;
+    }
+  },
+  adasIGCSE:{
+    name:'AD\u2013AS (IGCSE)',
+    desc:'AD and the kinked AS curve',
+    axes:{xLabel:'Real GDP', yLabel:'Price level'},
+    fn:function(){
+      var ad = addCurve('linear',{role:'AD', label:'AD', color:'#f08c00',
+        p:{q0:6, p0:96, q1:90, p1:12}});
+      var as = addCurve('kinkedAS',{role:'AS', p:{p0:20, q1:45, q2:66, p2:58, pMax:100, gamma:2.0}});
+      S.activeD = ad.id; S.activeS = as.id;
+    }
+  },
+  reserves:{
+    name:'Reserves (ample)',
+    desc:'Floor rate \u2014 the rate is pinned',
+    axes:{xLabel:'Quantity of reserves', yLabel:'Interest rate'},
+    fn:function(){
+      /* demand for reserves: flat at the ceiling, sloping, then flat at the floor */
+      var d = addCurve('kink3',{role:'D', label:'D', color:'#1c7ed6',
+        p:{q0:2, pA:86, q1:22, q2:60, pB:20, q3:98}});
+      var s = addCurve('vline',{role:'S', label:'S', color:'#e03131',
+        p:{q:76, p0:0, p1:100}});
+      S.activeD = d.id; S.activeS = s.id;
+      S.marks.push({id:uid('m'), kind:'text', x:26, y:92, text:'ceiling',
+                    size:22, color:'#7048e8', weight:500});
+      S.marks.push({id:uid('m'), kind:'text', x:64, y:27, text:'floor',
+                    size:22, color:'#7048e8', weight:500});
+    }
+  },
+  reservesLimited:{
+    name:'Reserves (limited)',
+    desc:'No floor \u2014 supply sets the rate',
+    axes:{xLabel:'Quantity of reserves', yLabel:'Interest rate'},
+    fn:function(){
+      /* traditional scarce-reserve regime: flat at the ceiling, then straight down.
+         There is NO floor, so the vertical supply decides the rate. */
+      var d = addCurve('kink',{role:'D', label:'D', color:'#1c7ed6',
+        p:{q0:2, p0:86, qk:30, pk:86, q1:94, p1:4}});
+      var s = addCurve('vline',{role:'S', label:'S', color:'#e03131',
+        p:{q:56, p0:0, p1:100}});
+      S.activeD = d.id; S.activeS = s.id;
+      S.marks.push({id:uid('m'), kind:'text', x:24, y:92, text:'ceiling',
+                    size:22, color:'#7048e8', weight:500});
+    }
+  },
+  extCost:{
+    name:'Externality (production)',
+    desc:'Social cost above the private supply',
+    axes:{xLabel:'Quantity', yLabel:'Price'},
+    fn:function(){
+      var d = addCurve('linear',{role:'D', label:'MPB', color:'#1c7ed6',
+        p:{q0:6, p0:90, q1:86, p1:14}});
+      var s = addCurve('linear',{role:'S', label:'MPC', color:'#e03131',
+        p:{q0:10, p0:8, q1:84, p1:76}});
+      S.activeD = d.id; S.activeS = s.id;
+      buildExternality('cost');
+    }
+  },
+  extBenefit:{
+    name:'Externality (consumption)',
+    desc:'Social benefit above the private demand',
+    axes:{xLabel:'Quantity', yLabel:'Price'},
+    fn:function(){
+      var d = addCurve('linear',{role:'D', label:'MPB', color:'#1c7ed6',
+        p:{q0:6, p0:82, q1:86, p1:14}});
+      var s = addCurve('linear',{role:'S', label:'MPC', color:'#e03131',
+        p:{q0:10, p0:8, q1:84, p1:70}});
+      S.activeD = d.id; S.activeS = s.id;
+      buildExternality('benefit');
+    }
+  },
+  /* ---------- production possibility ----------
+     These three are NOT market variants and they do not live in the market menu.
+     `starter` hands the whole build over to newPPC(), so there is exactly one
+     implementation behind both the PPC menu and applyTemplate(). */
+  ppc:{
+    name:'Bowed frontier',
+    /* descriptions are kept short on purpose: a description that wraps makes the
+       row 22px taller, and the menu then overflows (see probe-menu-fit) */
+    desc:'Bowed outward \u2014 the standard case',
+    kind:'ppc', starter:'outward', axis:'Good X'
+  },
+  ppcConstant:{
+    name:'Straight frontier',
+    desc:'Straight \u2014 constant cost',
+    kind:'ppc', starter:'straight', axis:'Good X'
+  },
+  ppcGrowth:{
+    name:'Two frontiers',
+    desc:'Growth \u2014 both axes move out',
+    kind:'ppc', starter:'growth', axis:'Good X'
+  }
+};
+
+/* ---------- header wiring ---------- */
+function syncTitle(){ document.getElementById('docTitle').value = S.title || ''; }
+/* The header says out loud which kind of chart you are looking at, and the rail
+   only offers the tools that belong to it. Showing Demand / Supply on a frontier
+   (or a Shade button that only knows about consumer surplus) is exactly the
+   mixing that makes a PPC look like a funny sort of market. */
+function syncKind(){
+  var sub = document.getElementById('brandSub');
+  var ppc = isPPCDiagram();
+  /* kept short on purpose: this sits in the header next to six buttons, and the
+     marked header button already says which chart you are in */
+  if(sub) sub.textContent = ppc ? 'PPC frontier' : 'D & S market';
+  var bt = document.getElementById('btnTemplates'), bp = document.getElementById('btnPPC');
+  if(bt) bt.classList.toggle('here', !ppc);
+  if(bp) bp.classList.toggle('here', ppc);
+}
+function syncRail(){
+  var kind = diagramKind();
+  var els = document.querySelectorAll('#rail [data-for]');
+  for(var i=0;i<els.length;i++){
+    var want = els[i].dataset.for;
+    var show = (want === 'both') || (want === kind);
+    els[i].hidden = !show;
+  }
+  /* a divider with nothing above OR below it would leave a stray rule */
+  var rail = document.getElementById('rail');
+  var kids = rail.children;
+  for(var k=0;k<kids.length;k++){
+    if(!kids[k].classList.contains('railsep')) continue;
+    var beforeTool = false, afterTool = false;
+    for(var a=k-1;a>=0;a--){
+      if(kids[a].classList.contains('railsep')) continue;
+      if(!kids[a].hidden){ beforeTool = kids[a].classList.contains('tool'); }
+      break;
+    }
+    for(var b2=k+1;b2<kids.length;b2++){
+      if(kids[b2].classList.contains('railsep')) continue;
+      if(!kids[b2].hidden){ afterTool = kids[b2].classList.contains('tool'); }
+      break;
+    }
+    kids[k].hidden = !(beforeTool && afterTool);
+  }
+  refreshHint();
+}
+function bindHeader(){
+  document.getElementById('docTitle').addEventListener('input', function(ev){ S.title = ev.target.value; });
+  document.getElementById('btnGuide').addEventListener('click', function(ev){
+    ev.stopPropagation();
+    closePop();
+    startTour(0);
+  });
+  document.getElementById('btnUndo').addEventListener('click', doUndo);
+  document.getElementById('btnRedo').addEventListener('click', doRedo);
+  document.getElementById('btnExportPng').addEventListener('click', function(ev){
+    ev.stopPropagation();
+    if(popoverEl && popoverEl.querySelector('[data-do]')){ closePop(); return; }
+    openPop(exportMenu(), ev.currentTarget, 400);
+  });
+  document.getElementById('btnTemplates').addEventListener('click', function(ev){
+    ev.stopPropagation();
+    if(popoverEl && popoverEl.querySelector('[data-tpl]')){ closePop(); return; }
+    openPop(templateMenu(), ev.currentTarget, 476);
+  });
+  document.getElementById('btnPPC').addEventListener('click', function(ev){
+    ev.stopPropagation();
+    if(popoverEl && popoverEl.querySelector('[data-ppcaxis]')){ closePop(); return; }
+    openPop(ppcMenu(), ev.currentTarget, 400);
+  });
+  var bs = document.querySelectorAll('.tool');
+  for(var i=0;i<bs.length;i++){
+    (function(btn){
+      btn.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        var t = btn.dataset.tool;
+        closePop();
+        if(t==='addD'){ addParallel('D'); return; }
+        if(t==='addS'){ addParallel('S'); return; }
+        if(t==='more'){ openPop(moreMenu(), btn, 340); return; }
+        setTool(t);
+      });
+    })(bs[i]);
+  }
+  document.addEventListener('keydown', onKey);
+}
+function onKey(ev){
+  var inField = /^(INPUT|SELECT|TEXTAREA)$/.test(ev.target.tagName);
+  if(ev.key==='Escape'){
+    if(tourIdx >= 0){ endTour(); return; }
+    if(pending){ pending = null; render(); return; }
+    if(popoverEl){ closePop(); return; }
+    if(inField){ ev.target.blur(); return; }
+    S.sel = null; render(); renderInspector(true); return;
+  }
+  if(inField) return;
+  if(ev.key==='Enter' && pending && pending.type==='region'){ finishRegion(); return; }
+  if((ev.ctrlKey||ev.metaKey) && ev.key.toLowerCase()==='z'){
+    ev.preventDefault();
+    if(ev.shiftKey) doRedo(); else doUndo();
+    return;
+  }
+  if((ev.ctrlKey||ev.metaKey) && ev.key.toLowerCase()==='y'){ ev.preventDefault(); doRedo(); return; }
+  if(ev.key==='Delete' || ev.key==='Backspace'){
+    ev.preventDefault();
+    if(S.sel){
+      if(S.sel.type==='curve'){ var c = curveById(S.sel.id); if(c) removeCurve(c); }
+      else { var m = markById(S.sel.id); if(m) removeMark(m); }
+    }
+    return;
+  }
+  var sel = (S.sel && S.sel.type==='curve') ? curveById(S.sel.id) : null;
+  if(sel && ev.key.indexOf('Arrow')===0){
+    ev.preventDefault();
+    var step = ev.shiftKey ? 1 : 0.5;
+    pushUndo();
+    if(ev.key==='ArrowLeft')  translateCurve(sel, -step, 0);
+    if(ev.key==='ArrowRight') translateCurve(sel,  step, 0);
+    if(ev.key==='ArrowUp')    translateCurve(sel, 0, -step);
+    if(ev.key==='ArrowDown')  translateCurve(sel, 0,  step);
+    render(); return;
+  }
+  var k = ev.key.toLowerCase();
+  if(k==='d'){ pushUndo(); select({type:'curve', id:addCurve('linear',{role:'D'}).id}); }
+  else if(k==='s'){ pushUndo(); select({type:'curve', id:addCurve('linear',{role:'S'}).id}); }
+  else if(k==='v'){ setTool('select'); }
+  else if(k==='e'){ setTool('erase'); }
+  else if(k==='p'){ setTool('point'); }
+  else if(k==='t'){ setTool('text'); }
+}
+
+/* ---------- test surface + boot ---------- */
+/* =====================================================================
+   guided tour - skippable, replayable from the Guide button
+   ===================================================================== */
+var TOUR_KEY = 'econDiagramStudio.tourDone';
+var TOUR = [
+  {title:'Welcome', sel:null,
+   body:'A plain <b>Demand &amp; Supply</b> diagram is already on the canvas. '+
+        'Six quick steps \u2014 you can skip at any point, and replay it later from <b>Guide</b>.'},
+  {title:'The canvas', sel:'#stage',
+   body:'Drag a curve to move it, drag the round handles to change its shape. '+
+        'Drag any letter \u2014 <b>D</b>, <b>S</b>, <b>E\u2081</b>, <b>P\u2081</b> \u2014 to park that label exactly where you want it.'},
+  {title:'Show a change', sel:'[data-tool="addD"]',
+   body:'<b>Demand</b> adds a curve parallel to the current one. The old equilibrium stays pinned, '+
+        'and <b>P\u2081 P\u2082 / Q\u2081 Q\u2082</b> are written straight onto the axes.'},
+  {title:'Special markets', sel:'#btnTemplates',
+   body:'AD\u2013AS, both reserve-market regimes and the externality diagrams live here. '+
+        'Each one has a little picture, so you can see what you are picking.'},
+  {title:'Shade a surplus', sel:'[data-tool="region"]',
+   body:'One click for <b>consumer</b> and <b>producer surplus</b>, at the old equilibrium and at the new one. '+
+        'The areas are worked out from the curves, so they stay correct when you drag one.'},
+  {title:'Everything about one curve', sel:'#inspector',
+   body:'Select a curve and this panel is about that curve only \u2014 its type, its <b>Angle</b>, its colour. '+
+        'Axis names for the labour, money, loanable-funds and foreign-exchange markets are under <b>Axes</b>.'},
+  {title:'Getting it out', sel:'#btnExportPng',
+   body:'Export a PNG up to 4\u00d7, copy it straight into PowerPoint, or save an editable SVG.'}
+];
+var tourIdx = -1, tourLit = null, tourCard = null, tourBlock = null;
+
+function endTour(){
+  if(tourLit) tourLit.classList.remove('tour-lit');
+  if(tourBlock && tourBlock.parentNode) tourBlock.parentNode.removeChild(tourBlock);
+  if(tourCard && tourCard.parentNode) tourCard.parentNode.removeChild(tourCard);
+  tourLit = null; tourCard = null; tourBlock = null; tourIdx = -1;
+  try { window.localStorage.setItem(TOUR_KEY, '1'); } catch(e){}
+}
+function tourAt(i){
+  var step = TOUR[i], el = step.sel ? document.querySelector(step.sel) : null;
+  if(tourLit) tourLit.classList.remove('tour-lit');
+  if(tourCard && tourCard.parentNode) tourCard.parentNode.removeChild(tourCard);
+  if(tourBlock && tourBlock.parentNode) tourBlock.parentNode.removeChild(tourBlock);
+  tourLit = el;
+  if(el) el.classList.add('tour-lit');
+  if(!tourBlock){
+    tourBlock = document.createElement('div');
+    tourBlock.id = 'tourBlock';
+    document.body.appendChild(tourBlock);
+  }
+  tourCard = document.createElement('div');
+  tourCard.id = 'tourCard';
+  tourCard.innerHTML =
+    '<h4>' + step.title + '<span>' + (i+1) + ' / ' + TOUR.length + '</span></h4>' +
+    '<p>' + step.body + '</p>' +
+    '<div class="tf"><div class="dots">' +
+      TOUR.map(function(_, k){ return '<i class="' + (k === i ? 'on' : '') + '"></i>'; }).join('') +
+    '</div>' +
+      (i > 0 ? '<button data-tour="back">Back</button>' : '') +
+      '<button data-tour="skip">Skip</button>' +
+      '<button class="primary" data-tour="' + (i === TOUR.length-1 ? 'done' : 'next') + '">' +
+        (i === TOUR.length-1 ? 'Start drawing' : 'Next') + '</button>' +
+    '</div>';
+  document.body.appendChild(tourCard);
+  tourPlace(el);
+}
+function tourPlace(el){
+  if(!tourCard) return;
+  var W = window.innerWidth, H = window.innerHeight, m = 16;
+  var r = el ? el.getBoundingClientRect() : null;
+  var w = tourCard.offsetWidth || 336, h = tourCard.offsetHeight || 190;
+  var cx = r ? r.left + r.width/2 : W/2;
+  var left = clamp(cx - w/2, m, W - w - m);
+  var top;
+  if(!r) top = (H - h)/2;
+  else if(r.top + r.height/2 < H/2) top = Math.min(r.bottom + 14, H - h - m);
+  else top = Math.max(r.top - h - 14, m);
+  tourCard.style.left = Math.round(left) + 'px';
+  tourCard.style.top  = Math.round(top) + 'px';
+}
+function startTour(i){
+  tourIdx = (i == null) ? 0 : i;
+  tourAt(tourIdx);
+}
+function tourStep(d){
+  var n = tourIdx + d;
+  if(n < 0) n = 0;
+  if(n >= TOUR.length){ endTour(); return; }
+  tourIdx = n;
+  tourAt(tourIdx);
+}
+document.addEventListener('click', function(ev){
+  var b = ev.target.closest ? ev.target.closest('[data-tour]') : null;
+  if(!b) return;
+  ev.preventDefault(); ev.stopPropagation();
+  var a = b.dataset.tour;
+  if(a === 'skip' || a === 'done') endTour();
+  else if(a === 'next') tourStep(1);
+  else if(a === 'back') tourStep(-1);
+}, true);
+window.addEventListener('resize', function(){ if(tourCard) tourPlace(tourLit); });
+
+window.__econ = {
+  get state(){ return S; },
+  set state(v){ S = v; },
+  buildItems: buildItems,
+  sampleCurve: sampleCurve,
+  polyInt: polyInt,
+  xAtY: xAtY,
+  liveEq: liveEq,
+  render: render,
+  renderInspector: renderInspector,
+  blankState: blankState,
+  X: X, Y: Y, invX: invX, invY: invY, PLOT: PLOT,
+  addCurve: addCurve,
+  cloneShift: cloneShift,
+  translateCurve: translateCurve,
+  addParallel: addParallel,
+  shiftCurveBy: shiftCurveBy,
+  duplicateCurve: duplicateCurve,
+  shadeSurplus: shadeSurplus,
+  clearShading: clearShading,
+  addExternality: addExternality,
+  clearExternality: clearExternality,
+  regionRing: regionRing,
+  surplusRing: surplusRing,
+  segFrom: segFrom,
+  AXIS_PRESETS: AXIS_PRESETS,
+  axisPresetIndex: axisPresetIndex,
+  startTour: startTour,
+  endTour: endTour,
+  tourStep: tourStep,
+  get tourIndex(){ return tourIdx; },
+  TOUR: TOUR,
+  newMarket: newMarket,
+  convertShape: convertShape,
+  setCurveAngle: setCurveAngle,
+  curveAngle: curveAngle,
+  curveSteep: curveSteep,
+  curveSign: curveSign,
+  applySteep: applySteep,
+  angleCapable: angleCapable,
+  rotateCurveScreen: rotateCurveScreen,
+  curveMid: curveMid,
+  rotatable: rotatable,
+  SHAPES: SHAPES,
+  ROLE_NAME: ROLE_NAME,
+  ROLE_COLOR: ROLE_COLOR,
+  labelText: labelText,
+  BADGE_KEY: BADGE_KEY,
+  startLabelEdit: startLabelEdit,
+  closeInlineEdit: closeInlineEdit,
+  isPPC: isPPC,
+  ppcBow: ppcBow,
+  ppcBowToN: ppcBowToN,
+  ppcRegime: ppcRegime,
+  PPC_N: PPC_N,
+  growCurve: growCurve,
+  defaultShape: defaultShape,
+  curveById: curveById,
+  markById: markById,
+  setActiveCurve: setActiveCurve,
+  activePair: activePair,
+  isMarketDiagram: isMarketDiagram,
+  isPPCDiagram: isPPCDiagram,
+  diagramKind: diagramKind,
+  shapesFor: shapesFor,
+  rolesFor: rolesFor,
+  axisPresetsFor: axisPresetsFor,
+  currentAxisPresets: currentAxisPresets,
+  newPPC: newPPC,
+  setPPCAxes: setPPCAxes,
+  syncKind: syncKind,
+  syncRail: syncRail,
+  TEMPLATES_KEYS: function(){ return Object.keys(TEMPLATES); },
+  setTool: setTool,
+  refreshHint: refreshHint,
+  closePop: closePop,
+  doUndo: doUndo,
+  doRedo: doRedo,
+  diagramFile: diagramFile,
+  adoptState: adoptState,
+  loadDiagramText: loadDiagramText,
+  saveDiagram: saveDiagram,
+  suggestName: suggestName,
+  saveDraft: saveDraft,
+  loadDraft: loadDraft,
+  clearDraft: clearDraft,
+  touchDraft: touchDraft,
+  draftsOffFor: draftsOffFor,
+  DRAFT_KEY: DRAFT_KEY,
+  handles: handles,
+  moveHandle: moveHandle,
+  snapshot: snapshot,
+  /* where the change pill ended up, in canvas units - null while it is hidden */
+  get badgePos(){ return badgePos; },
+  /* delegate to the real thing, so the tests exercise the shipping code path
+     (kind switching, rail sync and all) instead of a private copy of it */
+  applyTemplate: function(key){ applyTemplate(key); return S; },
+  renderToCanvas: renderToCanvas,
+  buildSVGString: buildSVGString,
+  TEMPLATES: TEMPLATES
+};
+
+bindHeader();
+document.getElementById('fileOpen').addEventListener('change', function(ev){
+  var f = ev.target.files && ev.target.files[0];
+  if(!f) return;
+  var r = new FileReader();
+  r.onload = function(){ loadDiagramText(String(r.result), f.name); };
+  r.onerror = function(){ toast('That file could not be read.'); };
+  r.readAsText(f);
+});
+/* a refresh should not cost the work, so the last draft comes back by itself */
+window.addEventListener('beforeunload', function(){ if(draftTimer){ clearTimeout(draftTimer); draftTimer = null; } saveDraft(); });
+newMarket(false);
+setTool('select');
+(function restoreDraft(){
+  if(draftsOff()) return;
+  var d = loadDraft();
+  if(!d) return;
+  var st;
+  try{ st = adoptState(d); }catch(e){ clearDraft(); return; }
+  if(!st.curves.length && !st.marks.length) return;
+  S = st; lastEq = null;
+  syncTitle(); syncKind(); syncRail(); render(); renderInspector(true);
+  toast('Picked up where you left off \u2014 Markets \u25b8 Plain Demand & Supply starts fresh.');
+})();
+/* show the tour once; if storage is blocked we simply never nag */
+(function(){
+  var seen = true;
+  try { seen = !!window.localStorage.getItem(TOUR_KEY); } catch(e){ seen = true; }
+  if(!seen) setTimeout(function(){ if(tourIdx < 0) startTour(0); }, 400);
+})();
+
+})();
+</script>
+</body>
+</html>
