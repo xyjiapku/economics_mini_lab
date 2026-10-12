@@ -1356,9 +1356,9 @@ a { color: var(--gold-deep); }
 /* ---------- 工具条 ---------- */
 .toolbar {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
+  gap: 16px;
   margin-bottom: clamp(26px, 3.4vw, 38px);
 }
 
@@ -1411,7 +1411,7 @@ a { color: var(--gold-deep); }
   flex: 0 0 auto;
 }
 .filter-tags button {
-  padding: 8px 18px;
+  padding: 8px 14px;
   border: 1px solid var(--line);
   border-radius: 99px;
   /* ⚠️ 这里必须"不透明"。
@@ -1458,50 +1458,68 @@ a { color: var(--gold-deep); }
   color: #FFFBF2;
 }
 
-/* 排序切换 —— 一体式分段胶囊，与分类胶囊同一视觉语言 */.sort-wrap {
+/* 第二行控件组：搜索 + 分类 + 排序，整体居中 */
+.controls-row {
   display: flex;
-  align-items: stretch;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.controls-row .search-wrap {
   flex: 0 0 auto;
+  margin-left: 0;
+  max-width: none;
+  width: 120px;
+}
+
+/* 排序切换 —— 紧凑胶囊（⇅ + 当前模式），点击在 A–Z / Learning 间切换 */
+.sort-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 11px;
   border: 1px solid var(--line);
   border-radius: 99px;
   background: color-mix(in srgb, var(--bg-vellum) 94%, var(--bg-deep) 6%);
   box-shadow: var(--shadow-sm);
-  overflow: hidden;
-}
-.sort-wrap button {
-  padding: 8px 18px;
-  border: none;
-  background: transparent;
   font-family: var(--font-body);
   font-size: var(--fs-small);
   font-weight: 650;
-  letter-spacing: .045em;
+  letter-spacing: 0;
   color: var(--ink-muted);
   cursor: pointer;
   transition: all var(--dur-fast) var(--ease-out);
   white-space: nowrap;
 }
-.sort-wrap button + button {
-  border-left: 1px solid var(--line);
-}
-.sort-wrap button:hover {
+.sort-toggle:hover {
+  border-color: var(--line-gold);
   color: var(--ink);
-  background: color-mix(in srgb, var(--line-gold) 22%, transparent);
+  transform: translateY(-1px);
 }
-.sort-wrap button:focus-visible {
+.sort-toggle:focus-visible {
   outline: 2px solid var(--gold);
-  outline-offset: -2px;
+  outline-offset: 2px;
 }
-.sort-wrap button.active {
+.sort-toggle.is-learning {
+  background: linear-gradient(140deg, #A84530, var(--seal));
+  border-color: transparent;
+  color: #FFFBF2;
+}
+.sort-toggle .sort-ico {
+  font-size: 1.05em;
+  color: var(--gold-deep);
+  line-height: 1;
+}
+.sort-toggle.is-learning .sort-ico {
+  color: #FFFBF2;
+}
+[data-theme="dusk"] .sort-toggle.is-learning {
   background: linear-gradient(140deg, #A84530, var(--seal));
   color: #FFFBF2;
 }
-.sort-wrap button.active + button {
-  border-left-color: transparent;
-}
-[data-theme="dusk"] .sort-wrap button.active {
-  background: linear-gradient(140deg, #A84530, var(--seal));
-  color: #FFFBF2;
+[data-theme="dusk"] .sort-toggle .sort-ico {
+  color: var(--gold-bright);
 }
 
 /* 搜索框 */
@@ -1513,7 +1531,7 @@ a { color: var(--gold-deep); }
 }
 .search-wrap input {
   width: 100%;
-  padding: 12px 20px 12px 46px;
+  padding: 12px 14px 12px 40px;
   border: 1px solid var(--line);
   border-radius: 99px;
   background: color-mix(in srgb, var(--bg-vellum) 92%, var(--bg-deep) 8%);
@@ -2043,9 +2061,10 @@ a { color: var(--gold-deep); }
 
 /* 窄屏：顶栏挤了就收起 About 的文字，只留圆标，别把品牌挤没 */
 @media (max-width: 700px) {
-  .toolbar { flex-direction: column; align-items: stretch; }
-  .sort-wrap { justify-content: center; }
-  .search-wrap { max-width: none; margin-left: 0; }
+  .toolbar { align-items: stretch; gap: 12px; }
+  .controls-row { flex-direction: column; align-items: stretch; gap: 10px; }
+  .controls-row .search-wrap { width: 100%; }
+  .sort-toggle { justify-content: center; }
   .stats { justify-content: center; }
   .filter-tags { justify-content: center; }
   .panel-body .info-col {
@@ -2156,20 +2175,21 @@ a { color: var(--gold-deep); }
       <span class="stat-sep" aria-hidden="true"></span>
       <span class="stat"><strong>4</strong>Categories</span>
     </div>
-    <div class="search-wrap">
-      <input type="text" id="searchInput" placeholder="Search tools&hellip;"
-             aria-label="Search tools">
-    </div>
-    <div class="filter-tags" id="filterTags">
-      <button class="active" data-filter="all">All</button>
-      <button data-filter="fundamentals">Fundamentals</button>
-      <button data-filter="micro">Micro</button>
-      <button data-filter="macro">Macro</button>
-      <button data-filter="advanced">Advanced</button>
-    </div>
-    <div class="sort-wrap" id="sortWrap" role="group" aria-label="Sort order">
-      <button class="active" data-sort="az">A&ndash;Z</button>
-      <button data-sort="learning">Learning order</button>
+    <div class="controls-row">
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="Search&hellip;"
+               aria-label="Search tools">
+      </div>
+      <div class="filter-tags" id="filterTags">
+        <button class="active" data-filter="all">All</button>
+        <button data-filter="fundamentals">Fundamentals</button>
+        <button data-filter="micro">Micro</button>
+        <button data-filter="macro">Macro</button>
+        <button data-filter="advanced">Advanced</button>
+      </div>
+      <button class="sort-toggle" id="sortToggle" type="button" aria-label="Sort order (A–Z / Learning); click to switch">
+        <span class="sort-ico" aria-hidden="true">&#8645;</span><span id="sortLabel">A&ndash;Z</span>
+      </button>
     </div>
   </div>
 
@@ -2443,16 +2463,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    /* ----- Sort toggle (A–Z / Learning order) ----- */
-    const sortButtons = document.querySelectorAll('.sort-wrap button');
-    sortButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            sortButtons.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentSort = btn.dataset.sort;
+    /* ----- Sort toggle (compact pill: A–Z ⇄ Learning) ----- */
+    const sortToggle = document.getElementById('sortToggle');
+    const sortLabel = document.getElementById('sortLabel');
+    if (sortToggle) {
+        sortToggle.addEventListener('click', function() {
+            currentSort = currentSort === 'az' ? 'learning' : 'az';
+            if (sortLabel) sortLabel.textContent = currentSort === 'az' ? 'A–Z' : 'Learning';
+            sortToggle.classList.toggle('is-learning', currentSort === 'learning');
             render();
         });
-    });
+    }
 
     /* ----- Feedback toggle ----- */
     const toggleBtn = document.getElementById('feedbackToggle');
